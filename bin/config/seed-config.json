@@ -1,0 +1,12 @@
+{
+	"global" : {
+		"Debug" : true,
+		"GOMAXPROCS" : 5
+	},
+	"servicePoint" : {
+		"Port" : 1080
+	},
+	"auth" : {
+		"User" : "test:test,test2:test2,test3:"
+	}
+}

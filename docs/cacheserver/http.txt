@@ -1,0 +1,17 @@
+http协议
+	/get
+		g 组名
+		k 键
+		t 超时时间，秒
+		d 调试
+		n 不加载
+	/load
+		g 组名
+		k 键
+	/put
+		g 组名
+		k 键
+		v 值
+	/erase
+		g 组名
+		k 键

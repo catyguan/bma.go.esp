@@ -1,0 +1,19 @@
+{
+	"VAR" : {
+		"TELNET_PORT" : 1080
+	},
+	"global" : {
+		"Debug" : true,
+		"GOMAXPROCS" : 3
+	},
+	"sqliteServer" : {
+		"Database" : {
+			"test" : {
+				"Dsn" : "${CWD}/../test/foo.db"
+			}
+		}
+	},
+	"telnetServer" : {
+		"INCLUDE" : "telnet.json"
+	}
+}

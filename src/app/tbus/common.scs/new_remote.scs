@@ -1,0 +1,11 @@
+cd tbusService
+cd remote
+new dial
+
+set name xxxx
+set address yyyy:pp
+set tbus coder
+set max xx
+
+test
+ed commit

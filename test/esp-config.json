@@ -1,0 +1,52 @@
+{
+	"global" : {
+		"Debug" : true,
+		"GOMAXPROCS" : 2
+	},
+	"logger" : {
+		"Writer" : [
+			{
+				"Name" : "stdout",
+				"Type" : "console",
+				"Disable" : false
+			},
+			{
+				"Name" : "file",
+				"Type" : "file",
+				"Disable": true,
+				"File" : "applog"
+			},
+			{
+				"Name" : "link",
+				"Type" : "link",
+				"Disable" : true,
+				"Writer1" : "stdout",
+				"Writer2" : "stdout"
+			}
+		],
+		"Filter" : [
+			{
+				"Name" : "root",
+				"Level" : "ALL",
+				"Writer" : "stdout"
+			},
+			{
+				"Name" : "test",
+				"Level" : "INFO"
+			},
+			{
+				"Name" : "test2",
+				"Level" : "WARN",
+				"Disable" : true
+			},
+			{
+				"Name":"test3",
+				"Writer" : "link",
+				"Disable" : true
+			}
+		]
+	},
+	"block" : {
+		"Value" : 123
+	}	
+}

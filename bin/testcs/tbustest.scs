@@ -1,0 +1,6 @@
+cd tbusService
+cd remote
+edit r1
+set address localhost:1234
+# test
+ed close

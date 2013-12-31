@@ -1,0 +1,7 @@
+{
+	"Database" : {
+			"local" : {
+				"Dsn" : "${WORK_DIR}/local.db"
+			}
+		}
+}

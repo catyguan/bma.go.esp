@@ -1,0 +1,9 @@
+{
+	"Database" : {
+		"test2" : {
+			"Driver" : "mysql",
+			"DataSource" : "root:root@tcp(172.19.16.195:3306)/db_live2",
+			"DelayOpen" : true
+		}
+	}
+}

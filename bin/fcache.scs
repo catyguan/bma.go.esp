@@ -1,0 +1,12 @@
+cd /
+cd cacheService
+cd c2
+loaders
+unload sql1
+load start
+load name sql1
+load type sql
+load ds test
+load query $$select nick from profile_admin_user where uid = ?
+load keytype int
+load commit

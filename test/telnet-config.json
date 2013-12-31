@@ -1,0 +1,17 @@
+{
+	"VAR" : {
+		"TELNET_PORT" : 1080
+	},
+	"global" : {
+		"Debug" : true,
+		"GOMAXPROCS" : 2
+	},
+	"shell" : {
+		"Version" : "1.2.3"
+	},
+	"telnetServer" : {
+		"Port" : "${TELNET_PORT}",
+		"BlackIp" : "168.0.0.1, 12.0.0.2",
+		"WhiteIp" : "127.0.0.1"
+	}	
+}

@@ -1,0 +1,7 @@
+package gg;
+	 
+message PBHeader {
+    required fixed32 size = 1;
+    optional fixed32 messageType = 2;
+    optional fixed64
+}

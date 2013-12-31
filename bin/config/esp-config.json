@@ -1,0 +1,6 @@
+{
+	"global" : {
+		"Debug" : true,
+		"GOMAXPROCS" : 5
+	}
+}

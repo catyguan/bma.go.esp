@@ -1,0 +1,44 @@
+{
+	"global" : {
+		"Debug" : true,
+		"GOMAXPROCS" : 5
+	},
+	"sqliteServer" : {
+		"Database" : {
+			"local" : {
+				"Dsn" : "${CWD}/local.db"
+			}
+		}
+	},
+	"cacheService" : {
+		"SafeMode" : true
+	},
+	"telnetServer" : {
+		"Port" : "1080",
+		"BlackIp" : "168.0.0.1, 12.0.0.2",
+		"WhiteIp" : "127.0.0.1"
+	},
+	"thriftPoint" : {
+		"Port" : "9090",
+		"Disable" : true
+	},
+	"httpPoint" : {
+		"Port" : "8080",
+		"Disable" : true	
+	},
+	"mcPoint" : {
+		"Port" : "8080",
+		"DefaultGroup" : "test",
+		"Router" : [
+			{
+				"Pattern":"aa",
+				"Group":"aaa"
+			},
+			{
+				"Pattern":"bb",
+				"Group":"bbb"
+			}
+		],
+		"Disable" : false	
+	}
+}

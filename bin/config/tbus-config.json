@@ -1,0 +1,26 @@
+{
+	"global" : {
+		"Debug" : true,
+		"GOMAXPROCS" : 5
+	},
+	"sqliteServer" : {
+		"Database" : {
+			"local" : {
+				"Dsn" : "${CWD}/local.db"
+			}
+		}
+	},	
+	"telnetServer" : {
+		"Port" : "1080",
+		"BlackIp" : "168.0.0.1, 12.0.0.2",
+		"WhiteIp" : "127.0.0.1"
+	},
+	"tbusPoint" : {
+		"Port" : "9090"
+	},
+	"tbusService" : {
+		"DefaultRemote" : "backend",
+		"Trace" : 64,
+		"SafeMode" : true
+	}
+}

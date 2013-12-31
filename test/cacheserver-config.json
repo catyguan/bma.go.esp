@@ -1,0 +1,38 @@
+{
+	"VAR" : {
+		"TELNET_PORT" : 1080,
+		"THRIFT_PORT" : 9090,
+		"HTTP_PORT" : 8080,
+		"MC_PORT" : 8080,
+		"WORK_DIR" : "${CWD}/../test"
+	},
+	"global" : {
+		"Debug" : true,
+		"GOMAXPROCS" : 3
+	},
+	"sqliteServer" : {
+		"INCLUDE" : "sqlite.json"
+	},
+	"telnetServer" : {
+		"INCLUDE" : "telnet.json"
+	},
+	"cacheService" : {
+		"SafeMode" : true
+	},
+	"namedSQL" : {
+		"INCLUDE" : "namedsql.json"
+	},
+	"thriftPoint" : {
+		"Port" : "${THRIFT_PORT}",
+		"Disable" : true
+	},
+	"httpPoint" : {
+		"Port" : "${HTTP_PORT}",
+		"Disable" : true	
+	},
+	"mcPoint" : {
+		"Port" : "${MC_PORT}",
+		"DefaultGroup" : "test",
+		"Disable" : false	
+	}
+}

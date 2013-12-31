@@ -1,0 +1,8 @@
+cd tbusService
+cd module
+
+new
+set name xxxxx
+set remote yyyy
+
+addm xyz
