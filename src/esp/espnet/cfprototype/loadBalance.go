@@ -19,6 +19,24 @@ type LoadBalanceNodeConfig struct {
 	Priority    int
 	FailOver    bool
 }
+
+func (this *LoadBalanceNodeConfig) GetUProperties() []*uprop.UProperty {
+	b := new(uprop.UPropertyBuilder)
+	b.NewProp("name", "channel name").Optional(false).BeValue(this.ChannelName, func(v string) error {
+		this.ChannelName = v
+		return nil
+	})
+	b.NewProp("failover", "use for fail over").BeValue(this.FailOver, func(v string) error {
+		this.FailOver = valutil.ToBool(v, this.FailOver)
+		return nil
+	})
+	b.NewProp("priority", "robin priority, default 1").BeValue(this.Priority, func(v string) error {
+		this.Priority = valutil.ToInt(v, 1)
+		return nil
+	})
+	return b.AsList()
+}
+
 type LoadBalanceConfig struct {
 	Nodes          []*LoadBalanceNodeConfig
 	FailSkipTimeMS int
@@ -55,58 +73,53 @@ func (this *LoadBalanceConfig) AddNode(n *LoadBalanceNodeConfig) {
 	this.Nodes = append(this.Nodes, n)
 }
 
-func (this *LoadBalanceConfig) Remove(n string) bool {
+func (this *LoadBalanceConfig) Remove(idx int) bool {
 	if this.Nodes != nil {
-		for i, node := range this.Nodes {
-			if node.ChannelName == n {
-				c := len(this.Nodes)
-				copy(this.Nodes[i:c-1], this.Nodes[i+1:c])
-				this.Nodes[c-1] = nil
-				this.Nodes = this.Nodes[:c-1]
-				return true
-			}
+		c := len(this.Nodes)
+		if idx >= 0 && idx < c {
+			copy(this.Nodes[idx:c-1], this.Nodes[idx+1:c])
+			this.Nodes[c-1] = nil
+			this.Nodes = this.Nodes[:c-1]
+			return true
 		}
 	}
 	return false
 }
 
 func (this *LoadBalanceConfig) GetProperties() []*uprop.UProperty {
-	r := make([]*uprop.UProperty, 0)
+	b := new(uprop.UPropertyBuilder)
 
-	r = append(r, uprop.NewUProperty("failskip", this.FailSkipTimeMS, true, "fail skip duration, MS", func(v string) error {
+	b.NewProp("failskip", "fail skip duration, MS").BeValue(this.FailSkipTimeMS, func(v string) error {
 		this.FailSkipTimeMS = valutil.ToInt(v, this.FailSkipTimeMS)
 		return nil
-	}))
-	if this.Nodes != nil {
-		c := len(this.Nodes)
-		for i, node := range this.Nodes {
-			var n string
-			if i == c-1 {
-				n = "last"
-			} else {
-				n = fmt.Sprintf("%d", i)
+	})
+	adder := func(vs []string) error {
+		for _, n := range vs {
+			this.AddName(n)
+		}
+		return nil
+	}
+	remover := func(vs []string) error {
+		for _, n := range vs {
+			c := 0
+			if this.Nodes != nil {
+				c = len(this.Nodes)
 			}
-			r = append(r, uprop.NewUProperty(n+".name", node.ChannelName, false, n+") channel name", func(v string) error {
-				node.ChannelName = v
-				return nil
-			}))
-			r = append(r, uprop.NewUProperty(n+".failover", node.FailOver, true, n+") use for fail over", func(v string) error {
-				node.FailOver = valutil.ToBool(v, node.FailOver)
-				return nil
-			}))
-			r = append(r, uprop.NewUProperty(n+".priority", node.Priority, true, n+") robin priority, defalut 1", func(v string) error {
-				node.Priority = valutil.ToInt(v, 1)
-				return nil
-			}))
-			r = append(r, uprop.NewUProperty(n+".delete", false, true, n+") delete node", func(v string) error {
-				if !valutil.ToBool(v, true) {
-					this.Remove(node.ChannelName)
-				}
-				return nil
-			}))
+			idx := uprop.ToIndex(n, c)
+			if !this.Remove(idx - 1) {
+				return fmt.Errorf("unknow channel name %s", n)
+			}
+		}
+		return nil
+	}
+
+	nlist := b.NewProp("node", "nodes for load balance").BeList(adder, remover)
+	if this.Nodes != nil {
+		for _, node := range this.Nodes {
+			nlist.AddFold(node.ChannelName, node.GetUProperties)
 		}
 	}
-	return r
+	return b.AsList()
 }
 
 // ChannleFactory
