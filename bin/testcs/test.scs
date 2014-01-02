@@ -1,0 +1,5 @@
+cd tbusService
+cd remote
+new loadbalance
+add node n1
+select node:1

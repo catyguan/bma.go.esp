@@ -181,7 +181,7 @@ func (this *TBusService) setupByConfig(cfg *runtimeConfig) bool {
 				if err2 != nil {
 					return logger.Error(tag, "RemoteInfo[%s] config fail - %s", rname, err2)
 				}
-				err := this.SetRemote(rname, kind, p)
+				err := this.SetRemote(rname, kind, p, false)
 				if err != nil {
 					return logger.Error(tag, "RemoteInfo[%s] setup fail - %s", rname, err)
 				}
@@ -309,7 +309,16 @@ func (this *TBusService) GetRemotePrototype(name string) (string, cfprototype.Ch
 	return info.kind, info.prototype
 }
 
-func (this *TBusService) SetRemote(name string, kind string, p cfprototype.ChannelFactoryPrototype) error {
+func (this *TBusService) SetRemote(name string, kind string, p cfprototype.ChannelFactoryPrototype, edit bool) error {
+	if edit {
+		this.lock.RLock()
+		_, old := this.remotes[name]
+		this.lock.RUnlock()
+		if old {
+			this.DeleteRemote(name)
+		}
+	}
+
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
