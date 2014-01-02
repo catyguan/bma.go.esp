@@ -1,19 +1,21 @@
-package bombman
+package tankbat
 
 import (
 	"errors"
 	"esp/espnet"
+	"fmt"
 	"logger"
 	"strings"
+	"time"
 )
 
-func (this *Service) doChannelMessage(sch *ServiceChanel, msg *espnet.Message) {
+func (this *Service) doChannelMessage(sch *ServiceChannel, msg *espnet.Message) {
 	b := msg.GetPayloadB()
 	if b == nil {
 		return
 	}
 	line := strings.ToLower(strings.TrimSpace(string(b)))
-	logger.Debug(tag, "%s >> %s", sch.channel, line)
+	logger.Debug(tag, "%s >> %s", sch, line)
 
 	larray := strings.SplitN(line, " ", 2)
 	cmd := larray[0]
@@ -27,25 +29,11 @@ func (this *Service) doChannelMessage(sch *ServiceChanel, msg *espnet.Message) {
 	this.processCommand(sch, cmd, params)
 }
 
-func (this *Service) processCommand(sch *ServiceChanel, cmd, params string) {
+func (this *Service) processCommand(sch *ServiceChannel, cmd, params string) {
 	// only for test
 	switch cmd {
 	case "start":
-		if this.matrix != nil {
-			err := errors.New("matrix started")
-			sch.BeError(err)
-			return
-		}
-		m := NewMatrix(32)
-		m.service = this
-		m.Run(this.initMatrix)
-		this.matrix = m
-		sch.Replay("OK\n")
-
-		m.executor.DoNow("addPlayer", func(m *Matrix) error {
-			m.DoAttachPlayer(1, sch)
-			return nil
-		})
+		this.doStartGame()
 		return
 	case "v":
 		if this.matrix == nil {
@@ -54,8 +42,8 @@ func (this *Service) processCommand(sch *ServiceChanel, cmd, params string) {
 			return
 		}
 		this.matrix.executor.DoNow("view", func(m *Matrix) error {
-			s := m.DoView()
-			sch.Replay(s)
+			s := ""
+			sch.Reply(s)
 			return nil
 		})
 		return
@@ -63,6 +51,20 @@ func (this *Service) processCommand(sch *ServiceChanel, cmd, params string) {
 
 	switch cmd {
 	case "join":
+		if params == "" {
+			err := fmt.Errorf("join miss name")
+			sch.BeError(err)
+			return
+		}
+		sch.ReplyOK()
+
+		if sch.name == "" {
+			sch.name = params
+			sch.waiting = true
+			sch.waitTime = time.Now()
+			this.doCheckWaiting()
+		}
+		return
 	}
 
 	if this.matrix == nil {
@@ -70,7 +72,7 @@ func (this *Service) processCommand(sch *ServiceChanel, cmd, params string) {
 		sch.BeError(err)
 		return
 	}
-	dirf := func(s string) int {
+	dirf := func(s string) DIR {
 		switch s {
 		case "left":
 			return DIR_LEFT
@@ -89,21 +91,14 @@ func (this *Service) processCommand(sch *ServiceChanel, cmd, params string) {
 	case "move":
 		dir := dirf(params)
 		if dir != DIR_NONE {
-			this.matrix.PostAction(sch, ACTION_MOVE, dir)
 			return
 		}
 	case "bomb":
 		dir := dirf(params)
 		if dir != DIR_NONE {
-			this.matrix.PostAction(sch, ACTION_BOMB, dir)
 			return
 		}
 	}
 	logger.Info(mtag, "unknow command - %s %s", cmd, params)
 	sch.BeError(errors.New("unknow command"))
-}
-
-func (this *Service) initMatrix(m *Matrix) error {
-	m.DoInit(4, 11, 11)
-	return nil
 }

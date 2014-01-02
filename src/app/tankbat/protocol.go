@@ -1,11 +1,13 @@
-package bombman
+package tankbat
 
 const (
+	MCK_GROUP  = -1
 	MCK_NONE   = 0
 	MCK_WALL   = 1
 	MCK_ROCK   = 2
-	MCK_PLAYER = 3
-	MCK_BOMB   = 4
+	MCK_BASE   = 3
+	MCK_TANK   = 4
+	MCK_BULLET = 5
 )
 
 const (
