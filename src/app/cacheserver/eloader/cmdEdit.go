@@ -30,14 +30,12 @@ func (this *cmdEdit) Process(s *shell.Session, command string) bool {
 		return true
 	}
 
-	var editor shell.Editor
-
 	if this.service.editConfig == nil {
 		this.service.editConfig = &cacheConfig{}
 	}
 
 	if fs.NArg() == 0 {
-		editor.List(s, "config", this.service.editConfig)
+		shell.EditorHelper.DoList(s, "config", this.service.editConfig)
 	}
 	if fs.NArg() == 1 {
 		subcmd := fs.Arg(0)
@@ -67,9 +65,9 @@ func (this *cmdEdit) Process(s *shell.Session, command string) bool {
 	if fs.NArg() == 2 {
 		varn := fs.Arg(0)
 		v := fs.Arg(1)
-		done := editor.Edit(s, this.service.editConfig, varn, v)
+		done := shell.EditorHelper.DoSet(s, this.service.editConfig, varn, v)
 		if done {
-			editor.List(s, "config", this.service.editConfig)
+			shell.EditorHelper.DoList(s, "config", this.service.editConfig)
 		}
 	}
 	return true

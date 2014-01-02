@@ -36,7 +36,7 @@ func main() {
 
 	cfile := "config/cacheserver-config.json"
 
-	shl := shell.NewShell()
+	shl := shell.NewShell("cacheserver")
 	boot.Install("shell", shl)
 
 	// namedsql

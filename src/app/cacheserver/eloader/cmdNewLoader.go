@@ -88,8 +88,7 @@ func (this *cmdNewLoader) Process(s *shell.Session, command string) bool {
 			varn = ""
 		}
 		if varn != "" {
-			var editor shell.Editor
-			done = editor.Edit(s, cfg, varn, v)
+			done = shell.EditorHelper.DoSet(s, cfg, varn, v)
 		}
 		if done {
 			this.showCurrent(s)
@@ -140,8 +139,7 @@ func (this *cmdNewLoader) showCurrent(s *shell.Session) {
 		s.Writeln("no working, use: load start")
 		return
 	}
-	var editor shell.Editor
-	editor.List(s, "loader", cfg)
+	shell.EditorHelper.DoList(s, "loader", cfg)
 }
 
 func (this *LoaderConfig) GetUProperties() []*uprop.UProperty {
