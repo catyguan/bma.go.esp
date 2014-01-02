@@ -19,6 +19,10 @@ type SocketReceiver func(sock *Socket, data []byte) error
 type SocketWriteListener func(socket *Socket, err error) bool
 type SocketCloseListener func(socket *Socket)
 
+func Func4CloseAfterSend(socket *Socket, err error) bool {
+	return false
+}
+
 type WriteReq struct {
 	data     *byteutil.BytesBuffer
 	datafn   func() *byteutil.BytesBuffer

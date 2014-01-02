@@ -214,6 +214,7 @@ func (this *SocketChannel) SetProperty(name string, val interface{}) bool {
 }
 
 func (this *SocketChannel) PostEvent(ev interface{}) error {
+	cctype := CLOSE_CHANNEL_NONE
 	if msg, ok := ev.(*Message); ok {
 		p := msg.ToPackage()
 		ctrl := FrameCoders.Trace
@@ -222,23 +223,32 @@ func (this *SocketChannel) PostEvent(ev interface{}) error {
 			rmsg := ctrl.CreateReply(msg, info)
 			go this.onReceiveEvent(rmsg)
 		}
+		cctype = FrameCoders.CloseChannel.Has(p)
+	}
 
-		if FrameCoders.CloseChannel.Has(p) {
-			go func() {
-				if !this.socket.IsClosing() {
-					this.socket.Close()
-				}
-			}()
-			return nil
+	if cctype == CLOSE_CHANNEL_NOW {
+		go func() {
+			if !this.socket.IsClosing() {
+				this.socket.Close()
+			}
+		}()
+		return nil
+	}
+
+	callf := func(ev interface{}) error {
+		var f4send socket.SocketWriteListener
+		if cctype == CLOES_CHANNEL_AFTER_SEND {
+			f4send = socket.Func4CloseAfterSend
 		}
+		return this.doPostEvent(ev, f4send)
 	}
 	if this.coder != nil {
-		return this.coder.EncodeMessage(this, ev, this.doPostEvent)
+		return this.coder.EncodeMessage(this, ev, callf)
 	}
-	return this.doPostEvent(ev)
+	return callf(ev)
 }
 
-func (this *SocketChannel) doPostEvent(ev interface{}) error {
+func (this *SocketChannel) doPostEvent(ev interface{}, f4send socket.SocketWriteListener) error {
 	var req *socket.WriteReq
 	switch v := ev.(type) {
 	case []byte:
