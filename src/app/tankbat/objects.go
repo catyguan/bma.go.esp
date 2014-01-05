@@ -35,6 +35,7 @@ func (this *World) Add(o *Object) bool {
 		this.GObj[o.Id] = o
 		if o.child != nil {
 			for _, c := range o.child {
+				c.ShowId = o.Id
 				this.Add(c)
 			}
 		}
@@ -90,10 +91,11 @@ func (this *World) BuildDumpMap(dmap *dumpMap) {
 }
 
 type Object struct {
-	Id   int
-	Kind int
-	Name string
-	Flag int
+	Id     int
+	ShowId int
+	Kind   int
+	Name   string
+	Flag   int
 
 	Body
 	Dir   DIR
@@ -153,6 +155,20 @@ func (this *Object) AddChild(o *Object) {
 	this.child = append(this.child, o)
 }
 
+func (this *Object) SID() int {
+	if this.ShowId > 0 {
+		return this.ShowId
+	}
+	return this.Id
+}
+
+func (this *Object) SKind() int {
+	if this.Kind == MCK_GROUP {
+		return MCK_ROCK
+	}
+	return this.Kind
+}
+
 func (this *Object) String() string {
 	return fmt.Sprintf("%s[%s:%s]", this.Name, this.Body.Pos.POSString(), this.Body.Size.SIZEString())
 }
@@ -165,8 +181,12 @@ func (this *Object) TurnDir(dir DIR) {
 	this.Dir = dir
 }
 
-func (this *Object) StopMove() {
-	this.Speed = 0
+func (this *Object) StopMove() bool {
+	if this.Speed > 0 {
+		this.Speed = 0
+		return true
+	}
+	return false
 }
 
 func (this *Object) StartMove(sp int) {

@@ -7,8 +7,8 @@ type DIR byte
 const (
 	DIR_NONE  = DIR(0)
 	DIR_LEFT  = DIR(4)
-	DIR_RIGHT = DIR(6)
-	DIR_UP    = DIR(8)
+	DIR_RIGHT = DIR(8)
+	DIR_UP    = DIR(1)
 	DIR_DOWN  = DIR(2)
 )
 

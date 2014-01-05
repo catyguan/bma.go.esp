@@ -8,7 +8,7 @@ import (
 
 func main() {
 	m := tankbat.NewMatrix(nil, 32)
-	m.Run()
+	m.Run(1, nil, nil)
 
 	for {
 		if m.IsClosing() {

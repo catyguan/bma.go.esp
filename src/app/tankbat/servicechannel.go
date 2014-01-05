@@ -7,15 +7,26 @@ import (
 )
 
 type ServiceChannel struct {
+	id      uint32
+	closed  bool
 	channel espnet.Channel
+	cmdTime time.Time
 
-	name     string
-	waiting  bool
-	waitTime time.Time
+	name       string
+	joinTeamId int // 0:unknow, 1:A, 2:B
+	playing    bool
 }
 
 func (this *ServiceChannel) Id() uint32 {
-	return this.channel.Id()
+	return this.id
+}
+
+func (this *ServiceChannel) IsClosed() bool {
+	return this.closed
+}
+
+func (this *ServiceChannel) Close() {
+	this.closed = true
 }
 
 func (this *ServiceChannel) String() string {
@@ -27,17 +38,26 @@ func (this *ServiceChannel) String() string {
 }
 
 func (this *ServiceChannel) BeError(err error) {
-	if err != nil {
+	if err != nil && !this.closed {
 		rmsg := espnet.NewMessage()
 		rmsg.BeError(err)
-		this.channel.SendMessage(rmsg)
+		if this.channel.SendMessage(rmsg) != nil {
+			this.Close()
+		}
 	}
 }
 
 func (this *ServiceChannel) Reply(s string) error {
-	rmsg := espnet.NewMessage()
-	rmsg.SetPayload([]byte(s))
-	return this.channel.SendMessage(rmsg)
+	if !this.closed {
+		rmsg := espnet.NewMessage()
+		rmsg.SetPayload([]byte(s))
+		err := this.channel.SendMessage(rmsg)
+		if err != nil {
+			this.Close()
+		}
+		return err
+	}
+	return nil
 }
 
 func (this *ServiceChannel) ReplyOK() error {
@@ -45,18 +65,13 @@ func (this *ServiceChannel) ReplyOK() error {
 }
 
 func (this *ServiceChannel) Send(s string) error {
-	msg := espnet.NewMessage()
-	msg.SetPayload([]byte(s))
-	return this.channel.SendMessage(msg)
-}
-
-type ServiceChannels []*ServiceChannel
-
-func (s ServiceChannels) Len() int      { return len(s) }
-func (s ServiceChannels) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
-
-type ByPlayTime struct{ ServiceChannels }
-
-func (s ByPlayTime) Less(i, j int) bool {
-	return s.ServiceChannels[i].waitTime.Before(s.ServiceChannels[j].waitTime)
+	if !this.closed {
+		msg := espnet.NewMessage()
+		msg.SetPayload([]byte(s))
+		err := this.channel.SendMessage(msg)
+		if err != nil {
+			this.Close()
+		}
+	}
+	return nil
 }

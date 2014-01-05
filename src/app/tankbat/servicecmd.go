@@ -1,6 +1,7 @@
 package tankbat
 
 import (
+	"bmautil/valutil"
 	"errors"
 	"esp/espnet"
 	"fmt"
@@ -10,6 +11,12 @@ import (
 )
 
 func (this *Service) doChannelMessage(sch *ServiceChannel, msg *espnet.Message) {
+	if !sch.cmdTime.IsZero() {
+		if time.Now().Sub(sch.cmdTime) < COMMAND_LIMIT_MS*time.Millisecond {
+			return
+		}
+	}
+	sch.cmdTime = time.Now()
 	b := msg.GetPayloadB()
 	if b == nil {
 		return
@@ -32,9 +39,6 @@ func (this *Service) doChannelMessage(sch *ServiceChannel, msg *espnet.Message) 
 func (this *Service) processCommand(sch *ServiceChannel, cmd, params string) {
 	// only for test
 	switch cmd {
-	case "start":
-		this.doStartGame()
-		return
 	case "v":
 		if this.matrix == nil {
 			err := errors.New("matrix nil")
@@ -42,7 +46,8 @@ func (this *Service) processCommand(sch *ServiceChannel, cmd, params string) {
 			return
 		}
 		this.matrix.executor.DoNow("view", func(m *Matrix) error {
-			s := ""
+			m.world.BuildDumpMap(m.dmap)
+			s := m.dmap.View()
 			sch.Reply(s)
 			return nil
 		})
@@ -51,54 +56,93 @@ func (this *Service) processCommand(sch *ServiceChannel, cmd, params string) {
 
 	switch cmd {
 	case "join":
-		if params == "" {
-			err := fmt.Errorf("join miss name")
+		if sch.name != "" {
+			sch.BeError(fmt.Errorf("has join"))
+			return
+		}
+		sp := strings.Split(params, " ")
+		nick := sp[0]
+		if nick == "" {
+			sch.BeError(fmt.Errorf("join miss name"))
+			return
+		}
+		teamId := 0
+		if len(sp) > 1 {
+			switch sp[1] {
+			case "a":
+				teamId = 1
+			case "b":
+				teamId = 2
+			default:
+				sch.BeError(fmt.Errorf("unknow teamId %s", sp[1]))
+				return
+			}
+		}
+
+		for _, c := range this.channels {
+			if c.name == nick {
+				sch.BeError(fmt.Errorf("name '%s' exists", nick))
+				return
+			}
+		}
+
+		sch.ReplyOK()
+
+		sch.name = nick
+		sch.joinTeamId = teamId
+		this.doJoin(sch)
+		this.doCheckWaiting()
+		return
+	}
+
+	if sch.playing {
+		if this.matrix == nil {
+			err := errors.New("matrix nil")
 			sch.BeError(err)
 			return
 		}
-		sch.ReplyOK()
-
-		if sch.name == "" {
-			sch.name = params
-			sch.waiting = true
-			sch.waitTime = time.Now()
-			this.doCheckWaiting()
+		dirf := func(s string) DIR {
+			switch s {
+			case "left":
+				return DIR_LEFT
+			case "right":
+				return DIR_RIGHT
+			case "up":
+				return DIR_UP
+			case "down":
+				return DIR_DOWN
+			default:
+				v := DIR(valutil.ToInt(s, 0))
+				if v == DIR_LEFT || v == DIR_RIGHT || v == DIR_UP || v == DIR_DOWN {
+					return v
+				}
+				return DIR_NONE
+			}
 		}
-		return
-	}
 
-	if this.matrix == nil {
-		err := errors.New("matrix nil")
-		sch.BeError(err)
-		return
-	}
-	dirf := func(s string) DIR {
-		switch s {
-		case "left":
-			return DIR_LEFT
-		case "right":
-			return DIR_RIGHT
-		case "up":
-			return DIR_UP
-		case "down":
-			return DIR_DOWN
-		default:
-			return DIR_NONE
-		}
-	}
-
-	switch cmd {
-	case "move":
-		dir := dirf(params)
-		if dir != DIR_NONE {
+		switch cmd {
+		case "stop":
+			this.matrix.CommandStop(sch)
 			return
-		}
-	case "bomb":
-		dir := dirf(params)
-		if dir != DIR_NONE {
+		case "move":
+			this.matrix.CommandMove(sch)
+			return
+		case "turn":
+			dir := dirf(params)
+			if dir == DIR_NONE {
+				sch.BeError(fmt.Errorf("turn where?"))
+				return
+			}
+			this.matrix.CommandTurn(sch, dir)
+			return
+		case "fire":
+			this.matrix.CommandFire(sch)
+			return
+		case "killme":
+			this.matrix.CommandKillMe(sch)
 			return
 		}
 	}
 	logger.Info(mtag, "unknow command - %s %s", cmd, params)
-	sch.BeError(errors.New("unknow command"))
+	sch.BeError(fmt.Errorf("unknow command '%s'", cmd))
 }

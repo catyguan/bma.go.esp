@@ -20,9 +20,10 @@ const (
 	MATRIX_MAP_HEIGHT   = 11
 	MATRIX_WORLD_HEIGHT = MATRIX_MAP_HEIGHT * MATRIX_UNIT
 	MATRIX_DURATION_MS  = 1
+	MATRIX_SEC_COUNT    = 1000 / MATRIX_DURATION_MS
 	MATRIX_DURATION_MAX = 60 * 1000
 	MATRIX_LTIME_MAX    = MATRIX_DURATION_MAX / MATRIX_DURATION_MS
-	MATRIX_BEGIN_COUNT  = 1
+	MATRIX_BEGIN_COUNT  = 5
 
 	MATRIX_ROCK_SIZE         = MATRIX_BASE_UNIT
 	MATRIX_TANK_SIZE         = MATRIX_UNIT
@@ -36,6 +37,7 @@ const (
 type Matrix struct {
 	mid      int
 	seqid    int
+	eventId  int
 	executor qexec.QueueExecutor
 	timer    *time.Timer
 	players  map[uint32]*Player
@@ -45,8 +47,12 @@ type Matrix struct {
 
 	service *Service
 
-	colmap map[*Object]bool
-	dmap   *dumpMap
+	isBegin bool
+	colmap  map[*Object]bool
+	events  map[int]interface{}
+	winner  int
+	dmap    *dumpMap
+	builder *mapBuilder
 }
 
 func NewMatrix(s *Service, bz int) *Matrix {
@@ -60,6 +66,7 @@ func NewMatrix(s *Service, bz int) *Matrix {
 	this.players = make(map[uint32]*Player)
 	this.watchers = make(map[string]*ServiceChannel)
 	this.colmap = make(map[*Object]bool)
+	this.events = make(map[int]interface{})
 
 	return this
 }
@@ -83,9 +90,14 @@ func (this *Matrix) stopHandler() {
 	if this.timer != nil {
 		this.timer.Stop()
 	}
+	s := this.service
+	this.service = nil
+	if s != nil && !s.executor.IsClosing() {
+		s.OnMatrixEnd(this)
+	}
 }
 
-func (this *Matrix) Run() bool {
+func (this *Matrix) Run(mapId int, teamA []*ServiceChannel, teamB []*ServiceChannel) bool {
 	globalMID++
 	this.mid = globalMID
 	this.executor.Run()
@@ -94,12 +106,143 @@ func (this *Matrix) Run() bool {
 		if err := this.doInitMatrix(); err != nil {
 			return err
 		}
+		this.doJoinPlayers(teamA, 1)
+		this.doJoinPlayers(teamB, 2)
 		if err := this.doReadyGo(); err != nil {
 			return err
 		}
 		return nil
 	})
 	return true
+}
+
+func (this *Matrix) doFindTank(sch *ServiceChannel) int {
+	for _, pl := range this.players {
+		if pl.Id() == sch.Id() {
+			return pl.tankId
+		}
+	}
+	return 0
+}
+
+func (this *Matrix) CommandMove(sch *ServiceChannel) {
+	err := this.executor.DoNow("cmdMove", func() error {
+		if !this.isBegin {
+			sch.ReplyOK()
+			return nil
+		}
+		tid := this.doFindTank(sch)
+		if tid == 0 {
+			sch.BeError(fmt.Errorf("not found player tank"))
+		} else {
+			err := this.doTankMove(tid, MATRIX_TANK_SPEED)
+			if err != nil {
+				sch.BeError(err)
+			} else {
+				sch.ReplyOK()
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		sch.BeError(err)
+	}
+}
+
+func (this *Matrix) CommandStop(sch *ServiceChannel) {
+	err := this.executor.DoNow("cmdStop", func() error {
+		if !this.isBegin {
+			sch.ReplyOK()
+			return nil
+		}
+		tid := this.doFindTank(sch)
+		if tid == 0 {
+			sch.BeError(fmt.Errorf("not found player tank"))
+		} else {
+			err := this.doTankMove(tid, 0)
+			if err != nil {
+				sch.BeError(err)
+			} else {
+				sch.ReplyOK()
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		sch.BeError(err)
+	}
+}
+
+func (this *Matrix) CommandTurn(sch *ServiceChannel, dir DIR) {
+	err := this.executor.DoNow("cmdTurn", func() error {
+		if !this.isBegin {
+			sch.ReplyOK()
+			return nil
+		}
+		tid := this.doFindTank(sch)
+		if tid == 0 {
+			sch.BeError(fmt.Errorf("not found player tank"))
+		} else {
+			err := this.doTankTurn(tid, dir)
+			if err != nil {
+				sch.BeError(err)
+			} else {
+				sch.ReplyOK()
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		sch.BeError(err)
+	}
+}
+
+func (this *Matrix) CommandFire(sch *ServiceChannel) {
+	err := this.executor.DoNow("cmdTurn", func() error {
+		if !this.isBegin {
+			sch.ReplyOK()
+			return nil
+		}
+		tid := this.doFindTank(sch)
+		if tid == 0 {
+			sch.BeError(fmt.Errorf("not found player tank"))
+		} else {
+			err := this.doTankFire(tid)
+			if err != nil {
+				sch.BeError(err)
+			} else {
+				sch.ReplyOK()
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		sch.BeError(err)
+	}
+}
+
+func (this *Matrix) CommandKillMe(sch *ServiceChannel) {
+	err := this.executor.DoNow("cmdTurn", func() error {
+		if !this.isBegin {
+			sch.ReplyOK()
+			return nil
+		}
+		tid := this.doFindTank(sch)
+		if tid == 0 {
+			sch.BeError(fmt.Errorf("not found player tank"))
+		} else {
+			err := this.doTankKillMe(tid)
+			if err != nil {
+				sch.BeError(err)
+			} else {
+				sch.ReplyOK()
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		sch.BeError(err)
+	}
 }
 
 func (this *Matrix) IsClosing() bool {
@@ -111,23 +254,28 @@ func (this *Matrix) AskClose() bool {
 	return true
 }
 
-func (this *Matrix) InitPlayers(plist []*ServiceChannel) error {
-	return this.executor.DoNow("InitPlayers", func() error {
-		return this.doInitPlayers(plist)
-	})
-}
-
-func (this *Matrix) doSendAllJson(cmd string, info interface{}) {
+func (this *Matrix) doSendEvent(info interface{}) {
 	bs, err := json.Marshal(info)
 	if err != nil {
-		logger.Error(mtag, "sendAll(%s, %v) fail - %s", cmd, info, err)
+		logger.Error(mtag, "doSendEvent(%v) fail - %s", info, err)
 		return
 	}
-	this.doSendAll(cmd, string(bs))
+	this.eventId++
+	s := fmt.Sprintf("EVENT %d %s\n", this.eventId, string(bs))
+	this.doSendAll0(s)
 }
 
 func (this *Matrix) doSendAll(cmd string, str string) {
-	s := fmt.Sprintf("%s %s\n", cmd, str)
+	s := ""
+	if str != "" {
+		s = fmt.Sprintf("%s %s\n", cmd, str)
+	} else {
+		s = fmt.Sprintf("%s\n", cmd)
+	}
+	this.doSendAll0(s)
+}
+
+func (this *Matrix) doSendAll0(s string) {
 	logger.Debug(mtag, "sendAll ==> %s", s)
 	for _, pl := range this.players {
 		if pl.sch != nil {
