@@ -23,6 +23,7 @@ const (
 	PROP_SOCKET_NO_DELAY          = "socket.NoDelay"
 	PROP_SOCKET_READ_BUFFER       = "socket.ReadBuffer"
 	PROP_SOCKET_WRITE_BUFFER      = "socket.WriteBuffer"
+	PROP_SOCKET_WRITE_CHAN_SIZE   = "socket.WriteChanSize"
 )
 
 const (

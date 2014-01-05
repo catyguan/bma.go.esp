@@ -64,7 +64,7 @@ func TestResize(t *testing.T) {
 	}
 	logger.Debug("T", "here2")
 
-	exec.DoSync("beforeStop", 0)
+	exec.DoSync("beforeStop", 9999)
 	exec.Stop()
 	exec.WaitStop()
 }

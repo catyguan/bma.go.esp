@@ -45,7 +45,6 @@ func (this *doc4Remote) Title() string {
 
 func (this *doc4Remote) commands() map[string]func(s *shell.Session, cmd string) bool {
 	r := make(map[string]func(s *shell.Session, cmd string) bool)
-	r["set"] = this.commandEdit
 	r["test"] = this.commandTest
 	return r
 }
@@ -65,19 +64,6 @@ func (this *doc4Remote) HandleCommand(session *shell.Session, cmdline string) (b
 		return true, f(session, cmdline)
 	}
 	return false, false
-}
-
-func (this *doc4Remote) commandEdit(s *shell.Session, command string) bool {
-	name := "set"
-	args := "varname varval"
-	fs := shell.NewFlagSet(name)
-	if shell.DoParse(s, command, fs, name, args, 2, 2) {
-		return false
-	}
-	varn := fs.Arg(0)
-	v := fs.Arg(1)
-	prop := this.docProp()
-	return shell.EditorHelper.DoPropEdit(s, prop, varn, v)
 }
 
 func (this *doc4Remote) commandTest(s *shell.Session, command string) bool {
@@ -129,7 +115,7 @@ func (this *doc4Remote) commandTest(s *shell.Session, command string) bool {
 func (this *doc4Remote) OnCloseDoc(session *shell.Session) {
 
 }
-func (this *doc4Remote) docProp() []*uprop.UProperty {
+func (this *doc4Remote) GetUProperties() []*uprop.UProperty {
 	p := this.info.GetProperties()
 	r := make([]*uprop.UProperty, 2+len(p))
 	r[0] = uprop.NewUProperty("name", this.name, false, "module name", func(v string) error {
@@ -145,10 +131,6 @@ func (this *doc4Remote) docProp() []*uprop.UProperty {
 	copy(r[2:], p)
 	return r
 }
-func (this *doc4Remote) ShowDoc(s *shell.Session) {
-	prop := this.docProp()
-	shell.EditorHelper.DoPropList(s, "Remote", prop)
-}
 
 func (this *doc4Remote) CommitDoc(session *shell.Session) error {
 	if this.name == "" {
@@ -157,7 +139,7 @@ func (this *doc4Remote) CommitDoc(session *shell.Session) error {
 	if err := this.info.Valid(); err != nil {
 		return err
 	}
-	err := this.service.SetRemote(this.name, this.kind, this.info)
+	err := this.service.SetRemote(this.name, this.kind, this.info, this.edit)
 	if err != nil {
 		return err
 	}
