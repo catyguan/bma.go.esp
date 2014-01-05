@@ -27,6 +27,12 @@ func (this *Chan) CloseDChan() {
 	defer func() {
 		recover()
 	}()
+	if this.old != nil {
+		for _, item := range this.old {
+			close(item.c)
+		}
+		this.old = nil
+	}
 	close(this.main)
 }
 
@@ -39,8 +45,25 @@ func (this *Chan) Send(v interface{}) {
 }
 
 func (this *Chan) Read(wait chan interface{}) (interface{}, interface{}) {
-	r1, r2 := this.doRead(wait)
+	r1, r2 := this.doRead(wait, false)
 	return r1, r2
+}
+
+func (this *Chan) ReadAll() []interface{} {
+	r := make([]interface{}, 0)
+	if this.old != nil {
+		for _, item := range this.old {
+			c := len(item.c)
+			for i := 0; i < c; i++ {
+				r = append(r, <-item.c)
+			}
+		}
+	}
+	c := len(this.main)
+	for i := 0; i < c; i++ {
+		r = append(r, <-this.main)
+	}
+	return r
 }
 
 func mulRead(c1, c2 chan interface{}, c3 <-chan time.Time) (interface{}, interface{}, bool) {
@@ -66,7 +89,7 @@ func mulRead(c1, c2 chan interface{}, c3 <-chan time.Time) (interface{}, interfa
 	}
 }
 
-func (this *Chan) doRead(wait chan interface{}) (interface{}, interface{}) {
+func (this *Chan) doRead(wait chan interface{}, retNow bool) (interface{}, interface{}) {
 	if this.old != nil && len(this.old) > 0 {
 		for {
 			if len(this.old) == 0 {

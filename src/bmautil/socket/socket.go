@@ -2,8 +2,10 @@ package socket
 
 import (
 	"bmautil/byteutil"
+	"bmautil/dchan"
 	"bmautil/syncutil"
 	"errors"
+	"fmt"
 	"logger"
 	"net"
 	"sync"
@@ -60,17 +62,17 @@ type Socket struct {
 
 	// runtime
 	closeState *syncutil.CloseState
-	writeq     chan *WriteReq
+	writeq     *dchan.Chan
 }
 
-func NewSocket(conn net.Conn, wbuf int, timeout time.Duration) *Socket {
+func NewSocket(conn net.Conn, wchanBuf int, timeout time.Duration) *Socket {
 	this := new(Socket)
 	this.Conn = conn
 	this.closeState = syncutil.NewCloseState()
 	this.readBuffer = 4 * 1024
 	this.writeBuffer = this.readBuffer
 	this.Timeout = timeout
-	this.writeq = make(chan *WriteReq, wbuf)
+	this.writeq = dchan.NewDChan(wchanBuf)
 	this.Trace = 0
 	this.closeListener = make(map[string]SocketCloseListener)
 
@@ -98,6 +100,10 @@ func (this *Socket) SetWriteBuffer(v int) {
 			c.SetWriteBuffer(v)
 		}
 	}
+}
+
+func (this *Socket) SetWriteChanSize(v int) {
+	this.writeq.Write(v)
 }
 
 func (this *Socket) AddCloseListener(lis SocketCloseListener, id string) {
@@ -132,7 +138,7 @@ func (this *Socket) Write(req *WriteReq) (err error) {
 			}
 		}
 	}()
-	this.writeq <- req
+	this.writeq.Write(req)
 	return nil
 }
 
@@ -151,7 +157,7 @@ func (this *Socket) Close() {
 		defer func() {
 			recover()
 		}()
-		this.writeq <- nil
+		this.writeq.Write(nil)
 	}
 }
 
@@ -159,10 +165,10 @@ func (this *Socket) doCloseWriteq() {
 	defer func() {
 		recover()
 	}()
-	for {
-		select {
-		case req := <-this.writeq:
-			if req != nil {
+	remain := this.writeq.ReadAll()
+	for _, v := range remain {
+		if v != nil {
+			if req, ok := v.(*WriteReq); ok {
 				func() {
 					defer func() {
 						recover()
@@ -170,11 +176,9 @@ func (this *Socket) doCloseWriteq() {
 					req.callback(this, errors.New("closed"))
 				}()
 			}
-		default:
-			return
 		}
 	}
-	close(this.writeq)
+	this.writeq.CloseDChan()
 }
 
 func (this *Socket) doClose() {
@@ -295,9 +299,18 @@ func (this *Socket) doStartWrite() {
 			this.doClose()
 		}()
 		for {
-			req := <-this.writeq
-			if req == nil {
+			v, _ := this.writeq.Read(nil)
+			if v == nil {
 				return
+			}
+			if sz, ok := v.(int); ok {
+				logger.Debug(tag, "Socket[%s] resize write chan size %d", this, sz)
+				this.writeq.DoResize(sz)
+				continue
+			}
+			req, ok := v.(*WriteReq)
+			if !ok {
+				panic(fmt.Sprintf("unknow write req %T", v))
 			}
 			d := req.data
 			if d == nil && req.datafn != nil {

@@ -170,6 +170,12 @@ func (this *SocketChannel) SetProperty(name string, val interface{}) bool {
 			this.socket.SetWriteBuffer(v)
 			return true
 		}
+	case PROP_SOCKET_WRITE_CHAN_SIZE:
+		v := valutil.ToInt(val, -1)
+		if v > 0 {
+			this.socket.SetWriteChanSize(v)
+			return true
+		}
 
 	}
 	if c, ok := this.socket.Conn.(*net.TCPConn); ok {
