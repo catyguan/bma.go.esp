@@ -124,10 +124,14 @@ func (this *dirModule) commandLookup(s *shell.Session, command string) bool {
 		min = mi.Name
 	}
 	s.Write(fmt.Sprintf("lookup '%s' => %s, %s", tname, sin, min))
-	if this.service.config.DefaultRemote == "" {
-		s.Writeln("")
+	if si != nil {
+		s.Write(", " + si.Config.Remote)
 	} else {
-		s.Writeln(fmt.Sprintf(", use DEFAULT '%s'", this.service.config.DefaultRemote))
+		if this.service.config.DefaultRemote == "" {
+			s.Writeln("")
+		} else {
+			s.Writeln(fmt.Sprintf(", use DEFAULT '%s'", this.service.config.DefaultRemote))
+		}
 	}
 	return true
 }

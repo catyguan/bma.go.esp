@@ -1,6 +1,7 @@
 package qexec
 
 import (
+	"bmautil/dchan"
 	"bmautil/syncutil"
 	"bmautil/valutil"
 	"errors"
@@ -37,8 +38,7 @@ type StopHandler func()
 type QueueExecutor struct {
 	Tag        string
 	EDebug     bool
-	requests   chan Request
-	oldQueue   chan Request
+	requests   *dchan.Chan
 	closeState *syncutil.CloseState
 	started    bool
 
@@ -73,7 +73,7 @@ func (this *QueueExecutor) InitQueueExecutor(tag string, bufsize int,
 }
 
 func (this *QueueExecutor) InitRequests(sz int) {
-	this.requests = make(chan Request, sz)
+	this.requests = dchan.NewDChan(sz)
 }
 
 func (this *QueueExecutor) Execute(req *Request) (running bool, err error) {
@@ -113,11 +113,7 @@ func (this *QueueExecutor) run() {
 		if this.StopHandler != nil {
 			safe(this.StopHandler)
 		}
-		close(this.requests)
-		if this.oldQueue != nil {
-			close(this.oldQueue)
-			this.oldQueue = nil
-		}
+		this.requests.CloseDChan()
 		this.closeState.DoneClose()
 		this.started = false
 	}()
@@ -125,20 +121,9 @@ func (this *QueueExecutor) run() {
 		logger.Debug(this.Tag, "run queue executor")
 	}
 	for {
-		var req Request
-		if this.oldQueue != nil {
-			select {
-			case req = <-this.oldQueue:
-				if req.name == "__CLOSE__" {
-					logger.Info(this.Tag, "close old queue")
-					close(this.oldQueue)
-					this.oldQueue = nil
-					continue
-				}
-			}
-		} else {
-			req = <-this.requests
-		}
+		dreq, _ := this.requests.Read(nil)
+		req := dreq.(*Request)
+
 		if req.data == nil {
 			if this.EDebug {
 				logger.Debug(this.Tag, "receive nil request, stop")
@@ -148,7 +133,7 @@ func (this *QueueExecutor) run() {
 		if this.EDebug {
 			logger.Debug(this.Tag, "popup new request - %s", req.name)
 		}
-		if r, _ := this.Execute(&req); !r {
+		if r, _ := this.Execute(req); !r {
 			if this.EDebug {
 				logger.Debug(this.Tag, "receive stop request")
 			}
@@ -186,7 +171,7 @@ func (this *QueueExecutor) Do(name string, req interface{}, cb func(err error)) 
 		}
 		return err
 	}
-	this.requests <- Request{name, req, cb}
+	this.requests.Write(&Request{name, req, cb})
 	if this.EDebug {
 		logger.Debug(this.Tag, "push new request - %s", name)
 	}
@@ -225,7 +210,7 @@ func (this *QueueExecutor) IsClosing() bool {
 
 func (this *QueueExecutor) Stop() bool {
 	if this.closeState.AskClose() && this.requests != nil {
-		this.requests <- Request{"STOP", nil, nil}
+		this.requests.Write(&Request{"STOP", nil, nil})
 	}
 	return true
 }
@@ -238,17 +223,7 @@ func (this *QueueExecutor) WaitStop() bool {
 }
 
 func (this *QueueExecutor) Resize(newbufsize int) bool {
-	if this.oldQueue != nil {
-		return false
-	}
 	logger.Info(this.Tag, "resize to %d", newbufsize)
-	if this.requests != nil {
-		this.oldQueue = this.requests
-	}
-	this.InitRequests(newbufsize)
-	q := this.oldQueue
-	go func() {
-		q <- Request{"__CLOSE__", nil, nil}
-	}()
+	this.requests.DoResize(newbufsize)
 	return true
 }

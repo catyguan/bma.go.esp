@@ -143,6 +143,10 @@ func (this *Frame) Data() (*byteutil.BytesBuffer, error) {
 	return this.data, nil
 }
 
+func (this *Frame) RawData() *byteutil.BytesBuffer {
+	return this.data
+}
+
 func (this *Frame) Value(dec Decoder) (interface{}, error) {
 	if this.value == nil {
 		if this.data != nil && this.data.Len() > 0 {
@@ -154,6 +158,10 @@ func (this *Frame) Value(dec Decoder) (interface{}, error) {
 		}
 	}
 	return this.value, nil
+}
+
+func (this *Frame) RawValue() interface{} {
+	return this.value
 }
 
 func (this *Frame) String() string {

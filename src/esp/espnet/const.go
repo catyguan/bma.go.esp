@@ -23,6 +23,7 @@ const (
 	PROP_SOCKET_NO_DELAY          = "socket.NoDelay"
 	PROP_SOCKET_READ_BUFFER       = "socket.ReadBuffer"
 	PROP_SOCKET_WRITE_BUFFER      = "socket.WriteBuffer"
+	PROP_SOCKET_WRITE_CHAN_SIZE   = "socket.WriteChanSize"
 )
 
 const (
@@ -39,6 +40,7 @@ const (
 	MT_TRACE             = 0x19
 	MT_TRACE_RESP        = 0x1A
 	MT_SEQ_NO            = 0x1B
+	MT_XDATA             = 0x1C
 )
 
 const (

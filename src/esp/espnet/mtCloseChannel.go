@@ -5,6 +5,12 @@ import (
 	"esp/espnet/protpack"
 )
 
+const (
+	CLOSE_CHANNEL_NONE       = byte(0)
+	CLOSE_CHANNEL_NOW        = byte(1)
+	CLOES_CHANNEL_AFTER_SEND = byte(2)
+)
+
 type mt_close_channel byte
 
 func (O mt_close_channel) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
@@ -15,13 +21,13 @@ func (O mt_close_channel) Decode(r *byteutil.BytesBufferReader) (interface{}, er
 	return true, nil
 }
 
-func (O mt_close_channel) Has(p *protpack.Package) bool {
+func (O mt_close_channel) Has(p *protpack.Package) byte {
 	for e := p.Front(); e != nil; e = e.Next() {
 		if e.MessageType() == MT_CLOSE_CHANNEL {
-			return true
+			return e.RawValue().(byte)
 		}
 	}
-	return false
+	return CLOSE_CHANNEL_NONE
 }
 
 func (O mt_close_channel) Remove(p *protpack.Package) {
@@ -33,16 +39,20 @@ func (O mt_close_channel) Remove(p *protpack.Package) {
 	}
 }
 
-func (O mt_close_channel) Set(p *protpack.Package) {
+func (O mt_close_channel) Set(p *protpack.Package, v byte) {
 	O.Remove(p)
-	f := protpack.NewFrameV(MT_CLOSE_CHANNEL, true, O)
+	f := protpack.NewFrameV(MT_CLOSE_CHANNEL, v, O)
 	p.PushFront(f)
 }
 
-func ForceClose(ch Channel) {
+func CloseForce(ch Channel) {
 	if ch != nil {
 		msg := NewMessage()
-		FrameCoders.CloseChannel.Set(msg.ToPackage())
+		FrameCoders.CloseChannel.Set(msg.ToPackage(), CLOSE_CHANNEL_NOW)
 		ch.SendMessage(msg)
 	}
+}
+
+func CloseAfterSend(msg *Message) {
+	FrameCoders.CloseChannel.Set(msg.ToPackage(), CLOES_CHANNEL_AFTER_SEND)
 }

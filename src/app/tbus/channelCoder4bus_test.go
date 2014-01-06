@@ -6,6 +6,7 @@ import (
 	"esp/espnet"
 	"fmt"
 	"testing"
+	"time"
 )
 
 func tobs(s string) []byte {
@@ -46,4 +47,10 @@ func TestChannelCoder(t *testing.T) {
 		fmt.Println("BUFFER", coder.buffer.TraceString(128))
 		fmt.Println("FrameBody", coder.frameBody)
 	}
+}
+
+func TestTException(t *testing.T) {
+	bs := SerializeException("test", 123, "error")
+	fmt.Println(1, bs)
+	time.Sleep(100 * time.Millisecond)
 }

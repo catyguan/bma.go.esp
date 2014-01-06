@@ -108,9 +108,7 @@ func (this *Proxy) doClose(ch espnet.Channel, out bool) {
 			if this.outgoStatus == OGS_IDLE {
 				ch.AskClose()
 			} else {
-				cmsg := espnet.NewMessage()
-				espnet.FrameCoders.CloseChannel.Set(cmsg.ToPackage())
-				ch.SendMessage(cmsg)
+				espnet.CloseForce(ch)
 			}
 		} else {
 			ch.AskClose()
@@ -172,8 +170,17 @@ func (this *Proxy) FindAndSend(msg *espnet.Message) error {
 	a := addr.Identity()
 	cfi, err := this.finder(a)
 	if err != nil {
-		logger.Error(tag, "dispatch '%s' fail - %s", a, err)
-		this.Kill()
+		oerr := logger.Error(tag, "dispatch '%s' fail - %s", a, err)
+		// write texception
+		bs := SerializeReplyException(msg, oerr.Error())
+		if bs != nil {
+			rmsg := msg.ReplyMessage()
+			rmsg.SetPayload(bs)
+			espnet.CloseAfterSend(rmsg)
+			this.main.SendMessage(rmsg)
+		} else {
+			this.Kill()
+		}
 		return err
 	}
 
