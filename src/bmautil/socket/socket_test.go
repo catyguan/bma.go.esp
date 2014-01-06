@@ -54,6 +54,7 @@ func TestSocketBase(t *testing.T) {
 			csock := NewSocket(conn, 8, timeout)
 			csock.Trace = 64
 			csock.Start(nil)
+			csock.SetWriteChanSize(16)
 			req := NewWriteReqB([]byte{1, 2, 3, 4}, nil)
 			csock.Write(req)
 			// csock.Close()
