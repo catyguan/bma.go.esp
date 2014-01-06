@@ -19,6 +19,7 @@ type frameCoder struct {
 	TraceResp       mt_trace
 	CloseChannel    mt_close_channel
 	SeqNO           mt_seq_no
+	XData           mt_xdata
 }
 
 func init() {

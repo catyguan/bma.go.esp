@@ -28,7 +28,7 @@ func (O MessageKind) String() string {
 
 // MessageValuesObj
 var (
-	notValueErr error = errors.New("not message value")
+	notValueErr error = errors.New("not correct value")
 )
 
 type MessageValues struct {

@@ -2,6 +2,7 @@ package espnet
 
 import (
 	"bmautil/byteutil"
+	"esp/espnet/protpack"
 	"testing"
 )
 
@@ -15,4 +16,21 @@ func TestCode1(t *testing.T) {
 	r := buf.NewReader()
 	v, _ := Coders.Uint32.Decode(r)
 	t.Error(v)
+}
+
+func TestMTXData(t *testing.T) {
+	p1 := protpack.NewPackage()
+	FrameCoders.XData.Add(p1, 1, 1234, nil)
+	FrameCoders.XData.Add(p1, 2, "abcdef", nil)
+	b, _ := p1.ToBytesBuffer()
+	t.Error(b.ToBytes())
+
+	pr := protpack.NewPackageReader()
+	pr.Append(b.ToBytes())
+	p2, _ := pr.ReadPackage(1024)
+	it := FrameCoders.XData.Iterator(p2)
+	for ; !it.IsEnd(); it.Next() {
+		v, _ := it.Value(nil)
+		t.Error(it.Xid(), v)
+	}
 }

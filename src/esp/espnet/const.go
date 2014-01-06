@@ -39,6 +39,7 @@ const (
 	MT_TRACE             = 0x19
 	MT_TRACE_RESP        = 0x1A
 	MT_SEQ_NO            = 0x1B
+	MT_XDATA             = 0x1C
 )
 
 const (
