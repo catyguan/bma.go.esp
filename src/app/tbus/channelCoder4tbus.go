@@ -8,12 +8,19 @@ import (
 	"logger"
 )
 
+const (
+	THRIFT_TMESSAGE_NAME = "thrift.tmessage.name"
+	THRIFT_TMESSAGE_SEQ  = "thrift.tmessage.seq"
+	THRIFT_TMESSAGE_TYPE = "thrift.tmessage.type"
+)
+
 type ChannelCoder4TBus struct {
 	maxframe int
 
 	frameBody int
 	seqno     int
 	buffer    *byteutil.BytesBuffer
+	tmessage  TMessage
 }
 
 func NewChannelCoder(maxframe int) *ChannelCoder4TBus {
@@ -44,7 +51,6 @@ func (this *ChannelCoder4TBus) DecodeMessage(ch *espnet.SocketChannel, b []byte,
 	this.buffer.Add(b)
 	reader := this.buffer.NewReader()
 
-	name := ""
 	for {
 		if this.frameBody < 0 {
 			buf := []byte{0, 0, 0, 0}
@@ -65,7 +71,7 @@ func (this *ChannelCoder4TBus) DecodeMessage(ch *espnet.SocketChannel, b []byte,
 			if !ok {
 				return nil
 			}
-			name = message.name
+			this.tmessage = message
 			this.frameBody = int(frameSize) + 4
 			this.seqno = espnet.FrameCoders.SeqNO.FirstSeqno()
 		}
@@ -85,7 +91,11 @@ func (this *ChannelCoder4TBus) DecodeMessage(ch *espnet.SocketChannel, b []byte,
 		}
 
 		msg := espnet.NewRequestMessage()
-		msg.SetAddress(espnet.NewAddress(name))
+		msg.SetAddress(espnet.NewAddress(this.tmessage.name))
+		hs := msg.Headers()
+		hs.Set(THRIFT_TMESSAGE_NAME, this.tmessage.name)
+		hs.Set(THRIFT_TMESSAGE_SEQ, this.tmessage.seqid)
+		hs.Set(THRIFT_TMESSAGE_TYPE, this.tmessage.typeId)
 		maxseq := 0
 		if end {
 			maxseq = this.seqno

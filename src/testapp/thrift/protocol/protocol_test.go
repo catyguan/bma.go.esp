@@ -31,7 +31,7 @@ func TestClient(t *testing.T) {
 	}
 	defer transport.Close()
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 1; i++ {
 		paramMap := make(map[string]string)
 		paramMap["name"] = "qinerg"
 		paramMap["passwd"] = "123456"

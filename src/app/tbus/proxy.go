@@ -170,9 +170,17 @@ func (this *Proxy) FindAndSend(msg *espnet.Message) error {
 	a := addr.Identity()
 	cfi, err := this.finder(a)
 	if err != nil {
-		logger.Error(tag, "dispatch '%s' fail - %s", a, err)
+		oerr := logger.Error(tag, "dispatch '%s' fail - %s", a, err)
 		// write texception
-		this.Kill()
+		bs := SerializeReplyException(msg, oerr.Error())
+		if bs != nil {
+			rmsg := msg.ReplyMessage()
+			rmsg.SetPayload(bs)
+			espnet.CloseAfterSend(rmsg)
+			this.main.SendMessage(rmsg)
+		} else {
+			this.Kill()
+		}
 		return err
 	}
 
