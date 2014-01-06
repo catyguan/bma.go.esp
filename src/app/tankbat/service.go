@@ -1,38 +1,22 @@
-package bombman
+package tankbat
 
 import (
 	"bmautil/qexec"
+	"config"
 	"esp/espnet"
+	"logger"
 )
 
-type ServiceChanel struct {
-	channel espnet.Channel
-}
-
-func (this *ServiceChanel) BeError(err error) {
-	if err != nil {
-		rmsg := espnet.NewMessage()
-		rmsg.BeError(err)
-		this.channel.SendMessage(rmsg)
-	}
-}
-
-func (this *ServiceChanel) Replay(s string) {
-	rmsg := espnet.NewMessage()
-	rmsg.SetPayload([]byte(s))
-	this.channel.SendMessage(rmsg)
-}
-
-func (this *ServiceChanel) Send(s string) {
-	msg := espnet.NewMessage()
-	msg.SetPayload([]byte(s))
-	this.channel.SendMessage(msg)
+type ServiceConfig struct {
+	GamePlayerMin int
+	GamePlayerMax int
 }
 
 type Service struct {
 	name     string
+	config   *ServiceConfig
 	executor qexec.QueueExecutor
-	channels map[uint32]espnet.Channel
+	channels map[uint32]*ServiceChannel
 	matrix   *Matrix
 }
 
@@ -40,7 +24,7 @@ func NewService(n string) *Service {
 	this := new(Service)
 	this.executor.InitQueueExecutor(tag, 32, this.requestHandler)
 	this.executor.StopHandler = this.stopHandler
-	this.channels = make(map[uint32]espnet.Channel)
+	this.channels = make(map[uint32]*ServiceChannel)
 	return this
 }
 
@@ -56,15 +40,24 @@ func (this *Service) stopHandler() {
 	if this.matrix != nil {
 		this.matrix.AskClose()
 	}
-	for k, ch := range this.channels {
+	for k, sch := range this.channels {
 		delete(this.channels, k)
-		ch.SetCloseListener("bombman.service", nil)
-		ch.AskClose()
+		ch := sch.channel
+		if ch != nil {
+			ch.SetCloseListener("app.service", nil)
+			ch.AskClose()
+		}
 	}
 }
 
 func (this *Service) Init() bool {
-	return true
+	cfg := ServiceConfig{}
+	if config.GetBeanConfig(this.name, &cfg) {
+		this.config = &cfg
+		return true
+	}
+	logger.Error(tag, "invalid config")
+	return false
 }
 
 func (this *Service) Start() bool {
@@ -93,12 +86,15 @@ func (this *Service) Add(ch espnet.Channel) {
 }
 
 func (this *Service) doAdd(ch espnet.Channel) {
-	this.channels[ch.Id()] = ch
-	ch.SetCloseListener("bombman.service", func() {
+	sch := new(ServiceChannel)
+	sch.channel = ch
+
+	this.channels[ch.Id()] = sch
+	ch.SetCloseListener("app.service", func() {
 		go this.OnChannelClose(ch.Id())
 	})
 	ch.SetMessageListner(func(msg *espnet.Message) error {
-		return this.OnChannelMessage(ch, msg)
+		return this.OnChannelMessage(sch, msg)
 	})
 }
 
@@ -110,18 +106,19 @@ func (this *Service) OnChannelClose(cid uint32) {
 }
 
 func (this *Service) doChannelClose(cid uint32) {
-	ch, ok := this.channels[cid]
+	sch, ok := this.channels[cid]
 	if !ok {
 		return
 	}
 	delete(this.channels, cid)
-	ch.SetMessageListner(nil)
-	ch.GetProperty(PROP_PLAYER)
+	ch := sch.channel
+	if ch != nil {
+		ch.SetMessageListner(nil)
+	}
 }
 
-func (this *Service) OnChannelMessage(ch espnet.Channel, msg *espnet.Message) error {
+func (this *Service) OnChannelMessage(sch *ServiceChannel, msg *espnet.Message) error {
 	return this.executor.DoNow("onChannelMessage", func() error {
-		sch := &ServiceChanel{ch}
 		this.doChannelMessage(sch, msg)
 		return nil
 	})
