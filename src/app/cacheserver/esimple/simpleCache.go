@@ -6,12 +6,54 @@ import (
 	"fmt"
 	"sync"
 	"time"
+	"uprop"
+)
+
+const (
+	CACHE_TYPE = "simple"
 )
 
 func init() {
-	cacheserver.RegCacheFactory("simple", NewSimpleCache)
+	cacheserver.RegCacheFactory(CACHE_TYPE, new(simpleCacheFactory))
 }
 
+// Config
+type simpleCacheConfig struct {
+}
+
+func (this *simpleCacheConfig) GetProperties() []*uprop.UProperty {
+	r := make([]*uprop.UProperty, 0)
+	return r
+}
+
+func (this *simpleCacheConfig) Valid() error {
+	return nil
+}
+
+func (this *simpleCacheConfig) ToMap() map[string]interface{} {
+	r := make(map[string]interface{})
+	return r
+}
+
+func (this *simpleCacheConfig) FromMap(data map[string]interface{}) error {
+	return nil
+}
+
+// Factory
+type simpleCacheFactory struct {
+}
+
+func (this *simpleCacheFactory) CreateConfig() cacheserver.ICacheConfig {
+	return new(simpleCacheConfig)
+}
+
+func (this *simpleCacheFactory) CreateCache(cfg cacheserver.ICacheConfig) (cacheserver.ICache, error) {
+	r := NewSimpleCache()
+	r.config = cfg.(*simpleCacheConfig)
+	return r, nil
+}
+
+// Cache
 type CacheItem struct {
 	data     []byte
 	deadTime int64
@@ -20,15 +62,24 @@ type CacheItem struct {
 type SimpleCache struct {
 	name    string
 	service *cacheserver.CacheService
+	config  *simpleCacheConfig
 	lock    sync.Mutex
 	items   map[string]CacheItem
 	started bool
 }
 
-func NewSimpleCache() cacheserver.ICache {
+func NewSimpleCache() *SimpleCache {
 	this := new(SimpleCache)
 	this.items = make(map[string]CacheItem)
 	return this
+}
+
+func (this *SimpleCache) Type() string {
+	return CACHE_TYPE
+}
+
+func (this *SimpleCache) GetConfig() cacheserver.ICacheConfig {
+	return this.config
 }
 
 func (this *SimpleCache) InitCache(s *cacheserver.CacheService, n string) {

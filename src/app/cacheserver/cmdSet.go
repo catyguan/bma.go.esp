@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	commandNameSet = "set"
+	commandNameSet = "cset"
 )
 
 type cmdSet struct {

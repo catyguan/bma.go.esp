@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	commandNameDelete = "delete"
+	commandNameDelete = "cdel"
 )
 
 type cmdDelete struct {

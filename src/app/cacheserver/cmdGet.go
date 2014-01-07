@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	commandNameGet = "get"
+	commandNameGet = "cget"
 )
 
 type cmdGet struct {

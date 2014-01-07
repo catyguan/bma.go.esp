@@ -30,12 +30,16 @@ func RegCacheFactory(typeName string, fac CacheFactory) {
 	factorties[typeName] = fac
 }
 
+func GetCacheFactory(typeName string) CacheFactory {
+	return factorties[typeName]
+}
+
 type CacheService struct {
 	name     string
 	database *sqlite.SqliteServer
 	caches   map[string]*cacheInfo
 	wcaches  map[string]*cacheInfo
-	safeMode bool
+	config   configInfo
 
 	lock     sync.Mutex
 	stopWait *sync.WaitGroup
@@ -58,16 +62,14 @@ func (this *CacheService) Name() string {
 }
 
 type configInfo struct {
-	SafeMode bool
+	AdminWord string
+	SafeMode  bool
 }
 
 func (this *CacheService) Init() bool {
 	cfg := configInfo{}
 	if config.GetBeanConfig(this.name, &cfg) {
-		this.safeMode = cfg.SafeMode
-		logger.Debug(tag, "FUCK %v", this.safeMode)
-	} else {
-		logger.Debug(tag, "FUCK2 %v", this.name)
+		this.config = cfg
 	}
 	return true
 }
@@ -75,7 +77,7 @@ func (this *CacheService) Init() bool {
 func (this *CacheService) Start() bool {
 	cfg, ok := this.loadRuntimeConfig()
 	if !ok {
-		if !this.safeMode {
+		if !this.config.SafeMode {
 			return false
 		}
 	}
@@ -227,14 +229,13 @@ func (this *CacheService) copyOnWrite() {
 	this.caches = m
 }
 
-func (this *CacheService) CreateCache(name, typeName string) (ICache, error) {
+func (this *CacheService) SetCache(name, typeName string, cache ICache) error {
 	logger.Debug(tag, "CreateCache(%s, %s)", name, typeName)
 
-	fac, ok := factorties[typeName]
-	if !ok {
-		return nil, errors.New(logger.Sprintf("CacheType[%s] not exists", typeName))
+	fac := GetCacheFactory(typeName)
+	if fac == nil {
+		return errors.New(logger.Sprintf("CacheType[%s] not exists", typeName))
 	}
-	cache := fac()
 	cache.InitCache(this, name)
 
 	done := func() bool {
@@ -253,9 +254,9 @@ func (this *CacheService) CreateCache(name, typeName string) (ICache, error) {
 	}()
 
 	if !done {
-		return nil, errors.New(logger.Sprintf("Cache[%s] exists", name))
+		return errors.New(logger.Sprintf("Cache[%s] exists", name))
 	}
-	return cache, nil
+	return nil
 }
 
 func (this *CacheService) DeleteCache(name string, stop bool) error {
@@ -342,18 +343,36 @@ func (this *CacheService) loadRuntimeConfig() (*runtimeConfig, bool) {
 func (this *CacheService) setupByConfig(cfg *runtimeConfig) bool {
 	if cfg.Caches != nil {
 		for cname, cobj := range cfg.Caches {
-			cache, err := this.CreateCache(cname, cobj.TypeName)
+			fac := GetCacheFactory(cobj.TypeName)
+			cfg := fac.CreateConfig()
+			err := cfg.FromMap(cobj.Config)
 			if err != nil {
-				logger.Error(tag, "Cache[%s] setup fail %s", cname, err)
-				if this.safeMode {
+				logger.Error(tag, "Cache[%s] config fail - %s", cname, err)
+				if this.config.SafeMode {
 					continue
 				}
 				return false
 			}
-			err = cache.FromConfig(cobj.Config)
+			err = cfg.Valid()
 			if err != nil {
-				logger.Error(tag, "Cache[%s] load runtime config fail - %s", cname, err)
-				if this.safeMode {
+				logger.Error(tag, "Cache[%s] config invalid - %s", cname, err)
+				if this.config.SafeMode {
+					continue
+				}
+				return false
+			}
+			cache, err2 := fac.CreateCache(cfg)
+			if err2 != nil {
+				logger.Error(tag, "Cache[%s] create cache fail %s", cname, err2)
+				if this.config.SafeMode {
+					continue
+				}
+				return false
+			}
+			err = this.SetCache(cname, cobj.TypeName, cache)
+			if err != nil {
+				logger.Error(tag, "Cache[%s] setup fail %s", cname, err)
+				if this.config.SafeMode {
 					continue
 				}
 				return false
@@ -388,7 +407,7 @@ func (this *CacheService) buildRuntimeConfig() *runtimeConfig {
 	for cname, cobj := range this.caches {
 		cr := new(cacheRuntime)
 		cr.TypeName = cobj.typeName
-		cr.Config = cobj.cache.ToConfig()
+		cr.Config = cobj.cache.GetConfig().ToMap()
 		// logger.Info(tag, "%s config = %v", cobj.typeName, cr.Config)
 		r.Caches[cname] = cr
 	}
@@ -410,7 +429,7 @@ func (this *CacheService) startAllCache() bool {
 		logger.Debug(tag, "boot start Cache[%s]", k)
 		err := ci.cache.Start()
 		if err != nil {
-			if this.safeMode {
+			if this.config.SafeMode {
 				logger.Warn(tag, "start cache[%s] fail %s", k, err)
 				continue
 			}
@@ -431,7 +450,7 @@ func (this *CacheService) runAllCache() bool {
 		logger.Debug(tag, "boot run Cache[%s]", k)
 		err := ci.cache.Run()
 		if err != nil {
-			if this.safeMode {
+			if this.config.SafeMode {
 				logger.Warn(tag, "run cache[%s] fail %s", k, err)
 				continue
 			}

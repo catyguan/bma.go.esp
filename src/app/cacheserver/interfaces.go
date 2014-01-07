@@ -1,5 +1,7 @@
 package cacheserver
 
+import "uprop"
+
 type GetRequest struct {
 	Key       string // cache key
 	Trace     bool   // trace how to GET
@@ -58,11 +60,28 @@ func (this *GetResult) Traces(s []string) {
 	}
 }
 
-type CacheFactory func() ICache
+type ICacheConfig interface {
+	GetProperties() []*uprop.UProperty
+
+	Valid() error
+
+	ToMap() map[string]interface{}
+
+	FromMap(data map[string]interface{}) error
+}
+
+type CacheFactory interface {
+	CreateCache(cfg ICacheConfig) (ICache, error)
+	CreateConfig() ICacheConfig
+}
 
 // ICache, all methods is sync
 type ICache interface {
 	InitCache(s *CacheService, group string)
+
+	Type() string
+
+	GetConfig() ICacheConfig
 
 	Get(req *GetRequest, rep chan *GetResult) error
 
@@ -81,8 +100,4 @@ type ICache interface {
 	Run() error
 
 	Stop() error
-
-	FromConfig(cfg map[string]interface{}) error
-
-	ToConfig() map[string]interface{}
 }

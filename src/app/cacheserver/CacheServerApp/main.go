@@ -20,10 +20,10 @@ import (
 		plugin modules
 	*/
 	// "github.com/ziutek/mymysql/godrv"
-	_ "app/cacheserver/eloader"
-	_ "app/cacheserver/elru"
+	// _ "app/cacheserver/eloader"
+	// _ "app/cacheserver/elru"
 	_ "app/cacheserver/esimple"
-	_ "app/cacheserver/estable"
+	// _ "app/cacheserver/estable"
 	// _ "github.com/go-sql-driver/mysql"
 )
 
