@@ -9,24 +9,19 @@ import (
 	"esp/shell"
 	"fmt"
 	"logger"
+	"uprop"
 )
 
 const (
-	tag = "loaderCache"
+	tag        = "loaderCache"
+	CACHE_TYPE = "loader"
 )
 
 func init() {
-	cacheserver.RegCacheFactory("loader", NewLoaderCache)
+	cacheserver.RegCacheFactory(CACHE_TYPE, new(cacheFactory))
 }
 
-type cacheConfig struct {
-	cacheserver.LruCacheConfig
-	QueueSize     int
-	InvalidHolder bool  // create invalid holder
-	UpdateSeconds int32 // update item which hold long, <=0 mean no updater
-	UpdateStep    int32 // updater scan step, default 10
-}
-
+// Stats
 type LoaderCacheStats struct {
 	cacheserver.CacheStats
 	PeerLoads  int64
@@ -55,6 +50,184 @@ func (this *LoaderCacheStats) BuildString(buf *bytes.Buffer) {
 	buf.WriteString("%),")
 }
 
+type cacheConfigBase struct {
+	cacheserver.LruCacheConfig
+	QueueSize     int
+	InvalidHolder bool  // create invalid holder
+	UpdateSeconds int32 // update item which hold long, <=0 mean no updater
+	UpdateStep    int32 // updater scan step, default 10
+}
+
+type cacheConfig struct {
+	cacheConfigBase
+	Loaders []*LoaderConfig
+}
+
+func (this *cacheConfig) Valid() error {
+	s := this.LruCacheConfig.Valid()
+	if s != "" {
+		return errors.New(s)
+	}
+	if this.Loaders == nil || len(this.Loaders) == 0 {
+		return errors.New("loaders empty")
+	}
+	names := make(map[string]bool)
+	for _, lcfg := range this.Loaders {
+		err := lcfg.Valid()
+		if err != nil {
+			return err
+		}
+		if names[lcfg.Name] {
+			return errors.New("loader '" + lcfg.Name + "' conflict")
+		}
+		names[lcfg.Name] = true
+	}
+	if this.QueueSize <= 0 {
+		this.QueueSize = 32
+	}
+	return nil
+}
+
+func (this *cacheConfig) GetProperties() []*uprop.UProperty {
+	b := new(uprop.UPropertyBuilder)
+	b.NewProp("maxsize", "cache max size").Optional(false).BeValue(this.Maxsize, func(v string) error {
+		this.Maxsize = valutil.ToInt32(v, 0)
+		return nil
+	})
+	b.NewProp("valid", "item valid second after put in cache").BeValue(this.ValidSeconds, func(v string) error {
+		this.ValidSeconds = valutil.ToInt32(v, 0)
+		return nil
+	})
+	b.NewProp("queuesize", "executor queue size").BeValue(this.QueueSize, func(v string) error {
+		this.QueueSize = valutil.ToInt(v, 0)
+		return nil
+	})
+	b.NewProp("iholder", "create invalid holder").BeValue(this.InvalidHolder, func(v string) error {
+		this.InvalidHolder = valutil.ToBool(v, this.InvalidHolder)
+		return nil
+	})
+	b.NewProp("update", "updater run duration(sec.), <=0 mean stop").BeValue(this.UpdateSeconds, func(v string) error {
+		this.UpdateSeconds = valutil.ToInt32(v, 0)
+		return nil
+	})
+	b.NewProp("step", "updater scan step, default 10").BeValue(this.UpdateStep, func(v string) error {
+		this.UpdateStep = valutil.ToInt32(v, 0)
+		return nil
+	})
+	loaderList := b.NewProp("loader", "loader").Optional(false).BeList(this.addLoader, this.removeLoader)
+	if this.Loaders != nil {
+		for _, lcfg := range this.Loaders {
+			loaderList.AddFold(lcfg.Desc(), lcfg.GetProperties)
+		}
+	}
+	return b.AsList()
+}
+
+func (this *cacheConfig) ToMap() map[string]interface{} {
+	r := valutil.BeanToMap(this.cacheConfigBase)
+	la := make([]interface{}, 0)
+	if this.Loaders != nil {
+		for _, lcfg := range this.Loaders {
+			lm := make(map[string]interface{})
+			lm["name"] = lcfg.Name
+			lm["type"] = lcfg.Type
+			lm["prop"] = lcfg.prop.ToMap()
+			la = append(la, lm)
+		}
+	}
+	r["loaders"] = la
+	return r
+}
+
+func (this *cacheConfig) FromMap(data map[string]interface{}) error {
+	valutil.ToBean(data, &this.cacheConfigBase)
+	lcfg := valutil.ToArray(data["loaders"])
+	if lcfg != nil {
+		this.Loaders = make([]*LoaderConfig, 0)
+		for _, lv := range lcfg {
+			m := valutil.ToStringMap(lv)
+			if m != nil {
+				l := new(LoaderConfig)
+				l.Name = valutil.ToString(m["name"], "")
+				l.Type = valutil.ToString(m["type"], "")
+				p := GetLoaderProvider(l.Type)
+				if p != nil {
+					l.prop = p.CreateProperty()
+					l.prop.FromMap(valutil.ToStringMap(m["prop"]))
+				}
+				this.Loaders = append(this.Loaders, l)
+			}
+		}
+	}
+	return this.Valid()
+}
+
+func (this *cacheConfig) addLoader(slist []string) error {
+	if this.Loaders == nil {
+		this.Loaders = make([]*LoaderConfig, 0)
+	}
+	if slist != nil && len(slist) > 0 {
+		for _, n := range slist {
+			lcfg := new(LoaderConfig)
+			lcfg.Name = n
+			this.Loaders = append(this.Loaders, lcfg)
+		}
+	} else {
+		lcfg := new(LoaderConfig)
+		this.Loaders = append(this.Loaders, lcfg)
+	}
+	return nil
+}
+
+func (this *cacheConfig) removeLoader(slist []string) error {
+	if this.Loaders == nil {
+		return nil
+	}
+	for _, n := range slist {
+		c := len(this.Loaders)
+		idx := uprop.ToIndex(n, c)
+		if idx == 0 {
+			for i, lcfg := range this.Loaders {
+				if lcfg.Name == n {
+					idx = i
+					break
+				}
+			}
+		}
+		idx = idx - 1
+		if idx < 0 || idx >= c {
+			return fmt.Errorf("'%s' invalid", n)
+		}
+		l := make([]*LoaderConfig, c-1)
+		copy(l[0:], this.Loaders[0:idx])
+		copy(l[idx:], this.Loaders[idx+1:])
+	}
+	return nil
+}
+
+// Factory
+type cacheFactory struct {
+}
+
+func (this *cacheFactory) CreateConfig() cacheserver.ICacheConfig {
+	return new(cacheConfig)
+}
+
+func (this *cacheFactory) CreateCache(cfg cacheserver.ICacheConfig) (cacheserver.ICache, error) {
+	r := NewLoaderCache()
+	r.config = cfg.(*cacheConfig)
+
+	for _, lcfg := range r.config.Loaders {
+		err := r.doAddLoader(lcfg)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return r, nil
+}
+
+// Cache
 type loaderInfo struct {
 	loader Loader
 	config LoaderConfig
@@ -64,11 +237,10 @@ type LoaderCache struct {
 	name    string
 	service *cacheserver.CacheService
 
-	executor   *qexec.QueueExecutor
-	cache      *cacheserver.Cache
-	config     *cacheConfig
-	editConfig *cacheConfig
-	stats      LoaderCacheStats
+	executor *qexec.QueueExecutor
+	cache    *cacheserver.Cache
+	config   *cacheConfig
+	stats    LoaderCacheStats
 
 	// loader
 	loaders []*loaderInfo
@@ -80,9 +252,17 @@ type LoaderCache struct {
 	updater *cacheUpdater
 }
 
-func NewLoaderCache() cacheserver.ICache {
+func NewLoaderCache() *LoaderCache {
 	this := new(LoaderCache)
 	return this
+}
+
+func (this *LoaderCache) Type() string {
+	return CACHE_TYPE
+}
+
+func (this *LoaderCache) GetConfig() cacheserver.ICacheConfig {
+	return this.config
 }
 
 func (this *LoaderCache) InitCache(s *cacheserver.CacheService, n string) {
@@ -171,37 +351,15 @@ func (this *LoaderCache) StepUpdate(updater *cacheUpdater) {
 	go exec.DoNow("stepUpdate", call)
 }
 
-func (this *LoaderCache) AddLoader(cfg *LoaderConfig) error {
+func (this *LoaderCache) UpdateConfig(newcfg cacheserver.ICacheConfig) error {
+	cfg := newcfg.(*cacheConfig)
 	exec := this.executor
 	if exec == nil {
-		return errors.New("not start")
-	}
-	logger.Debug(tag, "AddLoader(%s, %s, %s)", this.name, cfg.Name, cfg.Type)
-	call := func() error {
-		return this.doAddLoader(cfg)
-	}
-	return exec.DoSync("AddLoader", call)
-}
-
-func (this *LoaderCache) RemoveLoader(name string) error {
-	exec := this.executor
-	if exec == nil {
-		return errors.New("not start")
-	}
-	logger.Debug(tag, "RemoveLoader(%s)", name)
-	call := func() error {
-		return this.doRemoveLoader(name)
-	}
-	return exec.DoSync("RemoveLoader", call)
-}
-
-func (this *LoaderCache) Deploy() error {
-	exec := this.executor
-	if exec == nil {
-		return errors.New("not start")
+		*this.config = *cfg
+		return nil
 	}
 	return exec.DoSync("Deploy", func() error {
-		return this.doDeployCache()
+		return this.doDeployCache(cfg)
 	})
 }
 
@@ -277,85 +435,8 @@ func (this *LoaderCache) Stop() error {
 	return nil
 }
 
-func (this *LoaderCache) FromConfig(cfg map[string]interface{}) error {
-	if cfg != nil {
-		ccfg := valutil.ToStringMap(cfg["cache"])
-		if ccfg != nil {
-			cobj := new(cacheConfig)
-			valutil.ToBean(ccfg, cobj)
-			err := cobj.Valid()
-			if err != "" {
-				return errors.New(err)
-			}
-			this.config = cobj
-			ncobj := new(cacheConfig)
-			*ncobj = *cobj
-			this.editConfig = ncobj
-		}
-		lcfg := valutil.ToArray(cfg["loader"])
-		if lcfg != nil {
-			for _, lv := range lcfg {
-				m := valutil.ToStringMap(lv)
-				if m != nil {
-					l := new(LoaderConfig)
-					l.Name = valutil.ToString(m["name"], "")
-					if l.Name == "" {
-						logger.Warn(tag, "'%s' loader name empty", this.name)
-						continue
-					}
-					l.Type = valutil.ToString(m["type"], "")
-					p := GetLoaderProvider(l.Type)
-					if p == nil {
-						logger.Warn(tag, "'%s' loader[%s] type '%s' invalid", this.name, l.Name, l.Type)
-						continue
-					}
-					l.prop = p.CreateProperty()
-					err := l.prop.FromMap(valutil.ToStringMap(m["prop"]))
-					if err != nil {
-						logger.Warn(tag, "'%s' loader[%s] prop fail - %s", this.name, l.Name, err)
-						continue
-					}
-					err2 := this.doAddLoader(l)
-					if err2 != nil {
-						logger.Warn(tag, "'%s' loader[%s] addLoader fail - %s", this.name, l.Name, err)
-						continue
-					}
-				}
-			}
-		}
-	}
-	return nil
-}
-
-func (this *LoaderCache) ToConfig() map[string]interface{} {
-	r := make(map[string]interface{})
-	if true {
-		ccfg := valutil.BeanToMap(this.config)
-		r["cache"] = ccfg
-	}
-	if this.loaders != nil && len(this.loaders) > 0 {
-		lcfg := make([]map[string]interface{}, 0)
-		for _, l := range this.loaders {
-			m := make(map[string]interface{})
-			m["name"] = l.config.Name
-			m["type"] = l.config.Type
-			if l.config.prop != nil {
-				m["prop"] = l.config.prop.ToMap()
-			}
-			lcfg = append(lcfg, m)
-		}
-		r["loader"] = lcfg
-	}
-	return r
-}
-
 func (this *LoaderCache) CreateShell() shell.ShellDir {
 	r := shell.NewShellDirCommon(this.name)
 	this.service.BuildCacheCommands(this.name, r)
-	r.AddCommand(&cmdEdit{this})
-	r.AddCommand(&cmdDeploy{this})
-	r.AddCommand(&cmdLoaders{this})
-	r.AddCommand(&cmdUnload{this})
-	r.AddCommand(&cmdNewLoader{this})
 	return r
 }

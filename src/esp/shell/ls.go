@@ -47,6 +47,13 @@ func ExecuteLS(s *Session, cmdOnly, dirOnly, dirList bool) bool {
 	o := s.Get("@DIR", nil).(*dirInfo)
 	pwd := o.pwd
 	slist := pwd.List()
+	editor := GetEditor(s)
+	if editor != nil {
+		eclist := editor.ListCommand()
+		for _, s := range eclist {
+			slist = append(slist, "editor:"+s)
+		}
+	}
 	sort.Strings(slist)
 	if cmdOnly || dirOnly {
 		tlist := make([]string, 0, len(slist))

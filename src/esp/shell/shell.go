@@ -242,12 +242,10 @@ func (this *Shell) doProcess(session *Session, command string, subExecute bool) 
 			return true
 		}
 	}
-	ev, ok := session.Vars["@EDITOR"]
-	if ok {
-		if editor, ok2 := ev.(ShellProcessor); ok2 {
-			if editor.Process(session, command) {
-				return true
-			}
+	editor := GetEditor(session)
+	if editor != nil {
+		if editor.Process(session, command) {
+			return true
 		}
 	}
 

@@ -82,6 +82,10 @@ func (this *SimpleCache) GetConfig() cacheserver.ICacheConfig {
 	return this.config
 }
 
+func (this *SimpleCache) UpdateConfig(cfg cacheserver.ICacheConfig) error {
+	return nil
+}
+
 func (this *SimpleCache) InitCache(s *cacheserver.CacheService, n string) {
 	this.service = s
 	this.name = n

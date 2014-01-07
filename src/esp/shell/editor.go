@@ -23,6 +23,14 @@ type Editor struct {
 	selStack []string
 }
 
+func GetEditor(s *Session) *Editor {
+	o, ok := s.Vars["@EDITOR"]
+	if ok {
+		return o.(*Editor)
+	}
+	return nil
+}
+
 func NewEditor() *Editor {
 	this := new(Editor)
 	this.selStack = make([]string, 0)
@@ -93,6 +101,15 @@ func (this *Editor) Show(s *Session) {
 	EditorHelper.DoPropList(s, this.doc.Title()+n, props)
 }
 
+func (this *Editor) ListCommand() []string {
+	r := []string{"ed", "set", "add", "rm", "select", "unselect"}
+	r2 := this.doc.ListCommands()
+	for _, s := range r2 {
+		r = append(r, s)
+	}
+	return r
+}
+
 func (this *Editor) Process(session *Session, command string) bool {
 	name := "ed"
 	cname := CommandWord(command)
@@ -129,8 +146,10 @@ func (this *Editor) Process(session *Session, command string) bool {
 				session.Write(k)
 			}
 			session.Writeln("")
-		default:
+		case "":
 			this.Show(session)
+		default:
+			session.Writeln("ERROR: unknow param '" + act + "'")
 		}
 		return true
 	}

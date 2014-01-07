@@ -268,6 +268,14 @@ func (this *UPropertyBuilder) AddProp(p *UProperty) {
 	this.properties = append(this.AsList(), p)
 }
 
+func (this *UPropertyBuilder) Merge(list []*UProperty) {
+	if list != nil {
+		for _, p := range list {
+			this.AddProp(p)
+		}
+	}
+}
+
 func (this *UPropertyBuilder) ToMapProp(name, tips string, adder, remover func(vs []string) error) *UProperty {
 	return this.NewProp(name, tips).BeMap(this.AsList(), adder, remover)
 }

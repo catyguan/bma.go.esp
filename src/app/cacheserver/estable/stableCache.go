@@ -9,16 +9,19 @@ import (
 	"fmt"
 	"logger"
 	"time"
+	"uprop"
 )
 
 const (
-	tag = "stableCache"
+	tag        = "stableCache"
+	CACHE_TYPE = "stable"
 )
 
 func init() {
-	cacheserver.RegCacheFactory("stable", NewStableCache)
+	cacheserver.RegCacheFactory(CACHE_TYPE, new(stableCacheFactory))
 }
 
+// Config
 type CacheConfig struct {
 	MaxSize     int // Cache Max Size
 	QueueSize   int // Executor Size
@@ -38,6 +41,47 @@ func (this *CacheConfig) Valid() error {
 	return nil
 }
 
+func (this *CacheConfig) GetProperties() []*uprop.UProperty {
+	r := make([]*uprop.UProperty, 0)
+	r = append(r, uprop.NewUProperty("maxsize", this.MaxSize, true, "cache max size", func(v string) error {
+		this.MaxSize = valutil.ToInt(v, 0)
+		return nil
+	}))
+	r = append(r, uprop.NewUProperty("queuesize", this.QueueSize, true, "executor queue size", func(v string) error {
+		this.QueueSize = valutil.ToInt(v, 0)
+		return nil
+	}))
+	r = append(r, uprop.NewUProperty("recover", this.RecoverTime, true, "recover time when invalidResponse sended, SEC", func(v string) error {
+		this.RecoverTime = valutil.ToInt(v, 0)
+		return nil
+	}))
+	return r
+}
+
+func (this *CacheConfig) ToMap() map[string]interface{} {
+	return valutil.BeanToMap(this)
+}
+
+func (this *CacheConfig) FromMap(data map[string]interface{}) error {
+	valutil.ToBean(data, this)
+	return this.Valid()
+}
+
+// Factory
+type stableCacheFactory struct {
+}
+
+func (this *stableCacheFactory) CreateConfig() cacheserver.ICacheConfig {
+	return new(CacheConfig)
+}
+
+func (this *stableCacheFactory) CreateCache(cfg cacheserver.ICacheConfig) (cacheserver.ICache, error) {
+	r := NewStableCache()
+	r.config = cfg.(*CacheConfig)
+	return r, nil
+}
+
+// Cache
 type CacheItem struct {
 	data     []byte
 	deadTime int64
@@ -51,16 +95,32 @@ type StableCache struct {
 	name    string
 	service *cacheserver.CacheService
 
-	config     *CacheConfig
-	editConfig CacheConfig
-	items      map[string]*CacheItem
-	executor   *qexec.QueueExecutor
+	config   *CacheConfig
+	items    map[string]*CacheItem
+	executor *qexec.QueueExecutor
 }
 
-func NewStableCache() cacheserver.ICache {
+func NewStableCache() *StableCache {
 	this := new(StableCache)
 	this.items = make(map[string]*CacheItem)
 	return this
+}
+
+func (this *StableCache) Type() string {
+	return CACHE_TYPE
+}
+
+func (this *StableCache) GetConfig() cacheserver.ICacheConfig {
+	return this.config
+}
+
+func (this *StableCache) UpdateConfig(cfg cacheserver.ICacheConfig) error {
+	if err := cfg.Valid(); err != nil {
+		return err
+	}
+	c := cfg.(*CacheConfig)
+	*this.config = *c
+	return nil
 }
 
 func (this *StableCache) requestHandler(ev interface{}) (bool, error) {
@@ -258,30 +318,8 @@ func (this *StableCache) Stop() error {
 	return nil
 }
 
-func (this *StableCache) FromConfig(cfg map[string]interface{}) error {
-	o := new(CacheConfig)
-	if cfg != nil {
-		valutil.ToBean(cfg, o)
-	}
-	if err := o.Valid(); err != nil {
-		return err
-	}
-	this.config = o
-	this.editConfig = *o
-	return nil
-}
-
-func (this *StableCache) ToConfig() map[string]interface{} {
-	if this.config != nil {
-		return valutil.BeanToMap(this.config)
-	} else {
-		return make(map[string]interface{})
-	}
-}
-
 func (this *StableCache) CreateShell() shell.ShellDir {
 	r := shell.NewShellDirCommon(this.name)
 	this.service.BuildCacheCommands(this.name, r)
-	r.AddCommand(&cmdEdit{this})
 	return r
 }

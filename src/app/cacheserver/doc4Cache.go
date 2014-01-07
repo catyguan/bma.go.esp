@@ -88,15 +88,27 @@ func (this *doc4Cache) CommitDoc(session *shell.Session) error {
 	if err := this.config.Valid(); err != nil {
 		return err
 	}
-	ctype := this.kind
-	fac := GetCacheFactory(ctype)
-	cache, err := fac.CreateCache(this.config)
-	if err != nil {
-		return err
-	}
-	err = this.service.SetCache(this.name, this.kind, cache)
-	if err != nil {
-		return err
+
+	if this.edit {
+		cache, err := this.service.GetCache(this.name, false)
+		if err != nil {
+			return err
+		}
+		err = cache.UpdateConfig(this.config)
+		if err != nil {
+			return err
+		}
+	} else {
+		ctype := this.kind
+		fac := GetCacheFactory(ctype)
+		cache, err := fac.CreateCache(this.config)
+		if err != nil {
+			return err
+		}
+		err = this.service.SetCache(this.name, this.kind, cache)
+		if err != nil {
+			return err
+		}
 	}
 	return this.service.save()
 }

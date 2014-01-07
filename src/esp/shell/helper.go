@@ -3,6 +3,7 @@ package shell
 import (
 	"fmt"
 	"math/rand"
+	"time"
 )
 
 type confirmInfo struct {
@@ -32,6 +33,7 @@ func CreateConfirm(s *Session, cmd, p string) string {
 		return new(confirmInfo)
 	})
 
+	rand.Seed(time.Now().UnixNano())
 	word := fmt.Sprintf("%d", rand.Intn(999999-100000)+100000)
 
 	info := r.(*confirmInfo)

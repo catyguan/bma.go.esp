@@ -53,11 +53,12 @@ func (this *dirService) commandNew(s *shell.Session, command string) bool {
 	}
 
 	if fs.NArg() < 1 {
+		s.Writeln("INPUT: new " + args)
 		this.showTypes(s)
 		return true
 	}
 
-	ctype := fs.Arg(1)
+	ctype := fs.Arg(0)
 	fac := GetCacheFactory(ctype)
 	if fac == nil {
 		s.Writeln(fmt.Sprintf("ERROR : CacheType[%s] not exists", ctype))
@@ -93,7 +94,7 @@ func (this *dirService) commandEdit(s *shell.Session, command string) bool {
 
 	cname := fs.Arg(0)
 	cache, err := this.service.GetCache(cname, false)
-	if err == nil {
+	if err != nil {
 		s.Writeln("ERROR: " + err.Error())
 		return true
 	}
@@ -138,6 +139,7 @@ func (this *dirService) commandDelete(s *shell.Session, command string) bool {
 		return true
 	}
 	s.Writeln("delete " + cname + " -> done")
+	this.service.save()
 	return true
 
 }

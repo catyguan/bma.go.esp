@@ -82,6 +82,7 @@ type ICache interface {
 	Type() string
 
 	GetConfig() ICacheConfig
+	UpdateConfig(cfg ICacheConfig) error
 
 	Get(req *GetRequest, rep chan *GetResult) error
 

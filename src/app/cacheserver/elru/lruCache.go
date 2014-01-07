@@ -7,35 +7,97 @@ import (
 	"errors"
 	"esp/shell"
 	"logger"
+	"uprop"
 )
 
 const (
-	tag = "elru"
+	tag        = "elru"
+	CACHE_TYPE = "lru"
 )
 
 func init() {
-	cacheserver.RegCacheFactory("lru", NewLruCache)
+	cacheserver.RegCacheFactory(CACHE_TYPE, new(lruCacheFactory))
 }
 
+// cacheConfig
 type cacheConfig struct {
 	QueueSize int
 	cacheserver.LruCacheConfig
 }
 
+func (this *cacheConfig) Valid() error {
+	if this.Maxsize <= 0 {
+		this.Maxsize = 100
+	}
+	s := this.LruCacheConfig.Valid()
+	if s != "" {
+		return errors.New(s)
+	}
+	return nil
+}
+
+func (this *cacheConfig) GetProperties() []*uprop.UProperty {
+	r := make([]*uprop.UProperty, 0)
+	r = append(r, uprop.NewUProperty("maxsize", this.Maxsize, false, "cache max size", func(v string) error {
+		this.Maxsize = valutil.ToInt32(v, 0)
+		return nil
+	}))
+	r = append(r, uprop.NewUProperty("valid", this.ValidSeconds, true, "item valid second after put in cache", func(v string) error {
+		this.ValidSeconds = valutil.ToInt32(v, 0)
+		return nil
+	}))
+	r = append(r, uprop.NewUProperty("queuesize", this.QueueSize, true, "executor queue size", func(v string) error {
+		this.QueueSize = valutil.ToInt(v, 0)
+		return nil
+	}))
+	return r
+}
+
+func (this *cacheConfig) ToMap() map[string]interface{} {
+	return valutil.BeanToMap(this)
+}
+
+func (this *cacheConfig) FromMap(data map[string]interface{}) error {
+	valutil.ToBean(data, this)
+	return this.Valid()
+}
+
+// Factory
+type lruCacheFactory struct {
+}
+
+func (this *lruCacheFactory) CreateConfig() cacheserver.ICacheConfig {
+	return new(cacheConfig)
+}
+
+func (this *lruCacheFactory) CreateCache(cfg cacheserver.ICacheConfig) (cacheserver.ICache, error) {
+	r := NewLruCache()
+	r.config = cfg.(*cacheConfig)
+	return r, nil
+}
+
+// Cache
 type LruCache struct {
 	name    string
 	service *cacheserver.CacheService
 
-	executor   *qexec.QueueExecutor
-	cache      *cacheserver.Cache
-	config     *cacheConfig
-	editConfig *cacheConfig
-	stats      cacheserver.CacheStats
+	executor *qexec.QueueExecutor
+	cache    *cacheserver.Cache
+	config   *cacheConfig
+	stats    cacheserver.CacheStats
 }
 
-func NewLruCache() cacheserver.ICache {
+func NewLruCache() *LruCache {
 	this := new(LruCache)
 	return this
+}
+
+func (this *LruCache) Type() string {
+	return CACHE_TYPE
+}
+
+func (this *LruCache) GetConfig() cacheserver.ICacheConfig {
+	return this.config
 }
 
 func (this *LruCache) InitCache(s *cacheserver.CacheService, n string) {
@@ -170,19 +232,21 @@ func (this *LruCache) doCreateCache() error {
 	return nil
 }
 
-func (this *LruCache) Deploy() error {
+func (this *LruCache) UpdateConfig(cfg cacheserver.ICacheConfig) error {
+	cfgobj := cfg.(*cacheConfig)
 	exec := this.executor
 	if exec == nil {
-		return errors.New("not start")
+		*this.config = *cfgobj
+		return nil
 	}
 	return exec.DoSync("Deploy", func() error {
-		return this.doDeployCache()
+		return this.doDeployCache(cfgobj)
 	})
 }
 
-func (this *LruCache) doDeployCache() error {
+func (this *LruCache) doDeployCache(cfg *cacheConfig) error {
 	logger.Info(tag, "deploy cache '%s'", this.name)
-	cfg := this.config
+	*this.config = *cfg
 	if this.cache.MaxSize() != cfg.Maxsize {
 		// clone cache first
 		old := this.cache
@@ -260,37 +324,8 @@ func (this *LruCache) Stop() error {
 	return nil
 }
 
-func (this *LruCache) FromConfig(cfg map[string]interface{}) error {
-	if cfg != nil {
-		cobj := new(cacheConfig)
-		if !valutil.ToBean(cfg, cobj) {
-			return errors.New("invalid LruCacheConfig")
-		}
-		if err := cobj.Valid(); err != "" {
-			return errors.New(err)
-		}
-
-		this.config = cobj
-		ncobj := new(cacheConfig)
-		*ncobj = *cobj
-		this.editConfig = ncobj
-	}
-	return nil
-}
-
-func (this *LruCache) ToConfig() map[string]interface{} {
-	if this.config != nil {
-		r := valutil.BeanToMap(this.config)
-		logger.Info(tag, "%v", r)
-		return r
-	}
-	return make(map[string]interface{})
-}
-
 func (this *LruCache) CreateShell() shell.ShellDir {
 	r := shell.NewShellDirCommon(this.name)
 	this.service.BuildCacheCommands(this.name, r)
-	r.AddCommand(&cmdEdit{this})
-	r.AddCommand(&cmdDeploy{this})
 	return r
 }

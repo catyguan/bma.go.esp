@@ -57,9 +57,9 @@ func (this *LoaderCache) doCreateCache() error {
 	return nil
 }
 
-func (this *LoaderCache) doDeployCache() error {
+func (this *LoaderCache) doDeployCache(cfg *cacheConfig) error {
 	logger.Info(tag, "reploy cache '%s'", this.name)
-	cfg := this.config
+	*this.config = *cfg
 	if this.cache.MaxSize() != cfg.Maxsize {
 		// clone cache first
 		old := this.cache
@@ -90,6 +90,17 @@ func (this *LoaderCache) doDeployCache() error {
 		}
 	}
 
+	// rebuild loaders
+	names := make([]string, 0)
+	for _, linfo := range this.loaders {
+		names = append(names, linfo.config.Name)
+	}
+	for _, n := range names {
+		this.doRemoveLoader(n)
+	}
+	for _, lcfg := range cfg.Loaders {
+		this.doAddLoader(lcfg)
+	}
 	return nil
 }
 
@@ -159,12 +170,8 @@ func (this *LoaderCache) doRemoveLoader(lname string) error {
 	if this.loaders != nil {
 		for i, l := range this.loaders {
 			if l.config.Name == lname {
-				sz := len(this.loaders)
-				if sz == 1 {
-					return logger.Warn(tag, "can't remove single loader '%s:%s'", this.name, lname)
-				}
 				logger.Info(tag, "remove loader '%s:%s'", this.name, lname)
-
+				sz := len(this.loaders)
 				this.loaders[i] = nil
 				this.loaders[i], this.loaders[sz-1] = this.loaders[sz-1], this.loaders[i]
 				this.loaders = this.loaders[:sz-1]

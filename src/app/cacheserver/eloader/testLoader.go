@@ -17,6 +17,13 @@ type testProperties struct {
 	MaxIdle int
 }
 
+func (this *testProperties) Valid() error {
+	if this.MaxIdle < this.MinIdle {
+		return errors.New("min > max")
+	}
+	return nil
+}
+
 func (this *testProperties) GetUProperties() []*uprop.UProperty {
 	r := make([]*uprop.UProperty, 0)
 	p1 := uprop.NewUProperty("maxidle", this.MaxIdle, true, "max idle time, ms", func(v string) error {
@@ -74,6 +81,10 @@ func (this *loaderTaskTEST) Cancel() {
 	this.timer.Stop()
 }
 
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
 func (this *loaderTEST) Load(cache *LoaderCache, req *cacheserver.GetRequest) LoadTask {
 	f := func() {
 		v := rand.Intn(999999-100000) + 100000
@@ -84,7 +95,11 @@ func (this *loaderTEST) Load(cache *LoaderCache, req *cacheserver.GetRequest) Lo
 	if sp < 0 {
 		sp = 1000
 	}
-	wt := rand.Intn(sp) + this.prop.MinIdle
+	wt := 0
+	if sp > 0 {
+		wt = rand.Intn(sp)
+	}
+	wt = wt + this.prop.MinIdle
 	du := time.Duration(wt) * time.Millisecond
 	timer := time.AfterFunc(du, f)
 	logger.Debug(tag, "loaderTEST idle %s", du.String())
