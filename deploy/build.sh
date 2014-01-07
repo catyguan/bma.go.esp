@@ -10,7 +10,8 @@ then
   exit 1
 fi
 
-WORKDIR=${PWD}
+SCRIPTFILE=$(dirname $(readlink -f $0))
+WORKDIR=${SCRIPTFILE%/*}
 APPDIR=$2
 
 export GOPATH=$GOPATH:$WORKDIR
@@ -46,7 +47,7 @@ if [ ! -d $APPDIR/config ]
 then
   mkdir $APPDIR/config
 fi
-if [ ! -f $WORKDIR/config/$CFGFILE ]
+if [ ! -f $APPDIR/config/$CFGFILE ]
 then
   echo "cp $WORKDIR/bin/config/$CFGFILE >> $APPDIR/config/$CFGFILE"
   cp $WORKDIR/bin/config/$CFGFILE $APPDIR/config/$CFGFILE
