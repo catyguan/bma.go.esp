@@ -46,6 +46,7 @@ func (this *dirRemote) commandNew(s *shell.Session, command string) bool {
 	}
 
 	if fs.NArg() < 1 {
+		s.Writeln("INPUT: new " + args)
 		this.showRemoteKinds(s)
 		return true
 	}
