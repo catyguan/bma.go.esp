@@ -47,6 +47,14 @@ func NewSizeUnit(s uint8) (SizeUnit, bool) {
 	return SizeB, false
 }
 
+func MakeSizeString(size uint64) string {
+	if size < 1024*1024 {
+		return SizeString(size, 1024, SizeK)
+	} else {
+		return SizeString(size, 1024, SizeM)
+	}
+}
+
 func SizeString(size uint64, base int, sizeUnit SizeUnit) string {
 	lv := math.Pow(float64(base), float64(sizeUnit))
 	v := float64(size) / lv

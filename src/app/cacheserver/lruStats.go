@@ -47,12 +47,7 @@ func (this *LruCacheStats) BuildString(buf *bytes.Buffer) {
 	buf.WriteString(fmt.Sprintf("CacheHits=%d(%.2f", this.CacheHits, per))
 	buf.WriteString("%),")
 
-	var tsize string
-	if this.TotalUse < 1024*1024 {
-		tsize = valutil.SizeString(this.TotalUse, 1024, valutil.SizeK)
-	} else {
-		tsize = valutil.SizeString(this.TotalUse, 1024, valutil.SizeM)
-	}
+	tsize := valutil.MakeSizeString(this.TotalUse)
 
 	buf.WriteString(fmt.Sprintf("MaxCollide=%d,", this.MaxCollide))
 
