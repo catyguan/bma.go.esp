@@ -96,6 +96,6 @@ func (this *Service) CreateMemGroup(cfg *MemGroupConfig) error {
 	})
 }
 
-func (this *Service) Get() error {
-
+func (this *Service) Get(key MemKey) error {
+	return nil
 }

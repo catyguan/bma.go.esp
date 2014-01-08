@@ -7,18 +7,16 @@ import (
 )
 
 type localMemGroup struct {
-	name    string
-	root    *localMemItem
-	version MemVer
-	count   int64
-	size    int64
+	name  string
+	root  *localMemItem
+	count int64
+	size  int64
 }
 
 func newLocalMemGroup(n string) *localMemGroup {
 	this := new(localMemGroup)
 	this.name = n
 	this.root = new(localMemItem)
-	this.version = MemVer(0)
 	this.count = 1
 	this.size += local_SIZE_ITEM
 	return this
@@ -34,14 +32,6 @@ func (this *localMemGroup) Dump() string {
 	buf.WriteString("\n")
 	this.root.Dump("<root>", buf, 0, true)
 	return buf.String()
-}
-
-func (this *localMemGroup) NextVersion() MemVer {
-	this.version++
-	if this.version == 0 {
-		this.version++
-	}
-	return this.version
 }
 
 func (this *localMemGroup) Get(key MemKey) (*localMemItem, bool) {
@@ -61,12 +51,12 @@ func (this *localMemGroup) Get(key MemKey) (*localMemItem, bool) {
 	return cur, true
 }
 
-func (this *localMemGroup) Set(key MemKey, val interface{}, ver MemVer, sz int) {
+func (this *localMemGroup) Set(key MemKey, val interface{}, sz int) {
 	var p *localMemItem
 	cur := this.root
 	if key != nil {
 		for i, k := range key {
-			cur.version = ver
+			cur.NextVersion()
 			if cur.items == nil {
 				cur.items = make(map[string]*localMemItem)
 				this.size += local_SIZE_ITEM_MAP
@@ -85,7 +75,7 @@ func (this *localMemGroup) Set(key MemKey, val interface{}, ver MemVer, sz int) 
 		}
 	}
 	cur.value = val
-	cur.version = ver
+	cur.NextVersion()
 	cur.size = sz
 	this.size += int64(sz)
 
@@ -117,13 +107,13 @@ func (this *localMemGroup) doDelete(cur *localMemItem, key MemKey) {
 	this.count--
 }
 
-func (this *localMemGroup) Delete(key MemKey, ver MemVer) {
+func (this *localMemGroup) Delete(key MemKey) {
 	var p *localMemItem
 	cur := this.root
 	curk := ""
 	if key != nil {
 		for _, k := range key {
-			cur.version = ver
+			cur.NextVersion()
 			if cur.items != nil {
 				item, ok := cur.items[k]
 				if ok {
@@ -137,6 +127,7 @@ func (this *localMemGroup) Delete(key MemKey, ver MemVer) {
 		}
 	}
 	if cur != this.root {
+		cur.NextVersion()
 		this.invokeListener(key, cur, ACTION_DELETE)
 		if p != nil {
 			this.invokeListener(key, p, ACTION_DELETE)
@@ -169,19 +160,19 @@ func (this *localMemGroup) RemoveListener(key MemKey, id string) {
 	}
 }
 
-func safeInvokeListener(lis IMemListener, action Action, groupName string, key MemKey, val interface{}) {
+func safeInvokeListener(lis IMemListener, action Action, groupName string, key MemKey, val interface{}, ver MemVer) {
 	defer func() {
 		recover()
 	}()
 	if lis != nil {
-		lis(action, groupName, key, val)
+		lis(action, groupName, key, val, ver)
 	}
 }
 
 func (this *localMemGroup) invokeListener(key MemKey, item *localMemItem, action Action) {
 	if item.listeners != nil {
 		for _, lis := range item.listeners {
-			safeInvokeListener(lis, action, this.name, key, item.value)
+			safeInvokeListener(lis, action, this.name, key, item.value, item.version)
 		}
 	}
 }

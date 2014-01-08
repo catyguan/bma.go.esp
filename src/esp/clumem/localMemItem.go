@@ -19,6 +19,11 @@ type localMemItem struct {
 	listeners map[string]IMemListener
 }
 
+func (this *localMemItem) NextVersion() MemVer {
+	this.version++
+	return this.version
+}
+
 func (this *localMemItem) Len() int {
 	return len(this.items)
 }

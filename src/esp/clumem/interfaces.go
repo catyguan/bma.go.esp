@@ -27,4 +27,4 @@ const (
 	ACTION_DELETE
 )
 
-type IMemListener func(action Action, groupName string, key MemKey, val interface{})
+type IMemListener func(action Action, groupName string, key MemKey, val interface{}, ver MemVer)
