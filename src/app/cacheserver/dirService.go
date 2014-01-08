@@ -86,7 +86,7 @@ func (this *dirService) showTypes(s *shell.Session) {
 
 func (this *dirService) commandEdit(s *shell.Session, command string) bool {
 	name := "edit"
-	args := "cacheName]"
+	args := "cacheName"
 	fs := shell.NewFlagSet(name)
 	if shell.DoParse(s, command, fs, name, args, 1, 1) {
 		return true

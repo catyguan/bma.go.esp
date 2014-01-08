@@ -1,5 +1,11 @@
 package clumem
 
+import (
+	"bmautil/valutil"
+	"fmt"
+	"logger"
+)
+
 const (
 	tableName = "tbl_clumen_service"
 )
@@ -18,8 +24,7 @@ func (this *Service) stopHandler() {
 }
 
 type runtimeConfig struct {
-	Services map[string]interface{}
-	Remotes  map[string]map[string]interface{}
+	Group map[string]interface{}
 }
 
 func (this *Service) initDatabase() {
@@ -36,9 +41,19 @@ func (this *Service) loadRuntimeConfig() (*runtimeConfig, bool) {
 }
 
 func (this *Service) setupByConfig(cfg *runtimeConfig) bool {
-	if cfg.Remotes != nil {
-	}
-	if cfg.Services != nil {
+	if cfg.Group != nil {
+		for n, g := range cfg.Group {
+			gcfg := new(MemGroupConfig)
+			err := gcfg.FromMap(valutil.ToStringMap(g))
+			if err != nil {
+				logger.Warn(tag, "setup memory group '%s' fail - %s", n, err)
+				if this.config.SafeMode {
+					continue
+				}
+				return false
+			}
+			this.doCreateMemGroup(gcfg)
+		}
 	}
 	return true
 }
@@ -49,10 +64,33 @@ func (this *Service) storeRuntimeConfig(cfg *runtimeConfig) error {
 
 func (this *Service) buildRuntimeConfig() *runtimeConfig {
 	r := new(runtimeConfig)
+	r.Group = make(map[string]interface{})
+	for n, item := range this.memgroups {
+		r.Group[n] = item.config.ToMap()
+	}
 	return r
 }
 
 func (this *Service) doSave() error {
 	cfg := this.buildRuntimeConfig()
 	return this.storeRuntimeConfig(cfg)
+}
+
+func (this *Service) doRun() error {
+	// connect to seed
+	return nil
+}
+
+func (this *Service) doCreateMemGroup(cfg *MemGroupConfig) error {
+	if _, ok := this.memgroups[cfg.Name]; ok {
+		return fmt.Errorf("memory group '%s' already exists", cfg.Name)
+	}
+
+	mg := newLocalMemGroup(cfg.Name)
+	item := new(serviceItem)
+	item.config = cfg
+	item.group = mg
+	this.memgroups[cfg.Name] = item
+
+	return nil
 }

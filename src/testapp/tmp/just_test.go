@@ -47,3 +47,11 @@ func Test4(t *testing.T) {
 	atomic.AddUint32(&v, 1)
 	t.Errorf("%v", v)
 }
+
+func Test5(t *testing.T) {
+	var bs []byte
+	for _, v := range bs {
+		t.Error(v)
+	}
+	t.Error(len(bs))
+}
