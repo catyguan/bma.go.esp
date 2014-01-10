@@ -28,7 +28,24 @@ type runtimeConfig struct {
 }
 
 func (this *Service) initDatabase() {
-	this.database.InitRuntmeConfigTable(tableName, []int{1})
+	this.database.InitRuntmeConfigTable(tableName, []int{1, 2})
+}
+
+func (this *Service) loadServiceConfig() bool {
+	cfg := make(map[string]interface{})
+	err := this.database.LoadRuntimeConfig(tableName, 2, cfg)
+	if err != nil {
+		return false
+	}
+	scfg := new(serviceConfig)
+	err = scfg.FromMap(cfg)
+	if err != nil {
+		logger.Warn(tag, "load runtime serviceConfig fail - %s", err)
+		return false
+	}
+	this.serviceConfig = scfg
+	this.isServiceConfigLoaded = true
+	return true
 }
 
 func (this *Service) loadRuntimeConfig() (*runtimeConfig, bool) {

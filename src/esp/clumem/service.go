@@ -2,6 +2,7 @@ package clumem
 
 import (
 	"bmautil/qexec"
+	"bmautil/valutil"
 	"config"
 	"esp/sqlite"
 	"logger"
@@ -16,7 +17,10 @@ type Service struct {
 	name      string
 	database  *sqlite.SqliteServer
 	memgroups map[string]*serviceItem
-	config    configInfo
+
+	config                configInfo
+	serviceConfig         *serviceConfig
+	isServiceConfigLoaded bool
 
 	executor *qexec.QueueExecutor
 }
@@ -45,13 +49,26 @@ type configInfo struct {
 
 func (this *Service) Init() bool {
 	cfg := configInfo{}
-	if config.GetBeanConfig(this.name, &cfg) {
-		this.config = cfg
+	m := config.GetMapConfig(this.name)
+	if m != nil {
+		valutil.ToBean(m, &cfg)
+		scfg := new(serviceConfig)
+		err := scfg.FromMap(m)
+		if err != nil {
+			logger.Warn(tag, "read service config fail - %s", err)
+			return false
+		}
+		this.serviceConfig = scfg
 	}
 	return true
 }
 
 func (this *Service) Start() bool {
+	if !this.loadServiceConfig() {
+		if !this.config.SafeMode {
+			return false
+		}
+	}
 	cfg, ok := this.loadRuntimeConfig()
 	if !ok {
 		if !this.config.SafeMode {
@@ -93,6 +110,12 @@ func (this *Service) Save() error {
 func (this *Service) CreateMemGroup(cfg *MemGroupConfig) error {
 	return this.executor.DoSync("create", func() error {
 		return this.doCreateMemGroup(cfg)
+	})
+}
+
+func (this *Service) ListMemGroupName() ([]string, error) {
+	return this.executor.DoSync("list", func() ([]string, error) {
+		return nil
 	})
 }
 
