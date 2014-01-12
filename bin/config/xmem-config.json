@@ -15,7 +15,7 @@
 		"BlackIp" : "168.0.0.1, 12.0.0.2",
 		"WhiteIp" : "127.0.0.1"
 	},
-	"clumemService" : {
+	"xmemService" : {
 		"SafeMode" : true
 	}
 }

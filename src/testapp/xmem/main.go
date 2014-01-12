@@ -2,10 +2,10 @@ package main
 
 import (
 	"boot"
-	"esp/clumem"
 	"esp/shell"
 	"esp/shell/telnetcmd"
 	"esp/sqlite"
+	"esp/xmem"
 	"telnetserver"
 )
 
@@ -21,9 +21,9 @@ func main() {
 	shl.AddDir(sqliteServer.NewShellDir())
 
 	// TBusServer
-	clumemService := clumem.NewService("clumemService", sqliteServer)
-	boot.QuickDefine(clumemService, "", true)
-	shl.AddDir(clumemService.NewShellDir())
+	xmemService := xmem.NewService("xmemService", sqliteServer)
+	boot.QuickDefine(xmemService, "", true)
+	shl.AddDir(xmemService.NewShellDir())
 
 	// telnetServer
 	tServer := telnetserver.NewTelnetServer("telnetServer", telnetcmd.NewHandler(shl))

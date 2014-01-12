@@ -7,6 +7,7 @@ import (
 	"esp/espnet"
 	"fmt"
 	"logger"
+	"net/url"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -422,6 +423,14 @@ func (this *LoadBalancePrototype) FromMap(data map[string]interface{}) error {
 		}
 	}
 	return nil
+}
+
+func (this *LoadBalancePrototype) ToURI() (*url.URL, error) {
+	return nil, errors.New("not impl")
+}
+
+func (this *LoadBalancePrototype) FromURI(u *url.URL) error {
+	return errors.New("not impl")
 }
 
 func (this *LoadBalancePrototype) GetProperties() []*uprop.UProperty {

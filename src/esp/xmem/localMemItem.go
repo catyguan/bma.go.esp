@@ -1,4 +1,4 @@
-package clumem
+package xmem
 
 import (
 	"bytes"
@@ -12,16 +12,17 @@ const (
 )
 
 type localMemItem struct {
-	items     map[string]*localMemItem
-	value     interface{}
-	size      int
-	version   MemVer
-	listeners map[string]IMemListener
+	items   map[string]*localMemItem
+	value   interface{}
+	size    int
+	version MemVer
 }
 
-func (this *localMemItem) NextVersion() MemVer {
-	this.version++
-	return this.version
+func (this *localMemItem) Clear() {
+	this.value = nil
+	for _, item := range this.items {
+		item.Clear()
+	}
 }
 
 func (this *localMemItem) Len() int {
@@ -30,6 +31,25 @@ func (this *localMemItem) Len() int {
 
 func (this *localMemItem) ToString(n string, lvl int) string {
 	return fmt.Sprintf("%s%s(%d:%d) : %v", strings.Repeat("\t", lvl), n, this.Len(), this.version, this.value)
+}
+
+func (this *localMemItem) Walk(key MemKey, w XMemWalker) WalkStep {
+	ws := w(key, this.value, this.version)
+	if ws == WALK_STEP_NEXT {
+		for k, item := range this.items {
+			nkey := append(key, k)
+			nws := item.Walk(nkey, w)
+			switch nws {
+			case WALK_STEP_END:
+				return nws
+			case WALK_STEP_OUT:
+				return ws
+			case WALK_STEP_OVER, WALK_STEP_NEXT:
+				continue
+			}
+		}
+	}
+	return ws
 }
 
 func (this *localMemItem) Dump(n string, buf *bytes.Buffer, lvl int, all bool) {

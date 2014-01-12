@@ -1,16 +1,16 @@
-package clumem
+package xmem
 
 import (
 	"bmautil/qexec"
-	"bmautil/valutil"
 	"config"
 	"esp/sqlite"
 	"logger"
 )
 
 type serviceItem struct {
-	group  *localMemGroup
-	config *MemGroupConfig
+	group   *localMemGroup
+	profile *memGroupProfile
+	config  *MemGroupConfig
 }
 
 type Service struct {
@@ -18,9 +18,7 @@ type Service struct {
 	database  *sqlite.SqliteServer
 	memgroups map[string]*serviceItem
 
-	config                configInfo
-	serviceConfig         *serviceConfig
-	isServiceConfigLoaded bool
+	config configInfo
 
 	executor *qexec.QueueExecutor
 }
@@ -43,32 +41,20 @@ func (this *Service) Name() string {
 }
 
 type configInfo struct {
-	AdminWord string
-	SafeMode  bool
+	AdminWord     string
+	SafeMode      bool
+	NoWaitOnStart bool
 }
 
 func (this *Service) Init() bool {
 	cfg := configInfo{}
-	m := config.GetMapConfig(this.name)
-	if m != nil {
-		valutil.ToBean(m, &cfg)
-		scfg := new(serviceConfig)
-		err := scfg.FromMap(m)
-		if err != nil {
-			logger.Warn(tag, "read service config fail - %s", err)
-			return false
-		}
-		this.serviceConfig = scfg
+	if config.GetBeanConfig(this.name, &cfg) {
+
 	}
 	return true
 }
 
 func (this *Service) Start() bool {
-	if !this.loadServiceConfig() {
-		if !this.config.SafeMode {
-			return false
-		}
-	}
 	cfg, ok := this.loadRuntimeConfig()
 	if !ok {
 		if !this.config.SafeMode {
@@ -81,13 +67,16 @@ func (this *Service) Start() bool {
 	if !this.executor.Run() {
 		return false
 	}
-	err := this.executor.DoSync("startRun", func() error {
-		return this.doRun()
-	})
-	if err != nil {
-		logger.Error(tag, "%s start run fail - %s", this.name, err)
-		return false
+	if this.config.NoWaitOnStart {
+		this.executor.DoNow("startRunNow", this.doRun)
+	} else {
+		err := this.executor.DoSync("startRun", this.doRun)
+		if err != nil {
+			logger.Error(tag, "%s start run fail - %s", this.name, err)
+			return false
+		}
 	}
+
 	return true
 }
 
@@ -107,14 +96,16 @@ func (this *Service) Save() error {
 	})
 }
 
-func (this *Service) CreateMemGroup(cfg *MemGroupConfig) error {
+func (this *Service) EnableMemGroup(prof *memGroupProfile) error {
 	return this.executor.DoSync("create", func() error {
-		return this.doCreateMemGroup(cfg)
+		return this.doEnableMemGroup(prof)
 	})
 }
 
 func (this *Service) ListMemGroupName() ([]string, error) {
-	return this.executor.DoSync("list", func() ([]string, error) {
+	var r []string
+	return r, this.executor.DoSync("list", func() error {
+		r = this.doListMemGroupName()
 		return nil
 	})
 }

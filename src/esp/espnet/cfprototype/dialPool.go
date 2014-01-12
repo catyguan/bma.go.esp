@@ -6,6 +6,7 @@ import (
 	"errors"
 	"esp/espnet"
 	"fmt"
+	"net/url"
 	"time"
 	"uprop"
 )
@@ -61,6 +62,37 @@ func (this *DialPoolPrototype) FromMap(data map[string]interface{}) error {
 		}
 	}
 	return nil
+}
+
+func (this *DialPoolPrototype) ToURI() (*url.URL, error) {
+	if err := this.Valid(); err != nil {
+		return nil, err
+	}
+
+	v := url.Values{}
+	props := this.GetProperties()
+	for _, p := range props {
+		if p.Name == "address" {
+			continue
+		}
+		if p.Value != nil && p.Value.Value != nil {
+			v.Set(p.Name, fmt.Sprintf("%v", p.Value.Value))
+		}
+	}
+	s := fmt.Sprintf("dial://%s/?%s", this.config.Dial.Address, v.Encode())
+	return url.Parse(s)
+}
+
+func (this *DialPoolPrototype) FromURI(u *url.URL) error {
+	props := this.GetProperties()
+	q := u.Query()
+	for k, _ := range q {
+		err := uprop.Helper.Set(props, k, q.Get(k))
+		if err != nil {
+			return err
+		}
+	}
+	return this.Valid()
 }
 
 func (this *DialPoolPrototype) GetProperties() []*uprop.UProperty {

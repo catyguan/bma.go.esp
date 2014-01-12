@@ -1,4 +1,4 @@
-package clumem
+package xmem
 
 import (
 	"bytes"
@@ -69,7 +69,6 @@ func (this *doc4MemGroup) CommitDoc(session *shell.Session) error {
 	}
 
 	if this.edit {
-		this.config.Name = this.name
 		// cache, err := this.service.GetCache(this.name, false)
 		// if err != nil {
 		// 	return err
@@ -79,10 +78,10 @@ func (this *doc4MemGroup) CommitDoc(session *shell.Session) error {
 		// 	return err
 		// }
 	} else {
-		err := this.service.CreateMemGroup(this.config)
-		if err != nil {
-			return err
-		}
+		// err := this.service.CreateMemGroup(this.config)
+		// if err != nil {
+		// 	return err
+		// }
 	}
 	return this.service.Save()
 }

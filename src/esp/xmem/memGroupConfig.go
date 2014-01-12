@@ -1,29 +1,25 @@
-package clumem
+package xmem
 
 import (
 	"bmautil/valutil"
-	"errors"
 	"uprop"
 )
 
 type MemGroupConfig struct {
-	Name string
+	NoSave bool
 }
 
 func (this *MemGroupConfig) Valid() error {
-	if this.Name == "" {
-		return errors.New("memory group name empty")
-	}
 	return nil
 }
 
 func (this *MemGroupConfig) GetProperties() []*uprop.UProperty {
-	r := make([]*uprop.UProperty, 0)
-	r = append(r, uprop.NewUProperty("name", this.Name, false, "memory group name", func(v string) error {
-		this.Name = v
+	b := new(uprop.UPropertyBuilder)
+	b.NewProp("disableSave", "disable memory save").BeValue(this.NoSave, func(v string) error {
+		this.NoSave = valutil.ToBool(v, this.NoSave)
 		return nil
-	}))
-	return r
+	})
+	return b.AsList()
 }
 
 func (this *MemGroupConfig) ToMap() map[string]interface{} {

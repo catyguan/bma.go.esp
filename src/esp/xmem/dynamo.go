@@ -1,4 +1,4 @@
-package clumem
+package xmem
 
 // http://baike.baidu.com/subview/2982765/10950438.htm
 /*

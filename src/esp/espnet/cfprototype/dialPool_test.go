@@ -19,11 +19,12 @@ func TestPrototype(t *testing.T) {
 	props := p.GetProperties()
 	for _, prop := range props {
 		if v, ok := cfg[prop.Name]; ok {
-			prop.Setter(v)
+			prop.Value.Commit(v)
 		}
 	}
 	m := p.ToMap()
 	fmt.Println(m, p.config)
+	fmt.Println(p.ToURI())
 
 	if m == nil {
 		p2 := new(DialPoolPrototype)

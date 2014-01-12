@@ -1,20 +1,21 @@
-package clumem
+package xmem
 
 import "esp/shell"
 
-type dirService struct {
+type dirGroup struct {
 	shell.ShellDirBase
 	service *Service
+	name    string
 }
 
-func (this *dirService) InitDir(s *Service) {
+func (this *dirGroup) InitDir(s *Service, n string) {
 	this.service = s
+	this.name = n
 	this.DirName = this.service.Name()
 	this.Commands = this.MakeCommands
-	this.Dirs = this.MakeDirs
 }
 
-func (this *dirService) MakeCommands() map[string]shell.ShellProcessor {
+func (this *dirGroup) MakeCommands() map[string]shell.ShellProcessor {
 	r := make(map[string]shell.ShellProcessor)
 	r["delete"] = this.CF(this.commandDelete)
 	r["new"] = this.CF(this.commandNew)
@@ -23,22 +24,7 @@ func (this *dirService) MakeCommands() map[string]shell.ShellProcessor {
 	return r
 }
 
-func (this *dirService) MakeDirs() map[string]shell.ShellDir {
-	r := make(map[string]shell.ShellDir, 0)
-	// clist := this.service.ListCacheName()
-	// for _, k := range clist {
-	// 	cache, _ := this.service.GetCache(k, false)
-	// 	if cache != nil {
-	// 		ss, ok := cache.(shell.ShellDirSupported)
-	// 		if ok {
-	// 			r[k] = ss.CreateShell()
-	// 		}
-	// 	}
-	// }
-	return r
-}
-
-func (this *dirService) commandNew(s *shell.Session, command string) bool {
+func (this *dirGroup) commandNew(s *shell.Session, command string) bool {
 	name := "new"
 	args := ""
 	fs := shell.NewFlagSet(name)
@@ -52,7 +38,7 @@ func (this *dirService) commandNew(s *shell.Session, command string) bool {
 	return true
 }
 
-func (this *dirService) commandEdit(s *shell.Session, command string) bool {
+func (this *dirGroup) commandEdit(s *shell.Session, command string) bool {
 	name := "edit"
 	args := "cacheName"
 	fs := shell.NewFlagSet(name)
@@ -82,7 +68,7 @@ func (this *dirService) commandEdit(s *shell.Session, command string) bool {
 	return true
 }
 
-func (this *dirService) commandDelete(s *shell.Session, command string) bool {
+func (this *dirGroup) commandDelete(s *shell.Session, command string) bool {
 	name := "delete"
 	args := "remoteName"
 	fs := shell.NewFlagSet(name)
@@ -112,7 +98,7 @@ func (this *dirService) commandDelete(s *shell.Session, command string) bool {
 
 }
 
-func (this *dirService) commandSave(s *shell.Session, command string) bool {
+func (this *dirGroup) commandSave(s *shell.Session, command string) bool {
 	name := "save"
 	args := ""
 	fs := shell.NewFlagSet(name)

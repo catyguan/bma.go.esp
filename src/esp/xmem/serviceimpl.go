@@ -1,4 +1,4 @@
-package clumem
+package xmem
 
 import (
 	"bmautil/valutil"
@@ -28,24 +28,7 @@ type runtimeConfig struct {
 }
 
 func (this *Service) initDatabase() {
-	this.database.InitRuntmeConfigTable(tableName, []int{1, 2})
-}
-
-func (this *Service) loadServiceConfig() bool {
-	cfg := make(map[string]interface{})
-	err := this.database.LoadRuntimeConfig(tableName, 2, cfg)
-	if err != nil {
-		return false
-	}
-	scfg := new(serviceConfig)
-	err = scfg.FromMap(cfg)
-	if err != nil {
-		logger.Warn(tag, "load runtime serviceConfig fail - %s", err)
-		return false
-	}
-	this.serviceConfig = scfg
-	this.isServiceConfigLoaded = true
-	return true
+	this.database.InitRuntmeConfigTable(tableName, []int{1})
 }
 
 func (this *Service) loadRuntimeConfig() (*runtimeConfig, bool) {
@@ -69,7 +52,7 @@ func (this *Service) setupByConfig(cfg *runtimeConfig) bool {
 				}
 				return false
 			}
-			this.doCreateMemGroup(gcfg)
+			this.doCreateMemGroup(n, gcfg)
 		}
 	}
 	return true
@@ -94,20 +77,55 @@ func (this *Service) doSave() error {
 }
 
 func (this *Service) doRun() error {
-	// connect to seed
 	return nil
 }
 
-func (this *Service) doCreateMemGroup(cfg *MemGroupConfig) error {
-	if _, ok := this.memgroups[cfg.Name]; ok {
-		return fmt.Errorf("memory group '%s' already exists", cfg.Name)
+func (this *Service) doListMemGroupName() []string {
+	r := []string{}
+	for k, _ := range this.memgroups {
+		r = append(r, k)
+	}
+	return r
+}
+
+func (this *Service) doCreateMemGroup(name string, cfg *MemGroupConfig) (*serviceItem, error) {
+	if _, ok := this.memgroups[name]; ok {
+		return nil, fmt.Errorf("memory group '%s' already exists", name)
 	}
 
-	mg := newLocalMemGroup(cfg.Name)
+	mg := newLocalMemGroup(name)
 	item := new(serviceItem)
 	item.config = cfg
 	item.group = mg
-	this.memgroups[cfg.Name] = item
+	this.memgroups[name] = item
 
+	return item, nil
+}
+
+func (this *Service) doEnableMemGroup(prof *memGroupProfile) error {
+	item, ok := this.memgroups[prof.Name]
+	if !ok {
+		cfg := new(MemGroupConfig)
+		item, _ = this.doCreateMemGroup(prof.Name, cfg)
+	}
+	if item.profile != nil {
+		return fmt.Errorf("memory group '%s' already enable", prof.Name)
+	}
+	item.profile = prof
+
+	if !item.config.NoSave {
+		err := this.doMemLoad(prof.Name)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (this *Service) doMemSave(name string) error {
+	return nil
+}
+
+func (this *Service) doMemLoad(name string) error {
 	return nil
 }

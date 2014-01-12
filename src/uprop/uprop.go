@@ -231,6 +231,13 @@ func (this *UProperty) String() string {
 	return buf.String()
 }
 
+func (this *UProperty) CallSet(v string) error {
+	if this.Value == nil {
+		return errors.New("can't set")
+	}
+	return this.Value.Commit(v)
+}
+
 func (this *UProperty) CallAdd(vlist []string) (rerr error) {
 	if this.Adder == nil {
 		return errors.New("can't add")

@@ -1,4 +1,4 @@
-package clumem
+package xmem
 
 import "esp/shell"
 
