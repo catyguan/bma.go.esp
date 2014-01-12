@@ -1,4 +1,4 @@
-package espnet
+package coder
 
 import (
 	"bmautil/byteutil"
@@ -8,6 +8,41 @@ import (
 	"io"
 	"reflect"
 )
+
+// lenString
+type lenStringCoder int
+
+func (this lenStringCoder) DoEncode(w *byteutil.BytesBufferWriter, v string) {
+	bs := []byte(v)
+	Int.DoEncode(w, len(bs))
+	w.Write(bs)
+}
+
+func (this lenStringCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
+	this.DoEncode(w, v.(string))
+	return nil
+}
+
+func (this lenStringCoder) DoDecode(r *byteutil.BytesBufferReader) (string, error) {
+	l, err := Int.DoDecode(r)
+	if err != nil {
+		return "", err
+	}
+	p := make([]byte, l)
+	_, err = r.Read(p)
+	if err != nil {
+		return "", err
+	}
+	return string(p), nil
+}
+
+func (this lenStringCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
+	s, err := this.DoDecode(r)
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
+}
 
 // string
 type stringCoder int
@@ -522,15 +557,11 @@ func (this varCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) 
 	return nil, nil
 }
 
-// Coders
-var (
-	Coders coder
-)
-
 type NULL int
 
-type coder struct {
+var (
 	String    stringCoder
+	LenString lenStringCoder
 	Int       intCoder
 	Int8      int8Coder
 	Int16     int16Coder
@@ -546,4 +577,4 @@ type coder struct {
 	FixUint64 fixUint64Coder
 	Varinat   varCoder
 	NullValue NULL
-}
+)
