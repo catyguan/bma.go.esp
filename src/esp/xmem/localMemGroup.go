@@ -108,8 +108,15 @@ func (this *localMemGroup) Snapshot(coder XMemCoder) ([]*XMemSnapshot, error) {
 	return r, rerr
 }
 
-func (this *localMemGroup) BuildFromSnapshot(coder XMemCoder, slist []*XMemSnapshot) error {
+func (this *localMemGroup) Clear() {
 	this.root.Clear()
+	this.root = new(localMemItem)
+	this.count = 1
+	this.size = local_SIZE_ITEM
+}
+
+func (this *localMemGroup) BuildFromSnapshot(coder XMemCoder, slist []*XMemSnapshot) error {
+	this.Clear()
 
 	ev := new(XMemEvent)
 	ev.Action = ACTION_CLEAR
@@ -118,10 +125,6 @@ func (this *localMemGroup) BuildFromSnapshot(coder XMemCoder, slist []*XMemSnaps
 	ev.Value = nil
 	ev.Version = MemVer(0)
 	this.lisRoot.allInvokeListener([]*XMemEvent{ev})
-
-	this.root = new(localMemItem)
-	this.count = 1
-	this.size = local_SIZE_ITEM
 
 	var ctx localActionContext
 	for _, ss := range slist {

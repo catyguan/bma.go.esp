@@ -1,6 +1,10 @@
 package xmem
 
-import "strings"
+import (
+	"bmautil/byteutil"
+	xcoder "bmautil/coder"
+	"strings"
+)
 
 type MemKey []string
 
@@ -89,6 +93,48 @@ type XMemSnapshot struct {
 	Version MemVer
 	Kind    string
 	Data    []byte
+}
+
+func (this *XMemSnapshot) Encode(w *byteutil.BytesBufferWriter) error {
+	xcoder.LenString.DoEncode(w, this.Key)
+	xcoder.Uint64.DoEncode(w, uint64(this.Version))
+	xcoder.LenString.DoEncode(w, this.Kind)
+	xcoder.Int.DoEncode(w, len(this.Data))
+	if len(this.Data) > 0 {
+		w.Write(this.Data)
+	}
+	return nil
+}
+
+func DecodeSnapshot(r *byteutil.BytesBufferReader) (*XMemSnapshot, error) {
+	o := new(XMemSnapshot)
+	var err error
+	o.Key, err = xcoder.LenString.DoDecode(r)
+	if err != nil {
+		return nil, err
+	}
+	var v2 uint64
+	v2, err = xcoder.Uint64.DoDecode(r)
+	if err != nil {
+		return nil, err
+	}
+	o.Version = MemVer(v2)
+	o.Kind, err = xcoder.LenString.DoDecode(r)
+	if err != nil {
+		return nil, err
+	}
+	var v3 int
+	v3, err = xcoder.Int.DoDecode(r)
+	if err != nil {
+		return nil, err
+	}
+	bs := make([]byte, v3)
+	_, err = r.Read(bs)
+	if err != nil {
+		return nil, err
+	}
+	o.Data = bs
+	return o, nil
 }
 
 type XMem interface {

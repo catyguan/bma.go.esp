@@ -1,8 +1,10 @@
 package xmem
 
 import (
+	"boot"
 	"bytes"
 	"encoding/binary"
+	"esp/sqlite"
 	"fmt"
 	"testing"
 )
@@ -106,4 +108,54 @@ func TestSnapshot(t *testing.T) {
 	mg2.BuildFromSnapshot(coder(0), slist)
 	fmt.Println("----Dump2----")
 	fmt.Print(mg2.Dump())
+}
+
+func TestSaveLoad(t *testing.T) {
+
+	cfile := "../../../bin/config/xmem-config.json"
+
+	// sqliteServer
+	sqliteServer := sqlite.NewSqliteServer("sqliteServer")
+	sqliteServer.DefaultBoot()
+
+	// TBusServer
+	xmemService := NewService("xmemService", sqliteServer)
+	boot.QuickDefine(xmemService, "", true)
+
+	f1 := func() {
+		mg := newLocalMemGroup("test")
+
+		mg.Set(MemKey{"a"}, nil, 0)
+		mg.Set(MemKey{"a", "b", "c"}, 123, 4)
+		mg.Set(MemKey{"a", "b", "d"}, 234, 4)
+		mg.Set(MemKey{"a", "e"}, 345, 4)
+
+		fmt.Println("----Dump----")
+		fmt.Print(mg.Dump())
+
+		err := xmemService.doExecMemSave("test", mg, coder(0))
+		if err != nil {
+			t.Error(err)
+		}
+	}
+	if f1 != nil {
+
+	}
+	f2 := func() {
+		mg := newLocalMemGroup("test")
+		err := xmemService.doExecMemLoad("test", mg, coder(0))
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		fmt.Println("----Dump----")
+		fmt.Print(mg.Dump())
+	}
+	if f2 != nil {
+
+	}
+
+	funl := []func(){f2}
+
+	boot.TestGo(cfile, 2, funl)
 }
