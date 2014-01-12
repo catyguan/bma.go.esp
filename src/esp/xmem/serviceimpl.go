@@ -5,9 +5,11 @@ import (
 	xcoder "bmautil/coder"
 	"bmautil/sqlutil"
 	"bmautil/valutil"
+	"bytes"
 	"database/sql"
 	"esp/sqlite"
 	"fmt"
+	"io/ioutil"
 	"logger"
 )
 
@@ -111,7 +113,16 @@ func (this *Service) doCreateMemGroup(name string, cfg *MemGroupConfig) (*servic
 	return item, nil
 }
 
-func (this *Service) doEnableMemGroup(prof *memGroupProfile) error {
+func (this *Service) doUpdateMemGroupConfig(name string, cfg *MemGroupConfig) error {
+	item, err := this.doGetGroup(name)
+	if err != nil {
+		return err
+	}
+	item.config = cfg
+	return nil
+}
+
+func (this *Service) doEnableMemGroup(prof *MemGroupProfile) error {
 	item, ok := this.memgroups[prof.Name]
 	if !ok {
 		cfg := new(MemGroupConfig)
@@ -127,7 +138,7 @@ func (this *Service) doEnableMemGroup(prof *memGroupProfile) error {
 	}
 
 	if !item.config.NoSave {
-		err := this.doMemLoad(prof.Name)
+		err := this.doMemLoad(prof.Name, "", nil)
 		if err != nil {
 			return err
 		}
@@ -143,21 +154,35 @@ func (this *Service) doGetGroup(name string) (*serviceItem, error) {
 	return item, nil
 }
 
-func (this *Service) doMemSave(name string) error {
+func (this *Service) doMemSave(name string, fileName string, buf *bytes.Buffer) error {
 	item, err := this.doGetGroup(name)
 	if err != nil {
 		return err
 	}
-	if item.config.NoSave {
-		return fmt.Errorf("'%s' disable save", name)
-	}
 	if item.profile == nil || item.profile.Coder == nil {
 		return fmt.Errorf("'%s' no coder", name)
 	}
-	return this.doExecMemSave(name, item.group, item.profile.Coder)
+	logger.Debug(tag, "doMemSave(%s,%s)", name, fileName)
+	bs, err2 := this.doExecMemEncode(name, item.group, item.profile.Coder)
+	if err2 != nil {
+		return err2
+	}
+	if buf != nil {
+		buf.Write(bs)
+		return nil
+	}
+	if fileName != "" {
+		logger.Debug(tag, "write '%s' snapshot to '%s'", name, fileName)
+		return ioutil.WriteFile(fileName, bs, 0664)
+	}
+	if item.config.NoSave {
+		return fmt.Errorf("'%s' disable save", name)
+	}
+	logger.Debug(tag, "write '%s' snapshot to local", name)
+	return this.doSnapshotSave(name, bs)
 }
 
-func (this *Service) doExecMemSave(name string, mg *localMemGroup, coder XMemCoder) error {
+func (this *Service) doExecMemSaveFile(fileName string, mg *localMemGroup, coder XMemCoder) error {
 	slist, err2 := mg.Snapshot(coder)
 	if err2 != nil {
 		return err2
@@ -171,6 +196,27 @@ func (this *Service) doExecMemSave(name string, mg *localMemGroup, coder XMemCod
 	w.End()
 	bs := buf.ToBytes()
 
+	return ioutil.WriteFile(fileName, bs, 0644)
+}
+
+func (this *Service) doExecMemEncode(name string, mg *localMemGroup, coder XMemCoder) ([]byte, error) {
+	slist, err2 := mg.Snapshot(coder)
+	if err2 != nil {
+		return nil, err2
+	}
+	buf := byteutil.NewBytesBuffer()
+	w := buf.NewWriter()
+	xcoder.Int.DoEncode(w, len(slist))
+	for _, s := range slist {
+		err := s.Encode(w)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return w.End().ToBytes(), nil
+}
+
+func (this *Service) doSnapshotSave(name string, bs []byte) error {
 	logger.Debug(tag, "store memory snapshot = %s, %d", name, len(bs))
 
 	delsql := fmt.Sprintf("DELETE FROM %s WHERE name = ?", tableName2)
@@ -185,7 +231,7 @@ func (this *Service) doExecMemSave(name string, mg *localMemGroup, coder XMemCod
 	return this.database.Do("local", insact, nil)
 }
 
-func (this *Service) doMemLoad(name string) error {
+func (this *Service) doMemLoad(name string, fileName string, data []byte) error {
 	item, err := this.doGetGroup(name)
 	if err != nil {
 		return err
@@ -193,10 +239,22 @@ func (this *Service) doMemLoad(name string) error {
 	if item.profile == nil || item.profile.Coder == nil {
 		return fmt.Errorf("'%s' no coder", name)
 	}
-	return this.doExecMemLoad(name, item.group, item.profile.Coder)
+	if data == nil {
+		if fileName != "" {
+			logger.Debug(tag, "load '%s' snapshot from '%s'", name, fileName)
+			data, err = ioutil.ReadFile(fileName)
+		} else {
+			logger.Debug(tag, "load '%s' snapshot from local", name)
+			data, err = this.doSnapshotLoad(name)
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return this.doExecMemDecode(name, item.group, item.profile.Coder, data)
 }
 
-func (this *Service) doExecMemLoad(name string, mg *localMemGroup, coder XMemCoder) error {
+func (this *Service) doSnapshotLoad(name string) ([]byte, error) {
 	var content []byte
 	rowScan := func(rows *sql.Rows) error {
 		if rows.Next() {
@@ -210,9 +268,17 @@ func (this *Service) doExecMemLoad(name string, mg *localMemGroup, coder XMemCod
 	defer close(event)
 	this.database.Do("local", action, event)
 	if err := <-event; err != nil {
-		return err
+		return nil, err
 	}
-	logger.Debug(tag, "load memory snapshot = %d", len(content))
+	return content, nil
+}
+
+func (this *Service) doExecMemDecode(name string, mg *localMemGroup, coder XMemCoder, content []byte) error {
+	logger.Debug(tag, "memory snapshot size = %d", len(content))
+	if len(content) == 0 {
+		logger.Debug(tag, "'%s' no snapshot", name)
+		return nil
+	}
 
 	buf := byteutil.NewBytesBufferB(content)
 	r := buf.NewReader()
@@ -229,4 +295,16 @@ func (this *Service) doExecMemLoad(name string, mg *localMemGroup, coder XMemCod
 		slist = append(slist, ss)
 	}
 	return mg.BuildFromSnapshot(coder, slist)
+}
+
+func (this *Service) doStoreAllMemGroup() error {
+	for n, item := range this.memgroups {
+		if !item.config.NoSave {
+			err := this.doMemSave(n, "", nil)
+			if err != nil {
+				logger.Warn(tag, "store '%s' fail -%s", n, err)
+			}
+		}
+	}
+	return nil
 }

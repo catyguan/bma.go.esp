@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	cfile := "config/clumem-config.json"
+	cfile := "config/xmem-config.json"
 
 	shl := shell.NewShell("clumem")
 	boot.Install("shell", shl)
@@ -20,10 +20,14 @@ func main() {
 	sqliteServer.DefaultBoot()
 	shl.AddDir(sqliteServer.NewShellDir())
 
-	// TBusServer
+	// xmemServer
 	xmemService := xmem.NewService("xmemService", sqliteServer)
 	boot.QuickDefine(xmemService, "", true)
 	shl.AddDir(xmemService.NewShellDir())
+
+	tester := new(Tester)
+	tester.xmems = xmemService
+	boot.QuickDefine(tester, "", false)
 
 	// telnetServer
 	tServer := telnetserver.NewTelnetServer("telnetServer", telnetcmd.NewHandler(shl))

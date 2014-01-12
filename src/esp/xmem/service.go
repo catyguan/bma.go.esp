@@ -9,7 +9,7 @@ import (
 
 type serviceItem struct {
 	group   *localMemGroup
-	profile *memGroupProfile
+	profile *MemGroupProfile
 	config  *MemGroupConfig
 }
 
@@ -41,7 +41,6 @@ func (this *Service) Name() string {
 }
 
 type configInfo struct {
-	AdminWord     string
 	SafeMode      bool
 	NoWaitOnStart bool
 }
@@ -81,6 +80,7 @@ func (this *Service) Start() bool {
 }
 
 func (this *Service) Stop() bool {
+	this.StoreAllMemGroup()
 	this.executor.Stop()
 	return true
 }
@@ -96,7 +96,13 @@ func (this *Service) Save() error {
 	})
 }
 
-func (this *Service) EnableMemGroup(prof *memGroupProfile) error {
+func (this *Service) UpdateMemGroupConfig(name string, cfg *MemGroupConfig) error {
+	return this.executor.DoSync("config", func() error {
+		return this.doUpdateMemGroupConfig(name, cfg)
+	})
+}
+
+func (this *Service) EnableMemGroup(prof *MemGroupProfile) error {
 	return this.executor.DoSync("create", func() error {
 		return this.doEnableMemGroup(prof)
 	})
@@ -107,6 +113,24 @@ func (this *Service) ListMemGroupName() ([]string, error) {
 	return r, this.executor.DoSync("list", func() error {
 		r = this.doListMemGroupName()
 		return nil
+	})
+}
+
+func (this *Service) StoreAllMemGroup() error {
+	return this.executor.DoSync("storeAll", func() error {
+		return this.doStoreAllMemGroup()
+	})
+}
+
+func (this *Service) SaveMemGroup(name string, fileName string) error {
+	return this.executor.DoSync("saveMG", func() error {
+		return this.doMemSave(name, fileName, nil)
+	})
+}
+
+func (this *Service) LoadMemGroup(name string, fileName string) error {
+	return this.executor.DoSync("loadMG", func() error {
+		return this.doMemLoad(name, fileName, nil)
 	})
 }
 

@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"esp/sqlite"
 	"fmt"
+	"io/ioutil"
 	"testing"
 )
 
@@ -62,9 +63,9 @@ func TestWalk(t *testing.T) {
 	})
 }
 
-type coder int
+type testcoder int
 
-func (O coder) Encode(val interface{}) (string, []byte, error) {
+func (O testcoder) Encode(val interface{}) (string, []byte, error) {
 	if val == nil {
 		return "", nil, nil
 	}
@@ -74,7 +75,7 @@ func (O coder) Encode(val interface{}) (string, []byte, error) {
 	return "int", buf[:l], nil
 }
 
-func (O coder) Decode(flag string, data []byte) (interface{}, int, error) {
+func (O testcoder) Decode(flag string, data []byte) (interface{}, int, error) {
 	if flag == "" {
 		return nil, 0, nil
 	}
@@ -86,6 +87,10 @@ func (O coder) Decode(flag string, data []byte) (interface{}, int, error) {
 }
 
 func TestSnapshot(t *testing.T) {
+	var c XMemCoder
+	c = testcoder(0)
+	c = SimpleCoder(0)
+
 	mg := newLocalMemGroup("test")
 
 	mg.Set(MemKey{"a"}, nil, 0)
@@ -96,7 +101,7 @@ func TestSnapshot(t *testing.T) {
 	fmt.Println("----Dump----")
 	fmt.Print(mg.Dump())
 
-	slist, _ := mg.Snapshot(coder(0))
+	slist, _ := mg.Snapshot(c)
 	fmt.Println("----Snapshot----")
 	for _, ss := range slist {
 		fmt.Println(ss)
@@ -105,7 +110,7 @@ func TestSnapshot(t *testing.T) {
 	mg2 := newLocalMemGroup("test2")
 	mg2.AddListener(MemKey{}, "test", listener)
 
-	mg2.BuildFromSnapshot(coder(0), slist)
+	mg2.BuildFromSnapshot(c, slist)
 	fmt.Println("----Dump2----")
 	fmt.Print(mg2.Dump())
 }
@@ -133,7 +138,9 @@ func TestSaveLoad(t *testing.T) {
 		fmt.Println("----Dump----")
 		fmt.Print(mg.Dump())
 
-		err := xmemService.doExecMemSave("test", mg, coder(0))
+		bs, _ := xmemService.doExecMemEncode("test", mg, SimpleCoder(0))
+		err := ioutil.WriteFile("test.dat", bs, 0644)
+		// err := xmemService.doSnapshotSave("test", bs)
 		if err != nil {
 			t.Error(err)
 		}
@@ -142,20 +149,20 @@ func TestSaveLoad(t *testing.T) {
 
 	}
 	f2 := func() {
-		mg := newLocalMemGroup("test")
-		err := xmemService.doExecMemLoad("test", mg, coder(0))
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		fmt.Println("----Dump----")
-		fmt.Print(mg.Dump())
+		// mg := newLocalMemGroup("test")
+		// err := xmemService.doExecMemLoad("test", mg, testcoder(0))
+		// if err != nil {
+		// 	t.Error(err)
+		// 	return
+		// }
+		// fmt.Println("----Dump----")
+		// fmt.Print(mg.Dump())
 	}
 	if f2 != nil {
 
 	}
 
-	funl := []func(){f2}
+	funl := []func(){f1}
 
 	boot.TestGo(cfile, 2, funl)
 }

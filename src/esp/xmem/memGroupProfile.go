@@ -2,12 +2,12 @@ package xmem
 
 import "fmt"
 
-type memGroupProfile struct {
+type MemGroupProfile struct {
 	Name  string
 	Coder XMemCoder
 }
 
-func (this *memGroupProfile) Valid() error {
+func (this *MemGroupProfile) Valid() error {
 	if this.Name == "" {
 		return fmt.Errorf("name empty")
 	}
