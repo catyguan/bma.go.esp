@@ -373,6 +373,31 @@ func Cleanup() {
 	logger.Close()
 }
 
+func TestGo(cfgFile string, endWaitSec int, funl []func()) {
+	defer func() {
+		StopAndClean()
+		UninstallAll()
+	}()
+
+	if !Prepare() {
+		fmt.Println("ERROR: boot prepare fail")
+		return
+	}
+	if InitAndStart(cfgFile) {
+		fmt.Println("boot running")
+		if !Run() {
+			fmt.Println("ERROR: boot run fail")
+			return
+		}
+		for _, f := range funl {
+			f()
+		}
+		if endWaitSec > 0 {
+			time.Sleep(time.Duration(endWaitSec) * time.Second)
+		}
+	}
+}
+
 func Go(cfgFile string) {
 	defer func() {
 		StopAndClean()
