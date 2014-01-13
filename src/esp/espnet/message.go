@@ -217,6 +217,9 @@ func (this *Message) Headers() *MessageValues {
 func (this *Message) Datas() *MessageValues {
 	return &MessageValues{this, FrameCoders.Data}
 }
+func (this *Message) XDatas() *MessageXData {
+	return &MessageXData{this, FrameCoders.XData}
+}
 func (this *Message) GetPayload() (io.Reader, int) {
 	e := this.pack.FrameByType(MT_PAYLOAD)
 	if e != nil {

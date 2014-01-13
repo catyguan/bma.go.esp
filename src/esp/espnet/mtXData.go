@@ -2,6 +2,7 @@ package espnet
 
 import (
 	"bmautil/byteutil"
+	Coders "bmautil/coder"
 	"errors"
 	"esp/espnet/protpack"
 )
@@ -199,4 +200,18 @@ func (this *mtXDataIterator) Value(dec protpack.Decoder) (interface{}, error) {
 		return nil, errors.New("end")
 	}
 	return this.mt.value(this.frame, dec)
+}
+
+// MessageXData
+type MessageXData struct {
+	msg   *Message
+	coder mt_xdata
+}
+
+func (this *MessageXData) Add(xid int, value interface{}, enc protpack.Encoder) {
+	this.coder.Add(this.msg.ToPackage(), xid, value, enc)
+}
+
+func (this *MessageXData) Iterator() *mtXDataIterator {
+	return this.coder.Iterator(this.msg.ToPackage())
 }
