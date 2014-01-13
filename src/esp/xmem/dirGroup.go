@@ -99,7 +99,7 @@ func (this *dirGroup) commandDump(s *shell.Session, command string) bool {
 
 func (this *dirGroup) commandBinlog(s *shell.Session, command string) bool {
 	name := "binlog"
-	args := "save filename OR ver [slaveVer] OR start OR stop"
+	args := "save filename OR ver [slaveVer] OR run binlogFileName OR start OR stop"
 	fs := shell.NewFlagSet(name)
 	if shell.DoParse(s, command, fs, name, args, 1, 2) {
 		return true
@@ -155,6 +155,17 @@ func (this *dirGroup) commandBinlog(s *shell.Session, command string) bool {
 				} else {
 					s.Writeln(fmt.Sprintf("set binlog slave version done => %d", ver))
 				}
+			}
+		}
+	case "run":
+		if p1 == "" {
+			s.Writeln("ERROR: run file name empty")
+		} else {
+			err := this.service.RunBinlog(this.name, p1)
+			if err != nil {
+				s.Writeln(fmt.Sprintf("ERROR: run binlog file fail - %s", err))
+			} else {
+				s.Writeln("run binlog file done")
 			}
 		}
 	default:

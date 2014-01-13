@@ -53,3 +53,31 @@ func TestBinlog(t *testing.T) {
 
 	boot.TestGo(cfile, 2, funl)
 }
+
+func TestBinlogRun(t *testing.T) {
+
+	cfile := "../../../bin/config/xmem-config.json"
+
+	sqliteServer := sqlite.NewSqliteServer("sqliteServer")
+	sqliteServer.DefaultBoot()
+
+	xmemService := NewService("xmemService", sqliteServer)
+	boot.QuickDefine(xmemService, "", true)
+
+	f1 := func() {
+		xmemService.RunBinlog("test", "test.blog")
+
+		fmt.Println("----Dump----")
+		str, _ := xmemService.Dump("test", MemKey{}, true)
+		fmt.Print(str)
+	}
+	if f1 != nil {
+	}
+
+	funl := []func(){
+		func4tester(xmemService),
+		f1,
+	}
+
+	boot.TestGo(cfile, 2, funl)
+}

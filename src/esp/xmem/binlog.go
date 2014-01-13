@@ -141,36 +141,6 @@ func (this *Service) doGetBinogVersion(name string) (master binlog.BinlogVer, sl
 	return mv, sv, nil
 }
 
-func (this *Service) doSaveBinlogSnapshot(name string, fileName string) error {
-	si, err := this.doGetGroup(name)
-	if err != nil {
-		return err
-	}
-	if si.profile == nil {
-		return fmt.Errorf("'%s' no profile", name)
-	}
-
-	mver, _, err1 := this.doGetBinogVersion(name)
-	if err1 != nil {
-		return err1
-	}
-	if mver <= 0 {
-		return fmt.Errorf("'%s' no master binlog version", name)
-	}
-
-	logger.Debug(tag, "doBinlogSave(%s,%s)", name, fileName)
-	gss, err2 := si.group.Snapshot(si.profile.Coder)
-	if err2 != nil {
-		return err2
-	}
-	gss.BLVer = mver
-	bs, err3 := gss.Encode()
-	if err3 != nil {
-		return err3
-	}
-	return ioutil.WriteFile(fileName, bs, 0664)
-}
-
 func (this *Service) doStartBinlog(name string, mg *localMemGroup, cfg *MemGroupConfig) error {
 	if mg.blservice != nil {
 		logger.Debug(tag, "'%s' already start binlog, skip", name)
@@ -219,4 +189,123 @@ func (this *Service) doWriteBinlog(group string, si *serviceItem, bl *XMemBinlog
 	if !si.group.blwriter.Write(bs) {
 		logger.Warn(tag, "'%s' binlog write fail", group)
 	}
+}
+
+func (this *Service) doSaveBinlogSnapshot(name string, fileName string) error {
+	si, err := this.doGetGroup(name)
+	if err != nil {
+		return err
+	}
+	if si.profile == nil {
+		return fmt.Errorf("'%s' no profile", name)
+	}
+
+	mver, _, err1 := this.doGetBinogVersion(name)
+	if err1 != nil {
+		return err1
+	}
+	if mver <= 0 {
+		return fmt.Errorf("'%s' no master binlog version", name)
+	}
+
+	logger.Debug(tag, "doBinlogSave(%s,%s)", name, fileName)
+	gss, err2 := si.group.Snapshot(si.profile.Coder)
+	if err2 != nil {
+		return err2
+	}
+	gss.BLVer = mver
+	bs, err3 := gss.Encode()
+	if err3 != nil {
+		return err3
+	}
+	return ioutil.WriteFile(fileName, bs, 0664)
+}
+
+func (this *Service) doRunBinlog(name string, fileName string) error {
+	si, err := this.doGetGroup(name)
+	if err != nil {
+		return err
+	}
+	if si.profile == nil {
+		return fmt.Errorf("'%s' no profile", name)
+	}
+
+	cfg := new(binlog.BinlogConfig)
+	cfg.FileName = fileName
+	cfg.Readonly = true
+
+	bls := binlog.NewBinLog(name+"_reader", 16, cfg)
+	if !bls.Run() {
+		return logger.Warn("'%s' binlog reader start fail - %s", name)
+	}
+	defer bls.Stop()
+
+	rd, err := bls.NewReader()
+	if err != nil {
+		logger.Warn(tag, "'%s' binlog reader create fail - %s", name, err)
+		return err
+	}
+
+	logger.Info(tag, "'%s' process binlog file '%s' start", name, fileName)
+	defer func() {
+		logger.Info(tag, "'%s' process binlog file '%s' end", name, fileName)
+	}()
+
+	_, err = rd.Seek(si.group.blver)
+	if err != nil {
+		logger.Warn(tag, "'%s' binlog reader seek fail - %s", name, err)
+		return err
+	}
+
+	c := 0
+	for {
+		blver, bs, err1 := rd.Read()
+		if err1 != nil {
+			logger.Warn(tag, "'%s' process %d binlog and read fail -%d", name, c, err1)
+			return err1
+		}
+		if bs == nil {
+			break
+		}
+		err2 := this.doProcessBinog(name, blver, bs)
+		if err2 != nil {
+			logger.Warn(tag, "'%s' process %d binlog and fail -%d", name, c, err2)
+			return err2
+		}
+		c++
+	}
+	logger.Info(tag, "'%s' process %d binlog", name, c)
+
+	return nil
+}
+
+func (this *Service) doProcessBinog(group string, blver binlog.BinlogVer, bs []byte) error {
+	si, err := this.doGetGroup(group)
+	if err != nil {
+		return err
+	}
+	if si.profile == nil {
+		return fmt.Errorf("'%s' profile nil", group)
+	}
+	bl, err1 := DecodeBinlog(bs, si.profile.Coder, 1024*1024)
+	if err1 != nil {
+		return err1
+	}
+	key := MemKeyFromString(bl.Key)
+	switch bl.Op {
+	case OP_SET:
+		_, err2 := this.doSetOp(group, key, bl.Value, bl.Size, bl.Version, bl.IsAbsent)
+		if err2 != nil {
+			return err2
+		}
+	case OP_DELETE:
+		_, err2 := this.doDeleteOp(group, key, bl.Version)
+		if err2 != nil {
+			return err2
+		}
+	default:
+		return fmt.Errorf("'%s' unknow op %d", group, bl.Op)
+	}
+	si.group.blver = blver
+	return nil
 }
