@@ -133,6 +133,10 @@ func (this *Service) doCloseReader(rd *Reader) {
 		rd.rfd.Close()
 		rd.rfd = nil
 	}
+	if rd.listener != nil {
+		rd.listener(0, nil, true)
+		rd.listener = nil
+	}
 }
 
 func (this *Service) doWrite(bs []byte) {
@@ -166,7 +170,7 @@ func (this *Service) doWrite(bs []byte) {
 	// push to waiting reader
 	for rd, _ := range this.readers {
 		if rd.listener != nil && rd.lastseq == old {
-			rd.listener(this.seq, bs)
+			rd.listener(this.seq, bs, false)
 			rd.lastseq = this.seq
 		}
 	}
@@ -332,7 +336,7 @@ func (this *Reader) Seek(seq BinlogVer) (bool, error) {
 	return r, rerr
 }
 
-type Listener func(seq BinlogVer, data []byte)
+type Listener func(seq BinlogVer, data []byte, closed bool)
 
 func (this *Reader) SetListener(lis Listener) bool {
 	if this.listener != nil {
@@ -368,7 +372,7 @@ func (this *Reader) doPeek() {
 		this.lastseq = this.service.seq
 		return
 	}
-	this.listener(seq, data)
+	this.listener(seq, data, false)
 	go this.Peek()
 }
 

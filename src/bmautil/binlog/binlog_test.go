@@ -65,12 +65,16 @@ func TestMix(t *testing.T) {
 		}
 	}()
 
-	lis := func(seq int64, bs []byte) {
-		fmt.Println("PUSH", seq, string(bs))
+	lis := func(seq BinlogVer, bs []byte, closed bool) {
+		if closed {
+			fmt.Println("LIS CLOSED")
+		} else {
+			fmt.Println("PUSH", seq, string(bs))
+		}
 	}
 	r, _ := bl.NewReader()
 
-	seq := int64(1389524665278066109)
+	seq := BinlogVer(1389524665278066109)
 	if true {
 		r.SeekAndListen(seq, lis)
 	} else {
