@@ -283,6 +283,15 @@ func (this *UPropertyBuilder) Merge(list []*UProperty) {
 	}
 }
 
+func (this *UPropertyBuilder) MergeWithPrex(list []*UProperty, prex string) {
+	if list != nil {
+		for _, p := range list {
+			p.Name = prex + p.Name
+			this.AddProp(p)
+		}
+	}
+}
+
 func (this *UPropertyBuilder) ToMapProp(name, tips string, adder, remover func(vs []string) error) *UProperty {
 	return this.NewProp(name, tips).BeMap(this.AsList(), adder, remover)
 }

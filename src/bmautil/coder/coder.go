@@ -23,10 +23,13 @@ func (this lenStringCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) 
 	return nil
 }
 
-func (this lenStringCoder) DoDecode(r *byteutil.BytesBufferReader) (string, error) {
+func (this lenStringCoder) DoDecode(r *byteutil.BytesBufferReader, maxlen int) (string, error) {
 	l, err := Int.DoDecode(r)
 	if err != nil {
 		return "", err
+	}
+	if maxlen >= 0 && l > maxlen {
+		return "", fmt.Errorf("too large memory block - %d", l)
 	}
 	p := make([]byte, l)
 	_, err = r.Read(p)
@@ -37,7 +40,7 @@ func (this lenStringCoder) DoDecode(r *byteutil.BytesBufferReader) (string, erro
 }
 
 func (this lenStringCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
-	s, err := this.DoDecode(r)
+	s, err := this.DoDecode(r, 0)
 	if err != nil {
 		return nil, err
 	}

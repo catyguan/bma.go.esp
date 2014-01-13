@@ -15,6 +15,18 @@ const (
 	headerSize = 8 + 4
 )
 
+type BinlogVer int64
+
+func (O BinlogVer) Encode(w io.Writer) error {
+	return binary.Write(w, binary.BigEndian, int64(O))
+}
+
+func (O BinlogVer) Decode(r io.Reader) (BinlogVer, error) {
+	var v BinlogVer
+	err := binary.Read(r, binary.BigEndian, &v)
+	return BinlogVer(v), err
+}
+
 // Service
 type Service struct {
 	name     string
@@ -22,7 +34,7 @@ type Service struct {
 	executor *qexec.QueueExecutor
 
 	wfd     *os.File
-	seq     int64
+	seq     BinlogVer
 	opc     int
 	wbuffer []byte
 	readers map[*Reader]bool
@@ -32,7 +44,7 @@ func NewBinLog(n string, bufsize int, cfg *BinlogConfig) *Service {
 	this := new(Service)
 	this.name = n
 	this.config = cfg
-	this.seq = time.Now().UnixNano()
+	this.seq = BinlogVer(time.Now().UnixNano())
 	this.executor = qexec.NewQueueExecutor(n, bufsize, this.requestHandler)
 	this.executor.StopHandler = this.stopHandler
 	this.wbuffer = make([]byte, headerSize)
@@ -55,6 +67,7 @@ func (this *Service) stopHandler() {
 func (this *Service) Run() bool {
 	if this.executor.Run() {
 		this.executor.DoNow("setup", this.doSetup)
+		return true
 	}
 	return false
 }
@@ -198,13 +211,22 @@ func (this *Writer) Write(bs []byte) bool {
 	return true
 }
 
+func (this *Writer) GerVersion() (BinlogVer, error) {
+	rv := BinlogVer(0)
+	err := this.service.executor.DoSync("getver", func() error {
+		rv = this.service.seq
+		return nil
+	})
+	return rv, err
+}
+
 // Reader
 type Reader struct {
 	service  *Service
 	rfd      *os.File
 	listener Listener
 
-	lastseq int64
+	lastseq BinlogVer
 	rbuffer []byte
 	readed  int
 	data    []byte
@@ -230,13 +252,13 @@ func (this *Reader) doReadHead() (bool, error) {
 	return true, nil
 }
 
-func (this *Reader) header() (int64, int) {
+func (this *Reader) header() (BinlogVer, int) {
 	tm := binary.BigEndian.Uint64(this.rbuffer)
 	l := binary.BigEndian.Uint32(this.rbuffer[8:])
-	return int64(tm), int(l)
+	return BinlogVer(tm), int(l)
 }
 
-func (this *Reader) doRead() (int64, []byte, error) {
+func (this *Reader) doRead() (BinlogVer, []byte, error) {
 	ok, err := this.doReadHead()
 	if !ok {
 		return 0, nil, err
@@ -260,8 +282,8 @@ func (this *Reader) doRead() (int64, []byte, error) {
 	return tm, data, nil
 }
 
-func (this *Reader) Read() (int64, []byte, error) {
-	var seq int64
+func (this *Reader) Read() (BinlogVer, []byte, error) {
+	var seq BinlogVer
 	var data []byte
 	err := this.service.executor.DoSync("read", func() error {
 		var err error
@@ -271,7 +293,7 @@ func (this *Reader) Read() (int64, []byte, error) {
 	return seq, data, err
 }
 
-func (this *Reader) doSeek(seq int64) (bool, error) {
+func (this *Reader) doSeek(seq BinlogVer) (bool, error) {
 	for {
 		ok, err := this.doReadHead()
 		if !ok {
@@ -295,7 +317,7 @@ func (this *Reader) doSeek(seq int64) (bool, error) {
 	}
 }
 
-func (this *Reader) Seek(seq int64) (bool, error) {
+func (this *Reader) Seek(seq BinlogVer) (bool, error) {
 	r := false
 	var rerr error
 	err2 := this.service.executor.DoSync("seek", func() error {
@@ -310,7 +332,7 @@ func (this *Reader) Seek(seq int64) (bool, error) {
 	return r, rerr
 }
 
-type Listener func(seq int64, data []byte)
+type Listener func(seq BinlogVer, data []byte)
 
 func (this *Reader) SetListener(lis Listener) bool {
 	if this.listener != nil {
@@ -357,7 +379,7 @@ func (this *Reader) Reset() {
 	})
 }
 
-func (this *Reader) SeekAndListen(seq int64, lis Listener) bool {
+func (this *Reader) SeekAndListen(seq BinlogVer, lis Listener) bool {
 	_, err := this.Seek(seq)
 	if err != nil {
 		return false

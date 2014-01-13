@@ -62,7 +62,7 @@ func (this *XMemBinlog) Encode(coder XMemCoder) ([]byte, error) {
 	return w.End().ToBytes(), nil
 }
 
-func DecodeBinlog(data []byte, coder XMemCoder) (*XMemBinlog, error) {
+func DecodeBinlog(data []byte, coder XMemCoder, maxlen int) (*XMemBinlog, error) {
 	this := new(XMemBinlog)
 	buf := byteutil.NewBytesBufferB(data)
 	r := buf.NewReader()
@@ -71,13 +71,13 @@ func DecodeBinlog(data []byte, coder XMemCoder) (*XMemBinlog, error) {
 		return nil, err1
 	}
 	this.Op = XMemOP(v1)
-	v2, err2 := xcoder.LenString.DoDecode(r)
+	v2, err2 := xcoder.LenString.DoDecode(r, 1024*100)
 	if err2 != nil {
 		return nil, err2
 	}
 	this.Key = v2
 	if this.Op == OP_SET {
-		v3, err3 := xcoder.LenString.DoDecode(r)
+		v3, err3 := xcoder.LenString.DoDecode(r, maxlen)
 		if err3 != nil {
 			return nil, err3
 		}
@@ -123,8 +123,22 @@ func DecodeBinlog(data []byte, coder XMemCoder) (*XMemBinlog, error) {
 }
 
 // Service
-func (this *Service) doGetBinogVersion(name string) (master binlog.BinlogVer, slave binlog.BinlogVer) {
-	return 0, 0
+func (this *Service) doGetBinogVersion(name string) (master binlog.BinlogVer, slave binlog.BinlogVer, rerr error) {
+	si, err := this.doGetGroup(name)
+	if err != nil {
+		return 0, 0, err
+	}
+	sv := si.group.blver
+	if si.group.blwriter == nil {
+		logger.Debug(tag, "'%s' binlog not start", name)
+		return -1, sv, nil
+	}
+	mv, err1 := si.group.blwriter.GerVersion()
+	if err1 != nil {
+		logger.Debug(tag, "'%s' binlog get version fail - %s", name, err1)
+		return -1, sv, nil
+	}
+	return mv, sv, nil
 }
 
 func (this *Service) doSaveBinlogSnapshot(name string, fileName string) error {
@@ -136,8 +150,11 @@ func (this *Service) doSaveBinlogSnapshot(name string, fileName string) error {
 		return fmt.Errorf("'%s' no profile", name)
 	}
 
-	mver, _ := this.doGetBinogVersion(name)
-	if mver == 0 {
+	mver, _, err1 := this.doGetBinogVersion(name)
+	if err1 != nil {
+		return err1
+	}
+	if mver <= 0 {
 		return fmt.Errorf("'%s' no master binlog version", name)
 	}
 
@@ -158,6 +175,9 @@ func (this *Service) doStartBinlog(name string, mg *localMemGroup, cfg *MemGroup
 	if mg.blservice != nil {
 		logger.Debug(tag, "'%s' already start binlog, skip", name)
 		return nil
+	}
+	if !cfg.IsEnableBinlog() {
+		return logger.Warn(tag, "'%s' binlog not enable", name)
 	}
 	s := binlog.NewBinLog(name, 16, cfg.BLConfig)
 	if !s.Run() {

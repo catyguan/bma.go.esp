@@ -140,6 +140,8 @@ func (this *Service) doUpdateMemGroupConfig(name string, cfg *MemGroupConfig) er
 		} else {
 			if item.config.BLConfig.FileName != cfg.BLConfig.FileName {
 				doStop = true
+			} else {
+				doStop = item.config.BLConfig.Readonly != cfg.BLConfig.Readonly
 			}
 		}
 
@@ -154,7 +156,7 @@ func (this *Service) doUpdateMemGroupConfig(name string, cfg *MemGroupConfig) er
 
 	item.config = cfg
 
-	if cfg.IsEnableBinlog() {
+	if cfg.IsEnableBinlog() && item.group.blservice == nil {
 		err := this.doStartBinlog(name, item.group, cfg)
 		if err != nil {
 			return err

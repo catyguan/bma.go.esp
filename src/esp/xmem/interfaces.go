@@ -125,7 +125,7 @@ func (this *XMemSnapshot) Encode(w *byteutil.BytesBufferWriter) error {
 func DecodeSnapshot(r *byteutil.BytesBufferReader) (*XMemSnapshot, error) {
 	o := new(XMemSnapshot)
 	var err error
-	o.Key, err = xcoder.LenString.DoDecode(r)
+	o.Key, err = xcoder.LenString.DoDecode(r, 1024*100)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +135,7 @@ func DecodeSnapshot(r *byteutil.BytesBufferReader) (*XMemSnapshot, error) {
 		return nil, err
 	}
 	o.Version = MemVer(v2)
-	o.Kind, err = xcoder.LenString.DoDecode(r)
+	o.Kind, err = xcoder.LenString.DoDecode(r, 1024)
 	if err != nil {
 		return nil, err
 	}

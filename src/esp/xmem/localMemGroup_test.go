@@ -106,11 +106,15 @@ func TestSnapshot(t *testing.T) {
 	for _, ss := range gss.Snapshots {
 		fmt.Println(ss)
 	}
+	bs, _ := gss.Encode()
+
+	gss2 := new(XMemGroupSnapshot)
+	gss2.Decode(bs)
 
 	mg2 := newLocalMemGroup("test2")
 	mg2.AddListener(MemKey{}, "test", listener)
 
-	mg2.BuildFromSnapshot(c, gss)
+	mg2.BuildFromSnapshot(c, gss2)
 	fmt.Println("----Dump2----")
 	fmt.Print(mg2.Dump())
 }

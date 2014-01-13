@@ -1,6 +1,12 @@
 package xmem
 
-import "esp/shell"
+import (
+	"bmautil/binlog"
+	"bmautil/valutil"
+	"esp/shell"
+	"fmt"
+	"strings"
+)
 
 type dirGroup struct {
 	shell.ShellDirBase
@@ -18,6 +24,7 @@ func (this *dirGroup) InitDir(s *Service, n string) {
 func (this *dirGroup) MakeCommands() map[string]shell.ShellProcessor {
 	r := make(map[string]shell.ShellProcessor)
 	r["save"] = this.CF(this.commandSave)
+	r["binlog"] = this.CF(this.commandBinlog)
 	r["load"] = this.CF(this.commandLoad)
 	r["dump"] = this.CF(this.commandDump)
 	return r
@@ -87,5 +94,71 @@ func (this *dirGroup) commandDump(s *shell.Session, command string) bool {
 		s.Writeln(str)
 	}
 
+	return true
+}
+
+func (this *dirGroup) commandBinlog(s *shell.Session, command string) bool {
+	name := "binlog"
+	args := "save filename OR ver [slaveVer] OR start OR stop"
+	fs := shell.NewFlagSet(name)
+	if shell.DoParse(s, command, fs, name, args, 1, 2) {
+		return true
+	}
+
+	act := strings.ToLower(fs.Arg(0))
+	p1 := ""
+	if fs.NArg() > 1 {
+		p1 = fs.Arg(1)
+	}
+
+	switch act {
+	case "save":
+		if p1 == "" {
+			s.Writeln("ERROR: save file name empty")
+		} else {
+			err := this.service.SaveBinlogSnapshot(this.name, p1)
+			if err != nil {
+				s.Writeln(fmt.Sprintf("ERROR: save binlog fail - %s", err))
+			} else {
+				s.Writeln("save binlog snapshot done")
+			}
+		}
+	case "ver":
+		if p1 == "" {
+			var mv, sv binlog.BinlogVer
+			err := this.service.executor.DoSync("ver", func() error {
+				var err error
+				mv, sv, err = this.service.doGetBinogVersion(this.name)
+				return err
+			})
+			if err != nil {
+				s.Writeln(fmt.Sprintf("ERROR: binlog version fail - %s", err))
+			} else {
+				s.Writeln(fmt.Sprintf("binlog master version : %d", mv))
+				s.Writeln(fmt.Sprintf("binlog slave version : %d", sv))
+			}
+		} else {
+			ver := valutil.ToInt64(p1, -1)
+			if ver < 0 {
+				s.Writeln("ERROR: version value invalid")
+			} else {
+				err := this.service.executor.DoSync("setver", func() error {
+					si, err := this.service.doGetGroup(this.name)
+					if err != nil {
+						return err
+					}
+					si.group.blver = binlog.BinlogVer(ver)
+					return nil
+				})
+				if err != nil {
+					s.Writeln(fmt.Sprintf("ERROR: binlog version fail - %s", err))
+				} else {
+					s.Writeln(fmt.Sprintf("set binlog slave version done => %d", ver))
+				}
+			}
+		}
+	default:
+		s.Writeln(fmt.Sprintf("ERROR: unknow action '%s'", act))
+	}
 	return true
 }

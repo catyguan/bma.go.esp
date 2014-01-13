@@ -144,7 +144,7 @@ func (this *localMemGroup) BuildFromSnapshot(coder XMemCoder, gss *XMemGroupSnap
 	ev.Version = MemVer(0)
 	this.lisRoot.allInvokeListener([]*XMemEvent{ev})
 
-	if gss.BLVer > 0 {
+	if gss.BLVer >= 0 {
 		this.blver = gss.BLVer
 	}
 	slist := gss.Snapshots
