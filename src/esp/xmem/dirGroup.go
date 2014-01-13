@@ -1,10 +1,6 @@
 package xmem
 
-import (
-	"bytes"
-	"esp/shell"
-	"fmt"
-)
+import "esp/shell"
 
 type dirGroup struct {
 	shell.ShellDirBase
@@ -82,22 +78,8 @@ func (this *dirGroup) commandDump(s *shell.Session, command string) bool {
 		key = fs.Arg(0)
 	}
 
-	str := ""
-	err := this.service.executor.DoSync("dump", func() error {
-		item, err := this.service.doGetGroup(this.name)
-		if err != nil {
-			return err
-		}
-		k := MemKeyFromString(key)
-		it, ok := item.group.Get(k)
-		if !ok {
-			return fmt.Errorf("<%s> not exists", key)
-		}
-		buf := bytes.NewBuffer([]byte{})
-		it.Dump(key, buf, 0, all)
-		str = item.group.String() + "\n" + buf.String()
-		return nil
-	})
+	k := MemKeyFromString(key)
+	str, err := this.service.Dump(this.name, k, all)
 	if err != nil {
 		s.Writeln("ERROR: " + err.Error())
 	} else {

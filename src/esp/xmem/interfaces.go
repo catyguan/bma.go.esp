@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// MemKey
 type MemKey []string
 
 func (list MemKey) ToString() string {
@@ -29,12 +30,14 @@ func (list MemKey) At(idx int) (string, bool) {
 	return "", false
 }
 
+// MemVer
 type MemVer uint64
 
 const (
 	VERSION_INVALID = MemVer(0xFFFFFFFFFFFFFFFF)
 )
 
+// Action
 type Action int
 
 func (O Action) String() string {
@@ -62,6 +65,7 @@ const (
 	ACTION_CLEAR
 )
 
+// XMemEvent & Listener
 type XMemEvent struct {
 	Action    Action
 	GroupName string
@@ -72,6 +76,7 @@ type XMemEvent struct {
 
 type XMemListener func(events []*XMemEvent)
 
+// Walk
 type WalkStep int
 
 const (
@@ -83,11 +88,13 @@ const (
 
 type XMemWalker func(key MemKey, val interface{}, ver MemVer) WalkStep
 
+// Coder
 type XMemCoder interface {
 	Encode(val interface{}) (string, []byte, error)
 	Decode(flag string, data []byte) (interface{}, int, error)
 }
 
+// Snapshot
 type XMemSnapshot struct {
 	Key     string
 	Version MemVer
@@ -137,5 +144,27 @@ func DecodeSnapshot(r *byteutil.BytesBufferReader) (*XMemSnapshot, error) {
 	return o, nil
 }
 
+// API
+type XMemOP int
+
+const (
+	OP_SNAPSHOT = iota
+	OP_SET
+	OP_DELETE
+	OP_CLEAR
+)
+
 type XMem interface {
+	Get(key MemKey) (interface{}, MemVer, bool, error)
+	GetAndListen(key MemKey, id string, lis XMemListener) (interface{}, MemVer, bool, error)
+	List(key MemKey) ([]string, bool, error)
+	ListAndListen(key MemKey, id string, lis XMemListener) ([]string, bool, error)
+	AddListener(key MemKey, id string, lis XMemListener) error
+	RemoveListener(key MemKey, id string) error
+
+	Set(key MemKey, val interface{}, sz int) (MemVer, error)
+	CompareAndSet(key MemKey, val interface{}, sz int, ver MemVer) (MemVer, error)
+	SetIfAbsent(key MemKey, val interface{}, sz int) (MemVer, error)
+
+	Delete(key MemKey, ver MemVer) (bool, error)
 }

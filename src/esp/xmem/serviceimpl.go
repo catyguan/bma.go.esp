@@ -308,3 +308,30 @@ func (this *Service) doStoreAllMemGroup() error {
 	}
 	return nil
 }
+
+func (this *Service) doSetOp(group string, key MemKey, val interface{}, sz int, ver MemVer, isAbsent bool) (MemVer, error) {
+	si, err := this.doGetGroup(group)
+	if err != nil {
+		return VERSION_INVALID, err
+	}
+	nver := VERSION_INVALID
+	if ver == VERSION_INVALID {
+		if isAbsent {
+			nver = si.group.SetIfAbsent(key, val, sz)
+		} else {
+			nver = si.group.Set(key, val, sz)
+		}
+	} else {
+		nver = si.group.CompareAndSet(key, val, sz, ver)
+	}
+	return nver, nil
+}
+
+func (this *Service) doDeleteOp(group string, key MemKey, ver MemVer) (bool, error) {
+	si, err := this.doGetGroup(group)
+	if err != nil {
+		return false, err
+	}
+	nver := si.group.CompareAndDelete(key, ver)
+	return nver != VERSION_INVALID, nil
+}

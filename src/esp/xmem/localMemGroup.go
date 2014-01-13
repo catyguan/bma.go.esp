@@ -272,6 +272,14 @@ func (this *localMemGroup) Set(key MemKey, val interface{}, sz int) MemVer {
 	return ver
 }
 
+func (this *localMemGroup) SetIfAbsent(key MemKey, val interface{}, sz int) MemVer {
+	_, b, _ := this.Query(key, nil)
+	if b {
+		return VERSION_INVALID
+	}
+	return this.Set(key, val, sz)
+}
+
 func (this *localMemGroup) InitSet(ctx *localActionContext, key MemKey, val interface{}, sz int, ver MemVer) {
 	list, _, _ := this.Query(key, ctx)
 	for _, pi := range list {
@@ -305,6 +313,10 @@ func (this *localMemGroup) doDelete(ctx *localActionContext, key MemKey, cur *lo
 }
 
 func (this *localMemGroup) Delete(key MemKey) MemVer {
+	return this.CompareAndDelete(key, VERSION_INVALID)
+}
+
+func (this *localMemGroup) CompareAndDelete(key MemKey, cver MemVer) MemVer {
 	list, ok, _ := this.Query(key, nil)
 	if !ok {
 		return VERSION_INVALID
@@ -314,6 +326,11 @@ func (this *localMemGroup) Delete(key MemKey) MemVer {
 		return VERSION_INVALID
 	}
 	item := itemAt(list, -1)
+	if cver != VERSION_INVALID {
+		if item.version != cver {
+			return VERSION_INVALID
+		}
+	}
 	p := itemAt(list, -2)
 	skey, _ := key.At(-1)
 

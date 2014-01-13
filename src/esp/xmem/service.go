@@ -2,8 +2,10 @@ package xmem
 
 import (
 	"bmautil/qexec"
+	"bytes"
 	"config"
 	"esp/sqlite"
+	"fmt"
 	"logger"
 )
 
@@ -134,6 +136,39 @@ func (this *Service) LoadMemGroup(name string, fileName string) error {
 	})
 }
 
-func (this *Service) Get(key MemKey) error {
-	return nil
+func (this *Service) CreateXMem(name string) (XMem, error) {
+	var r XMem
+	err := this.executor.DoSync("createXMem", func() error {
+		_, err := this.doGetGroup(name)
+		if err != nil {
+			return err
+		}
+		obj := new(XMem4Service)
+		obj.Init(this, name)
+		r = obj
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func (this *Service) Dump(g string, key MemKey, all bool) (string, error) {
+	str := ""
+	err := this.executor.DoSync("dump", func() error {
+		item, err := this.doGetGroup(g)
+		if err != nil {
+			return err
+		}
+		it, ok := item.group.Get(key)
+		if !ok {
+			return fmt.Errorf("<%s> not exists", key)
+		}
+		buf := bytes.NewBuffer([]byte{})
+		it.Dump(key.ToString(), buf, 0, all)
+		str = item.group.String() + "\n" + buf.String()
+		return nil
+	})
+	return str, err
 }
