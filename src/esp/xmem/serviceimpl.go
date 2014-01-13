@@ -1,8 +1,6 @@
 package xmem
 
 import (
-	"bmautil/byteutil"
-	xcoder "bmautil/coder"
 	"bmautil/sqlutil"
 	"bmautil/valutil"
 	"bytes"
@@ -28,7 +26,19 @@ func (this *Service) requestHandler(ev interface{}) (bool, error) {
 }
 
 func (this *Service) stopHandler() {
-
+	for _, si := range this.memgroups {
+		if si.group.blservice != nil {
+			si.group.blservice.Stop()
+		}
+	}
+	for _, si := range this.memgroups {
+		if si.group.blservice != nil {
+			si.group.blservice.WaitStop()
+		}
+	}
+	for _, si := range this.memgroups {
+		si.group.root.Clear()
+	}
 }
 
 type runtimeConfig struct {
@@ -110,6 +120,10 @@ func (this *Service) doCreateMemGroup(name string, cfg *MemGroupConfig) (*servic
 	item.group = mg
 	this.memgroups[name] = item
 
+	if cfg.IsEnableBinlog() {
+		this.doStartBinlog(name, mg, cfg)
+	}
+
 	return item, nil
 }
 
@@ -118,11 +132,43 @@ func (this *Service) doUpdateMemGroupConfig(name string, cfg *MemGroupConfig) er
 	if err != nil {
 		return err
 	}
+
+	if item.config.IsEnableBinlog() {
+		doStop := false
+		if !cfg.IsEnableBinlog() {
+			doStop = true
+		} else {
+			if item.config.BLConfig.FileName != cfg.BLConfig.FileName {
+				doStop = true
+			}
+		}
+
+		if doStop {
+			err := this.doStopBinlog(name, item.group)
+			if err != nil {
+				logger.Debug(tag, "stop binlog fail - %s", err)
+				return err
+			}
+		}
+	}
+
 	item.config = cfg
+
+	if cfg.IsEnableBinlog() {
+		err := this.doStartBinlog(name, item.group, cfg)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
 func (this *Service) doEnableMemGroup(prof *MemGroupProfile) error {
+	if err := prof.Valid(); err != nil {
+		return err
+	}
+
 	item, ok := this.memgroups[prof.Name]
 	if !ok {
 		cfg := new(MemGroupConfig)
@@ -132,10 +178,6 @@ func (this *Service) doEnableMemGroup(prof *MemGroupProfile) error {
 		return fmt.Errorf("memory group '%s' already enable", prof.Name)
 	}
 	item.profile = prof
-
-	if prof.Coder == nil {
-		item.config.NoSave = true
-	}
 
 	if !item.config.NoSave {
 		err := this.doMemLoad(prof.Name, "", nil)
@@ -182,38 +224,12 @@ func (this *Service) doMemSave(name string, fileName string, buf *bytes.Buffer) 
 	return this.doSnapshotSave(name, bs)
 }
 
-func (this *Service) doExecMemSaveFile(fileName string, mg *localMemGroup, coder XMemCoder) error {
-	slist, err2 := mg.Snapshot(coder)
-	if err2 != nil {
-		return err2
-	}
-	buf := byteutil.NewBytesBuffer()
-	w := buf.NewWriter()
-	xcoder.Int.DoEncode(w, len(slist))
-	for _, s := range slist {
-		s.Encode(w)
-	}
-	w.End()
-	bs := buf.ToBytes()
-
-	return ioutil.WriteFile(fileName, bs, 0644)
-}
-
 func (this *Service) doExecMemEncode(name string, mg *localMemGroup, coder XMemCoder) ([]byte, error) {
-	slist, err2 := mg.Snapshot(coder)
+	gss, err2 := mg.Snapshot(coder)
 	if err2 != nil {
 		return nil, err2
 	}
-	buf := byteutil.NewBytesBuffer()
-	w := buf.NewWriter()
-	xcoder.Int.DoEncode(w, len(slist))
-	for _, s := range slist {
-		err := s.Encode(w)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return w.End().ToBytes(), nil
+	return gss.Encode()
 }
 
 func (this *Service) doSnapshotSave(name string, bs []byte) error {
@@ -279,22 +295,12 @@ func (this *Service) doExecMemDecode(name string, mg *localMemGroup, coder XMemC
 		logger.Debug(tag, "'%s' no snapshot", name)
 		return nil
 	}
-
-	buf := byteutil.NewBytesBufferB(content)
-	r := buf.NewReader()
-	l, err1 := xcoder.Int.DoDecode(r)
-	if err1 != nil {
-		return err1
+	gss := new(XMemGroupSnapshot)
+	err := gss.Decode(content)
+	if err != nil {
+		return err
 	}
-	slist := []*XMemSnapshot{}
-	for i := 0; i < l; i++ {
-		ss, err2 := DecodeSnapshot(r)
-		if err2 != nil {
-			return err2
-		}
-		slist = append(slist, ss)
-	}
-	return mg.BuildFromSnapshot(coder, slist)
+	return mg.BuildFromSnapshot(coder, gss)
 }
 
 func (this *Service) doStoreAllMemGroup() error {
@@ -310,6 +316,9 @@ func (this *Service) doStoreAllMemGroup() error {
 }
 
 func (this *Service) doSetOp(group string, key MemKey, val interface{}, sz int, ver MemVer, isAbsent bool) (MemVer, error) {
+	if logger.EnableDebug(tag) {
+		logger.Debug(tag, "setOp(%s, %v, %v, %d, %s, %v)", group, key, val, sz, ver, isAbsent)
+	}
 	si, err := this.doGetGroup(group)
 	if err != nil {
 		return VERSION_INVALID, err
@@ -324,14 +333,37 @@ func (this *Service) doSetOp(group string, key MemKey, val interface{}, sz int, 
 	} else {
 		nver = si.group.CompareAndSet(key, val, sz, ver)
 	}
+
+	if si.config.IsBinlogWrite() {
+		// binlog
+		bl := new(XMemBinlog)
+		bl.Op = OP_SET
+		bl.Key = key.ToString()
+		bl.Value = val
+		bl.Version = ver
+		bl.IsAbsent = isAbsent
+		this.doWriteBinlog(group, si, bl)
+	}
+
 	return nver, nil
 }
 
 func (this *Service) doDeleteOp(group string, key MemKey, ver MemVer) (bool, error) {
+	if logger.EnableDebug(tag) {
+		logger.Debug(tag, "deleteOp(%s, %v, %s)", group, key, ver)
+	}
 	si, err := this.doGetGroup(group)
 	if err != nil {
 		return false, err
 	}
 	nver := si.group.CompareAndDelete(key, ver)
+	if si.config.IsBinlogWrite() {
+		// binlog
+		bl := new(XMemBinlog)
+		bl.Op = OP_DELETE
+		bl.Key = key.ToString()
+		bl.Version = ver
+		this.doWriteBinlog(group, si, bl)
+	}
 	return nver != VERSION_INVALID, nil
 }

@@ -136,6 +136,12 @@ func (this *Service) LoadMemGroup(name string, fileName string) error {
 	})
 }
 
+func (this *Service) SaveBinlogSnapshot(name string, fileName string) error {
+	return this.executor.DoSync("saveBL", func() error {
+		return this.doSaveBinlogSnapshot(name, fileName)
+	})
+}
+
 func (this *Service) CreateXMem(name string) (XMem, error) {
 	var r XMem
 	err := this.executor.DoSync("createXMem", func() error {

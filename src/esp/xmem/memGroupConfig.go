@@ -1,16 +1,38 @@
 package xmem
 
 import (
+	"bmautil/binlog"
 	"bmautil/valutil"
 	"uprop"
 )
 
 type MemGroupConfig struct {
-	NoSave bool
+	NoSave   bool
+	BLConfig *binlog.BinlogConfig
 }
 
 func (this *MemGroupConfig) Valid() error {
+	if this.BLConfig != nil {
+		err := this.BLConfig.Valid()
+		if err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func (this *MemGroupConfig) IsEnableBinlog() bool {
+	return this.BLConfig != nil
+}
+
+func (this *MemGroupConfig) IsBinlogWrite() bool {
+	if this.BLConfig == nil {
+		return false
+	}
+	if this.BLConfig.Readonly {
+		return false
+	}
+	return true
 }
 
 func (this *MemGroupConfig) GetProperties() []*uprop.UProperty {
@@ -19,6 +41,21 @@ func (this *MemGroupConfig) GetProperties() []*uprop.UProperty {
 		this.NoSave = valutil.ToBool(v, this.NoSave)
 		return nil
 	})
+	b.NewProp("binlog", "enable binlog").BeValue(this.IsEnableBinlog(), func(v string) error {
+		e := valutil.ToBool(v, this.IsEnableBinlog())
+		if e {
+			if this.BLConfig == nil {
+				this.BLConfig = new(binlog.BinlogConfig)
+			}
+		} else {
+			this.BLConfig = nil
+		}
+		return nil
+	})
+	if this.BLConfig != nil {
+		blcprops := this.BLConfig.GetProperties()
+		b.MergeWithPrex(blcprops, "blog.")
+	}
 	return b.AsList()
 }
 

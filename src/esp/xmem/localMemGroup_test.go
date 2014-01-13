@@ -101,16 +101,16 @@ func TestSnapshot(t *testing.T) {
 	fmt.Println("----Dump----")
 	fmt.Print(mg.Dump())
 
-	slist, _ := mg.Snapshot(c)
+	gss, _ := mg.Snapshot(c)
 	fmt.Println("----Snapshot----")
-	for _, ss := range slist {
+	for _, ss := range gss.Snapshots {
 		fmt.Println(ss)
 	}
 
 	mg2 := newLocalMemGroup("test2")
 	mg2.AddListener(MemKey{}, "test", listener)
 
-	mg2.BuildFromSnapshot(c, slist)
+	mg2.BuildFromSnapshot(c, gss)
 	fmt.Println("----Dump2----")
 	fmt.Print(mg2.Dump())
 }

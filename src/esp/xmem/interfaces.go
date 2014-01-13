@@ -1,8 +1,10 @@
 package xmem
 
 import (
+	"bmautil/binlog"
 	"bmautil/byteutil"
 	xcoder "bmautil/coder"
+	"fmt"
 	"strings"
 )
 
@@ -36,6 +38,13 @@ type MemVer uint64
 const (
 	VERSION_INVALID = MemVer(0xFFFFFFFFFFFFFFFF)
 )
+
+func (O MemVer) String() string {
+	if O == VERSION_INVALID {
+		return "NOVER"
+	}
+	return fmt.Sprintf("%d", O)
+}
 
 // Action
 type Action int
@@ -144,16 +153,51 @@ func DecodeSnapshot(r *byteutil.BytesBufferReader) (*XMemSnapshot, error) {
 	return o, nil
 }
 
+type XMemGroupSnapshot struct {
+	BLVer     binlog.BinlogVer
+	Snapshots []*XMemSnapshot
+}
+
+func (this *XMemGroupSnapshot) Encode() ([]byte, error) {
+	buf := byteutil.NewBytesBuffer()
+	w := buf.NewWriter()
+	err := this.BLVer.Encode(w)
+	if err != nil {
+		return nil, err
+	}
+	xcoder.Int.DoEncode(w, len(this.Snapshots))
+	for _, s := range this.Snapshots {
+		s.Encode(w)
+	}
+	w.End()
+	return buf.ToBytes(), nil
+}
+
+func (this *XMemGroupSnapshot) Decode(data []byte) error {
+	buf := byteutil.NewBytesBufferB(data)
+	r := buf.NewReader()
+	blver, err0 := binlog.BinlogVer(0).Decode(r)
+	if err0 != nil {
+		return err0
+	}
+	this.BLVer = blver
+	l, err1 := xcoder.Int.DoDecode(r)
+	if err1 != nil {
+		return err1
+	}
+	slist := []*XMemSnapshot{}
+	for i := 0; i < l; i++ {
+		ss, err2 := DecodeSnapshot(r)
+		if err2 != nil {
+			return err2
+		}
+		slist = append(slist, ss)
+	}
+	this.Snapshots = slist
+	return nil
+}
+
 // API
-type XMemOP int
-
-const (
-	OP_SNAPSHOT = iota
-	OP_SET
-	OP_DELETE
-	OP_CLEAR
-)
-
 type XMem interface {
 	Get(key MemKey) (interface{}, MemVer, bool, error)
 	GetAndListen(key MemKey, id string, lis XMemListener) (interface{}, MemVer, bool, error)
@@ -166,5 +210,6 @@ type XMem interface {
 	CompareAndSet(key MemKey, val interface{}, sz int, ver MemVer) (MemVer, error)
 	SetIfAbsent(key MemKey, val interface{}, sz int) (MemVer, error)
 
-	Delete(key MemKey, ver MemVer) (bool, error)
+	Delete(key MemKey) (bool, error)
+	CompareAndDelete(key MemKey, ver MemVer) (bool, error)
 }

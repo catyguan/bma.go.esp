@@ -1,6 +1,7 @@
 package xmem
 
 import (
+	"bmautil/binlog"
 	"bmautil/valutil"
 	"bytes"
 	"fmt"
@@ -55,6 +56,11 @@ type localMemGroup struct {
 	count   int64
 	size    int64
 	version MemVer
+
+	// for binlog & master/slave sync
+	blver     binlog.BinlogVer
+	blservice *binlog.Service
+	blwriter  *binlog.Writer
 }
 
 func newLocalMemGroup(n string) *localMemGroup {
@@ -68,7 +74,15 @@ func newLocalMemGroup(n string) *localMemGroup {
 }
 
 func (this *localMemGroup) String() string {
-	return fmt.Sprintf("%s(%d:%s)", this.name, this.count, valutil.MakeSizeString(uint64(this.size)))
+	buf := bytes.NewBuffer([]byte{})
+	buf.WriteString(this.name)
+	buf.WriteString("[")
+	buf.WriteString(fmt.Sprintf("count=%v; ", this.count))
+	buf.WriteString(fmt.Sprintf("ver=%v; ", this.version))
+	buf.WriteString(fmt.Sprintf("blver=%v; ", this.blver))
+	buf.WriteString(fmt.Sprintf("size=%v; ", valutil.MakeSizeString(uint64(this.size))))
+	buf.WriteString("]")
+	return buf.String()
 }
 
 func (this *localMemGroup) Dump() string {
@@ -88,7 +102,7 @@ func (this *localMemGroup) Walk(key MemKey, w XMemWalker) bool {
 	return false
 }
 
-func (this *localMemGroup) Snapshot(coder XMemCoder) ([]*XMemSnapshot, error) {
+func (this *localMemGroup) Snapshot(coder XMemCoder) (*XMemGroupSnapshot, error) {
 	var rerr error
 	r := make([]*XMemSnapshot, 0, this.count)
 	this.root.Walk(MemKey{}, func(key MemKey, val interface{}, ver MemVer) WalkStep {
@@ -105,7 +119,11 @@ func (this *localMemGroup) Snapshot(coder XMemCoder) ([]*XMemSnapshot, error) {
 		r = append(r, ss)
 		return WALK_STEP_NEXT
 	})
-	return r, rerr
+
+	obj := new(XMemGroupSnapshot)
+	obj.BLVer = this.blver
+	obj.Snapshots = r
+	return obj, rerr
 }
 
 func (this *localMemGroup) Clear() {
@@ -115,7 +133,7 @@ func (this *localMemGroup) Clear() {
 	this.size = local_SIZE_ITEM
 }
 
-func (this *localMemGroup) BuildFromSnapshot(coder XMemCoder, slist []*XMemSnapshot) error {
+func (this *localMemGroup) BuildFromSnapshot(coder XMemCoder, gss *XMemGroupSnapshot) error {
 	this.Clear()
 
 	ev := new(XMemEvent)
@@ -126,6 +144,10 @@ func (this *localMemGroup) BuildFromSnapshot(coder XMemCoder, slist []*XMemSnaps
 	ev.Version = MemVer(0)
 	this.lisRoot.allInvokeListener([]*XMemEvent{ev})
 
+	if gss.BLVer > 0 {
+		this.blver = gss.BLVer
+	}
+	slist := gss.Snapshots
 	var ctx localActionContext
 	for _, ss := range slist {
 		val, sz, err := coder.Decode(ss.Kind, ss.Data)

@@ -131,7 +131,11 @@ func (this *XMem4Service) SetIfAbsent(key MemKey, val interface{}, sz int) (MemV
 	return rver, err
 }
 
-func (this *XMem4Service) Delete(key MemKey, ver MemVer) (bool, error) {
+func (this *XMem4Service) Delete(key MemKey) (bool, error) {
+	return this.CompareAndDelete(key, VERSION_INVALID)
+}
+
+func (this *XMem4Service) CompareAndDelete(key MemKey, ver MemVer) (bool, error) {
 	rb := false
 	err := this.service.executor.DoSync("xmemDelete", func() error {
 		b, err := this.service.doDeleteOp(this.name, key, ver)
