@@ -1,18 +1,19 @@
-package espnet
+package espnetutil
 
 import (
 	"errors"
+	"esp/espnet"
 	"logger"
 )
 
-type PublisherFilter func(ch Channel, msg *Message) bool
+type PublisherFilter func(ch espnet.Channel, msg *espnet.Message) bool
 
 type Publisher struct {
 	name  string
-	group ChannelGroup
-	c     chan *Message
+	group espnet.ChannelGroup
+	c     chan *espnet.Message
 
-	channels VChannelGroup
+	channels espnet.VChannelGroup
 
 	Filter PublisherFilter
 }
@@ -21,7 +22,7 @@ func NewPublisher(name string, bufsz int) *Publisher {
 	this := new(Publisher)
 	this.name = name
 	this.group.InitGroup()
-	this.c = make(chan *Message, bufsz)
+	this.c = make(chan *espnet.Message, bufsz)
 	return this
 }
 
@@ -43,7 +44,7 @@ func (this *Publisher) run() {
 		close(this.c)
 		this.channels.OnClose()
 	}()
-	var list []Channel
+	var list []espnet.Channel
 	var mark int64
 	for {
 		msg := <-this.c
@@ -87,15 +88,15 @@ func (this *Publisher) WaitClose() {
 	this.group.WaitClosed()
 }
 
-func (this *Publisher) Add(ch Channel) {
+func (this *Publisher) Add(ch espnet.Channel) {
 	this.group.Add(ch)
 }
 
-func (this *Publisher) Remove(ch Channel) {
+func (this *Publisher) Remove(ch espnet.Channel) {
 	this.group.Remove(ch)
 }
 
-func (this *Publisher) SendMessage(msg *Message) (r error) {
+func (this *Publisher) SendMessage(msg *espnet.Message) (r error) {
 	if this.group.IsClosing() {
 		return errors.New("closed")
 	}
@@ -109,8 +110,8 @@ func (this *Publisher) SendMessage(msg *Message) (r error) {
 }
 
 // Publisher's Channel
-func (this *Publisher) NewChannel() (Channel, error) {
-	r := new(VChannel)
+func (this *Publisher) NewChannel() (espnet.Channel, error) {
+	r := new(espnet.VChannel)
 	r.InitVChannel(this.name)
 	r.RemoveChannel = this.channels.Remove
 	r.Sender = this.SendMessage

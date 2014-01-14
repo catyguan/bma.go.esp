@@ -132,6 +132,16 @@ func NewPackageMessage(pack *protpack.Package) *Message {
 	return r
 }
 
+func NewBytesMessage(bs []byte) (*Message, error) {
+	pr := protpack.NewPackageReader()
+	pr.Append(bs)
+	p, err := pr.ReadPackage(len(bs) + 1)
+	if err != nil {
+		return nil, err
+	}
+	return NewPackageMessage(p), nil
+}
+
 type Message struct {
 	pack *protpack.Package
 }
@@ -219,6 +229,9 @@ func (this *Message) Datas() *MessageValues {
 }
 func (this *Message) XDatas() *MessageXData {
 	return &MessageXData{this, FrameCoders.XData}
+}
+func (this *Message) XDataIterator() *mtXDataIterator {
+	return FrameCoders.XData.Iterator(this.ToPackage())
 }
 func (this *Message) GetPayload() (io.Reader, int) {
 	e := this.pack.FrameByType(MT_PAYLOAD)

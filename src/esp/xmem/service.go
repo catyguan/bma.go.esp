@@ -1,6 +1,7 @@
 package xmem
 
 import (
+	"bmautil/binlog"
 	"bmautil/qexec"
 	"bytes"
 	"config"
@@ -183,4 +184,14 @@ func (this *Service) Dump(g string, key MemKey, all bool) (string, error) {
 		return nil
 	})
 	return str, err
+}
+
+func (this *Service) SlaveJoin(g string, ver binlog.BinlogVer, lis binlog.Listener) (*binlog.Reader, error) {
+	var rd *binlog.Reader
+	err := this.executor.DoSync("slaveJoin", func() error {
+		var err error
+		rd, err = this.doSlaveJoin(g, ver, lis)
+		return err
+	})
+	return rd, err
 }

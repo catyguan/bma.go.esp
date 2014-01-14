@@ -1,6 +1,7 @@
 package binlog
 
 import (
+	"bmautil/byteutil"
 	"bmautil/qexec"
 	"encoding/binary"
 	"errors"
@@ -17,14 +18,26 @@ const (
 
 type BinlogVer int64
 
-func (O BinlogVer) Encode(w io.Writer) error {
-	return binary.Write(w, binary.BigEndian, int64(O))
+type BinlogVerCoder int
+
+func (this BinlogVerCoder) DoEncode(w *byteutil.BytesBufferWriter, v BinlogVer) {
+	binary.Write(w, binary.BigEndian, int64(v))
 }
 
-func (O BinlogVer) Decode(r io.Reader) (BinlogVer, error) {
+func (this BinlogVerCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
+	this.DoEncode(w, v.(BinlogVer))
+	return nil
+}
+
+func (this BinlogVerCoder) DoDecode(r *byteutil.BytesBufferReader) (BinlogVer, error) {
 	var v BinlogVer
 	err := binary.Read(r, binary.BigEndian, &v)
 	return BinlogVer(v), err
+}
+
+func (this BinlogVerCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
+	v, err := this.DoDecode(r)
+	return v, err
 }
 
 // Service

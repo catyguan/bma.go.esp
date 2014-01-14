@@ -1,6 +1,7 @@
 package xmem
 
 import (
+	"bmautil/binlog"
 	"bmautil/sqlutil"
 	"bmautil/valutil"
 	"bytes"
@@ -368,4 +369,31 @@ func (this *Service) doDeleteOp(group string, key MemKey, ver MemVer) (bool, err
 		this.doWriteBinlog(group, si, bl)
 	}
 	return nver != VERSION_INVALID, nil
+}
+
+func (this *Service) doSlaveJoin(g string, ver binlog.BinlogVer, lis binlog.Listener) (*binlog.Reader, error) {
+	si, err := this.doGetGroup(g)
+	if err != nil {
+		return nil, err
+	}
+	if !si.config.IsEnableBinlog() {
+		return nil, fmt.Errorf("'%s' binlog disable", g)
+	}
+	if si.profile == nil {
+		return nil, fmt.Errorf("'%s' no profile", g)
+	}
+	if si.group.blservice == nil {
+		return nil, fmt.Errorf("'%s' binlog not start", g)
+	}
+	logger.Info(tag, "'%s' slave join %d", g, ver)
+	rd, err2 := si.group.blservice.NewReader()
+	if err2 != nil {
+		logger.Warn(tag, "'%s' slave join fail - %s", g, err2)
+		return nil, err2
+	}
+	if !rd.SeekAndListen(ver, lis) {
+		rd.Close()
+		return nil, logger.Warn(tag, "'%s' slave join fail - seek fail", g)
+	}
+	return rd, nil
 }

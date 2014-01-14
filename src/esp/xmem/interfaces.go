@@ -161,10 +161,7 @@ type XMemGroupSnapshot struct {
 func (this *XMemGroupSnapshot) Encode() ([]byte, error) {
 	buf := byteutil.NewBytesBuffer()
 	w := buf.NewWriter()
-	err := this.BLVer.Encode(w)
-	if err != nil {
-		return nil, err
-	}
+	binlog.BinlogVerCoder(0).DoEncode(w, this.BLVer)
 	xcoder.Int.DoEncode(w, len(this.Snapshots))
 	for _, s := range this.Snapshots {
 		s.Encode(w)
@@ -176,7 +173,7 @@ func (this *XMemGroupSnapshot) Encode() ([]byte, error) {
 func (this *XMemGroupSnapshot) Decode(data []byte) error {
 	buf := byteutil.NewBytesBufferB(data)
 	r := buf.NewReader()
-	blver, err0 := binlog.BinlogVer(0).Decode(r)
+	blver, err0 := binlog.BinlogVerCoder(0).DoDecode(r)
 	if err0 != nil {
 		return err0
 	}

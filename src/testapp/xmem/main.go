@@ -2,6 +2,7 @@ package main
 
 import (
 	"boot"
+	"esp/espnet"
 	"esp/shell"
 	"esp/shell/telnetcmd"
 	"esp/sqlite"
@@ -34,8 +35,14 @@ func main() {
 	tServer.DefaultBoot(true)
 	shl.AddDir(telnetcmd.NewShellDir(tServer))
 
-	// pointSER := espnet.NewListenPoint("tbusPoint", nil, tbusService.OnSocketAccept)
-	// boot.QuickDefine(pointSER, "", true)
+	smux := espnet.NewServiceMux(nil, nil)
+	smux.AddHandler(espnet.NewAddress("xmem"), xmemService.CreateHandleRequest())
+
+	goService := espnet.NewGoService("SERVICE", smux.Serve)
+	boot.QuickDefine(goService, "", true)
+
+	managePoint := espnet.NewListenPoint("managePoint", nil, goService.AcceptESP)
+	boot.QuickDefine(managePoint, "", true)
 
 	boot.Go(cfile)
 }

@@ -9,27 +9,66 @@ import (
 	"reflect"
 )
 
-// lenString
-type lenStringCoder int
+// lenBytes
+type LenBytesCoder int
 
-func (this lenStringCoder) DoEncode(w *byteutil.BytesBufferWriter, v string) {
+func (this LenBytesCoder) DoEncode(w *byteutil.BytesBufferWriter, bs []byte) {
+	Int.DoEncode(w, len(bs))
+	if bs != nil {
+		w.Write(bs)
+	}
+}
+
+func (this LenBytesCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
+	this.DoEncode(w, v.([]byte))
+	return nil
+}
+
+func (this LenBytesCoder) DoDecode(r *byteutil.BytesBufferReader, maxlen int) ([]byte, error) {
+	l, err := Int.DoDecode(r)
+	if err != nil {
+		return nil, err
+	}
+	if maxlen > 0 && l > maxlen {
+		return nil, fmt.Errorf("too large bytes block - %d/%d", l, maxlen)
+	}
+	p := make([]byte, l)
+	_, err = r.Read(p)
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func (this LenBytesCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
+	s, err := this.DoDecode(r, int(this))
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+// lenString
+type LenStringCoder int
+
+func (this LenStringCoder) DoEncode(w *byteutil.BytesBufferWriter, v string) {
 	bs := []byte(v)
 	Int.DoEncode(w, len(bs))
 	w.Write(bs)
 }
 
-func (this lenStringCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
+func (this LenStringCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
 	this.DoEncode(w, v.(string))
 	return nil
 }
 
-func (this lenStringCoder) DoDecode(r *byteutil.BytesBufferReader, maxlen int) (string, error) {
+func (this LenStringCoder) DoDecode(r *byteutil.BytesBufferReader, maxlen int) (string, error) {
 	l, err := Int.DoDecode(r)
 	if err != nil {
 		return "", err
 	}
-	if maxlen >= 0 && l > maxlen {
-		return "", fmt.Errorf("too large memory block - %d", l)
+	if maxlen > 0 && l > maxlen {
+		return "", fmt.Errorf("too large string block - %d/%d", l, maxlen)
 	}
 	p := make([]byte, l)
 	_, err = r.Read(p)
@@ -39,8 +78,8 @@ func (this lenStringCoder) DoDecode(r *byteutil.BytesBufferReader, maxlen int) (
 	return string(p), nil
 }
 
-func (this lenStringCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
-	s, err := this.DoDecode(r, 0)
+func (this LenStringCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
+	s, err := this.DoDecode(r, int(this))
 	if err != nil {
 		return nil, err
 	}
@@ -563,8 +602,9 @@ func (this varCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) 
 type NULL int
 
 var (
+	LenBytes  LenBytesCoder
 	String    stringCoder
-	LenString lenStringCoder
+	LenString LenStringCoder
 	Int       intCoder
 	Int8      int8Coder
 	Int16     int16Coder

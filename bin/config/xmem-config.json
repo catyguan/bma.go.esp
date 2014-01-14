@@ -17,5 +17,8 @@
 	},
 	"xmemService" : {
 		"SafeMode" : true
+	},
+	"managePoint" : {
+		"Port" : "8080"
 	}
 }

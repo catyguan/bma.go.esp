@@ -15,7 +15,10 @@ type MessageListener func(msg *Message) error
 type MessageSender func(msg *Message) error
 
 // Service
-type ServiceResponser func(rmsg *Message) error
+type ServiceResponser interface {
+	GetChannel() Channel
+	SendMessage(replyMsg *Message) error
+}
 
 type ServiceHandler func(msg *Message, rep ServiceResponser) error
 
@@ -41,7 +44,7 @@ func DoServiceHandle(h ServiceHandler, msg *Message, rep ServiceResponser) error
 	if err != nil {
 		rmsg := msg.ReplyMessage()
 		rmsg.BeError(err)
-		rep(rmsg)
+		rep.SendMessage(rmsg)
 	}
 	return nil
 }
