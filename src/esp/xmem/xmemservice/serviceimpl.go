@@ -1,4 +1,4 @@
-package xmem
+package xmemservice
 
 import (
 	"bmautil/binlog"
@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"database/sql"
 	"esp/sqlite"
+	"esp/xmem/xmemprot"
 	"fmt"
 	"io/ioutil"
 	"logger"
@@ -318,16 +319,16 @@ func (this *Service) doStoreAllMemGroup() error {
 	return nil
 }
 
-func (this *Service) doSetOp(group string, key MemKey, val interface{}, sz int, ver MemVer, isAbsent bool) (MemVer, error) {
+func (this *Service) doSetOp(group string, key xmemprot.MemKey, val interface{}, sz int, ver xmemprot.MemVer, isAbsent bool) (xmemprot.MemVer, error) {
 	if logger.EnableDebug(tag) {
 		logger.Debug(tag, "setOp(%s, %v, %v, %d, %s, %v)", group, key, val, sz, ver, isAbsent)
 	}
 	si, err := this.doGetGroup(group)
 	if err != nil {
-		return VERSION_INVALID, err
+		return xmemprot.VERSION_INVALID, err
 	}
-	nver := VERSION_INVALID
-	if ver == VERSION_INVALID {
+	nver := xmemprot.VERSION_INVALID
+	if ver == xmemprot.VERSION_INVALID {
 		if isAbsent {
 			nver = si.group.SetIfAbsent(key, val, sz)
 		} else {
@@ -351,7 +352,7 @@ func (this *Service) doSetOp(group string, key MemKey, val interface{}, sz int, 
 	return nver, nil
 }
 
-func (this *Service) doDeleteOp(group string, key MemKey, ver MemVer) (bool, error) {
+func (this *Service) doDeleteOp(group string, key xmemprot.MemKey, ver xmemprot.MemVer) (bool, error) {
 	if logger.EnableDebug(tag) {
 		logger.Debug(tag, "deleteOp(%s, %v, %s)", group, key, ver)
 	}
@@ -368,7 +369,7 @@ func (this *Service) doDeleteOp(group string, key MemKey, ver MemVer) (bool, err
 		bl.Version = ver
 		this.doWriteBinlog(group, si, bl)
 	}
-	return nver != VERSION_INVALID, nil
+	return nver != xmemprot.VERSION_INVALID, nil
 }
 
 func (this *Service) doSlaveJoin(g string, ver binlog.BinlogVer, lis binlog.Listener) (*binlog.Reader, error) {

@@ -1,7 +1,8 @@
-package xmem
+package xmemservice
 
 import (
 	"bytes"
+	"esp/xmem/xmemprot"
 	"fmt"
 	"strings"
 )
@@ -15,7 +16,7 @@ type localMemItem struct {
 	items   map[string]*localMemItem
 	value   interface{}
 	size    int
-	version MemVer
+	version xmemprot.MemVer
 }
 
 func (this *localMemItem) Clear() {
@@ -33,7 +34,7 @@ func (this *localMemItem) ToString(n string, lvl int) string {
 	return fmt.Sprintf("%s%s(%d:%d) : %v", strings.Repeat("\t", lvl), n, this.Len(), this.version, this.value)
 }
 
-func (this *localMemItem) Walk(key MemKey, w XMemWalker) WalkStep {
+func (this *localMemItem) Walk(key xmemprot.MemKey, w XMemWalker) WalkStep {
 	ws := w(key, this.value, this.version)
 	if ws == WALK_STEP_NEXT {
 		for k, item := range this.items {

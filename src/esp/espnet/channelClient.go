@@ -4,12 +4,19 @@ import (
 	"bmautil/socket"
 	"errors"
 	"logger"
+	"sync"
+	"time"
 )
+
+type ResponseListener func(msg *Message, err error) error
 
 type ChannelClient struct {
 	C        Channel
 	listener MessageListener
 	own      bool
+
+	lock    sync.RWMutex
+	waiting map[uint64]ResponseListener
 }
 
 func NewChannelClient() *ChannelClient {
@@ -45,6 +52,14 @@ func (this *ChannelClient) Close() {
 		this.C.SetMessageListner(nil)
 		this.C = nil
 	}
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	if this.waiting != nil {
+		for k, lis := range this.waiting {
+			delete(this.waiting, k)
+			lis(nil, errors.New("closed"))
+		}
+	}
 }
 
 func (this *ChannelClient) IsOpen() bool {
@@ -62,7 +77,67 @@ func (this *ChannelClient) SendMessage(ev *Message) error {
 	return errors.New("not open")
 }
 
+func (this *ChannelClient) Call(msg *Message, to *time.Timer) (*Message, error) {
+	var rmsg *Message
+	var rerr error
+	c := make(chan bool, 1)
+
+	mid := msg.SureId()
+	this.lock.Lock()
+	if this.waiting == nil {
+		this.waiting = make(map[uint64]ResponseListener)
+	}
+	this.waiting[mid] = func(msg *Message, err error) error {
+		rmsg = msg
+		rerr = err
+		if msg != nil {
+			merr := msg.ToError()
+			if merr != nil {
+				rerr = merr
+			}
+		}
+		close(c)
+		return nil
+	}
+	this.lock.Unlock()
+	err := this.SendMessage(msg)
+	if err != nil {
+		close(c)
+		return nil, err
+	}
+	if to != nil {
+		select {
+		case <-c:
+		case <-to.C:
+			return nil, errors.New("timeout")
+		}
+	} else {
+		<-c
+	}
+	return rmsg, rerr
+}
+
+func (this *ChannelClient) popListener(mid uint64) ResponseListener {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+	if this.waiting != nil {
+		rlis, ok := this.waiting[mid]
+		if ok {
+			delete(this.waiting, mid)
+		}
+		return rlis
+	}
+	return nil
+}
+
 func (this *ChannelClient) OnMessageIn(msg *Message) error {
+	mid := FrameCoders.SourceMessageId.Get(msg.ToPackage())
+	if mid > 0 {
+		rlis := this.popListener(mid)
+		if rlis != nil {
+			return rlis(msg, nil)
+		}
+	}
 	if this.listener != nil {
 		return this.listener(msg)
 	}

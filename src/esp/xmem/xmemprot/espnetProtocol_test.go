@@ -1,4 +1,4 @@
-package xmem
+package xmemprot
 
 import (
 	"bmautil/binlog"
@@ -53,6 +53,52 @@ func TestProtocolReadWrite(t *testing.T) {
 
 		o2 := new(SHEventBinlog)
 		err := doTestReadWrite("SHEventBinlog", o, o2)
+		if err != nil {
+			t.Error(err)
+		}
+	}
+
+	if true {
+		o := new(SHRequestGet)
+		o.Init("group", MemKey{"a", "b"})
+
+		o2 := new(SHRequestGet)
+		err := doTestReadWrite("SHRequestGet", o, o2)
+		if err != nil {
+			t.Error(err)
+		}
+	}
+
+	if true {
+		o := new(SHResponseGet)
+		o.Version = MemVer(123)
+		o.Value = "hello"
+		o.Miss = true
+
+		o2 := new(SHResponseGet)
+		err := doTestReadWrite("SHResponseGet", o, o2)
+		if err != nil {
+			t.Error(err)
+		}
+	}
+
+	if true {
+		o := new(SHRequestSet)
+		o.InitCompareAndSet("group", MemKey{"a", "b"}, "hello", 5, MemVer(123))
+
+		o2 := new(SHRequestSet)
+		err := doTestReadWrite("SHRequestSet", o, o2)
+		if err != nil {
+			t.Error(err)
+		}
+	}
+
+	if true {
+		o := new(SHResponseSet)
+		o.Version = MemVer(234)
+
+		o2 := new(SHResponseSet)
+		err := doTestReadWrite("SHResponseSet", o, o2)
 		if err != nil {
 			t.Error(err)
 		}

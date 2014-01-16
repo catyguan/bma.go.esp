@@ -1,50 +1,11 @@
-package xmem
+package xmemservice
 
 import (
 	"bmautil/binlog"
 	"bmautil/byteutil"
 	xcoder "bmautil/coder"
-	"fmt"
-	"strings"
+	"esp/xmem/xmemprot"
 )
-
-// MemKey
-type MemKey []string
-
-func (list MemKey) ToString() string {
-	return strings.Join(list, "/")
-}
-
-func MemKeyFromString(s string) MemKey {
-	if s == "" {
-		return MemKey{}
-	}
-	return strings.Split(s, "/")
-}
-
-func (list MemKey) At(idx int) (string, bool) {
-	if idx < 0 {
-		idx = len(list) + idx
-	}
-	if idx >= 0 && idx < len(list) {
-		return list[idx], true
-	}
-	return "", false
-}
-
-// MemVer
-type MemVer uint64
-
-const (
-	VERSION_INVALID = MemVer(0xFFFFFFFFFFFFFFFF)
-)
-
-func (O MemVer) String() string {
-	if O == VERSION_INVALID {
-		return "NOVER"
-	}
-	return fmt.Sprintf("%d", O)
-}
 
 // Action
 type Action int
@@ -78,9 +39,9 @@ const (
 type XMemEvent struct {
 	Action    Action
 	GroupName string
-	Key       MemKey
+	Key       xmemprot.MemKey
 	Value     interface{}
-	Version   MemVer
+	Version   xmemprot.MemVer
 }
 
 type XMemListener func(events []*XMemEvent)
@@ -95,7 +56,7 @@ const (
 	WALK_STEP_END
 )
 
-type XMemWalker func(key MemKey, val interface{}, ver MemVer) WalkStep
+type XMemWalker func(key xmemprot.MemKey, val interface{}, ver xmemprot.MemVer) WalkStep
 
 // Coder
 type XMemCoder interface {
@@ -106,7 +67,7 @@ type XMemCoder interface {
 // Snapshot
 type XMemSnapshot struct {
 	Key     string
-	Version MemVer
+	Version xmemprot.MemVer
 	Kind    string
 	Data    []byte
 }
@@ -134,7 +95,7 @@ func DecodeSnapshot(r *byteutil.BytesBufferReader) (*XMemSnapshot, error) {
 	if err != nil {
 		return nil, err
 	}
-	o.Version = MemVer(v2)
+	o.Version = xmemprot.MemVer(v2)
 	o.Kind, err = xcoder.LenString.DoDecode(r, 1024)
 	if err != nil {
 		return nil, err
@@ -196,17 +157,17 @@ func (this *XMemGroupSnapshot) Decode(data []byte) error {
 
 // API
 type XMem interface {
-	Get(key MemKey) (interface{}, MemVer, bool, error)
-	GetAndListen(key MemKey, id string, lis XMemListener) (interface{}, MemVer, bool, error)
-	List(key MemKey) ([]string, bool, error)
-	ListAndListen(key MemKey, id string, lis XMemListener) ([]string, bool, error)
-	AddListener(key MemKey, id string, lis XMemListener) error
-	RemoveListener(key MemKey, id string) error
+	Get(key xmemprot.MemKey) (interface{}, xmemprot.MemVer, bool, error)
+	GetAndListen(key xmemprot.MemKey, id string, lis XMemListener) (interface{}, xmemprot.MemVer, bool, error)
+	List(key xmemprot.MemKey) ([]string, bool, error)
+	ListAndListen(key xmemprot.MemKey, id string, lis XMemListener) ([]string, bool, error)
+	AddListener(key xmemprot.MemKey, id string, lis XMemListener) error
+	RemoveListener(key xmemprot.MemKey, id string) error
 
-	Set(key MemKey, val interface{}, sz int) (MemVer, error)
-	CompareAndSet(key MemKey, val interface{}, sz int, ver MemVer) (MemVer, error)
-	SetIfAbsent(key MemKey, val interface{}, sz int) (MemVer, error)
+	Set(key xmemprot.MemKey, val interface{}, sz int) (xmemprot.MemVer, error)
+	CompareAndSet(key xmemprot.MemKey, val interface{}, sz int, ver xmemprot.MemVer) (xmemprot.MemVer, error)
+	SetIfAbsent(key xmemprot.MemKey, val interface{}, sz int) (xmemprot.MemVer, error)
 
-	Delete(key MemKey) (bool, error)
-	CompareAndDelete(key MemKey, ver MemVer) (bool, error)
+	Delete(key xmemprot.MemKey) (bool, error)
+	CompareAndDelete(key xmemprot.MemKey, ver xmemprot.MemVer) (bool, error)
 }

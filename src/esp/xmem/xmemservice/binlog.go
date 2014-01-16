@@ -1,9 +1,10 @@
-package xmem
+package xmemservice
 
 import (
 	"bmautil/binlog"
 	"bmautil/byteutil"
 	xcoder "bmautil/coder"
+	"esp/xmem/xmemprot"
 	"fmt"
 	"io/ioutil"
 	"logger"
@@ -22,7 +23,7 @@ type XMemBinlog struct {
 	Key      string
 	Value    interface{}
 	Size     int
-	Version  MemVer
+	Version  xmemprot.MemVer
 	IsAbsent bool
 	// SET
 	// group string, key MemKey, val interface{}, sz int, ver MemVer, isAbsent bool
@@ -46,7 +47,7 @@ func (this *XMemBinlog) Encode(coder XMemCoder) ([]byte, error) {
 			w.Write(bs)
 		}
 	}
-	if this.Version == VERSION_INVALID {
+	if this.Version == xmemprot.VERSION_INVALID {
 		w.WriteByte(0)
 	} else {
 		w.WriteByte(1)
@@ -102,13 +103,13 @@ func DecodeBinlog(data []byte, coder XMemCoder, maxlen int) (*XMemBinlog, error)
 		return nil, err7
 	}
 	if v7 == 0 {
-		this.Version = VERSION_INVALID
+		this.Version = xmemprot.VERSION_INVALID
 	} else {
 		v8, err8 := xcoder.Uint64.DoDecode(r)
 		if err8 != nil {
 			return nil, err8
 		}
-		this.Version = MemVer(v8)
+		this.Version = xmemprot.MemVer(v8)
 	}
 	if this.Op == OP_SET {
 		v9, err9 := r.ReadByte()
@@ -291,7 +292,7 @@ func (this *Service) doProcessBinog(group string, blver binlog.BinlogVer, bs []b
 	if err1 != nil {
 		return err1
 	}
-	key := MemKeyFromString(bl.Key)
+	key := xmemprot.MemKeyFromString(bl.Key)
 	switch bl.Op {
 	case OP_SET:
 		_, err2 := this.doSetOp(group, key, bl.Value, bl.Size, bl.Version, bl.IsAbsent)

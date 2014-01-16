@@ -1,4 +1,4 @@
-package xmem
+package xmemservice
 
 import (
 	"bmautil/binlog"
@@ -7,8 +7,9 @@ import (
 )
 
 type MemGroupConfig struct {
-	NoSave   bool
-	BLConfig *binlog.BinlogConfig
+	NoSave    bool
+	BLConfig  *binlog.BinlogConfig
+	MasterURI string
 }
 
 func (this *MemGroupConfig) Valid() error {

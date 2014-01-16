@@ -1,4 +1,4 @@
-package xmem
+package xmemservice
 
 import (
 	"bmautil/binlog"
@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"config"
 	"esp/sqlite"
+	"esp/xmem/xmemprot"
 	"fmt"
 	"logger"
 )
@@ -167,7 +168,7 @@ func (this *Service) CreateXMem(name string) (XMem, error) {
 	return r, nil
 }
 
-func (this *Service) Dump(g string, key MemKey, all bool) (string, error) {
+func (this *Service) Dump(g string, key xmemprot.MemKey, all bool) (string, error) {
 	str := ""
 	err := this.executor.DoSync("dump", func() error {
 		item, err := this.doGetGroup(g)

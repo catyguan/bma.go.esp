@@ -1,9 +1,10 @@
-package xmem
+package xmemservice
 
 import (
 	"bmautil/binlog"
 	"bmautil/valutil"
 	"esp/shell"
+	"esp/xmem/xmemprot"
 	"fmt"
 	"strings"
 )
@@ -85,7 +86,7 @@ func (this *dirGroup) commandDump(s *shell.Session, command string) bool {
 		key = fs.Arg(0)
 	}
 
-	k := MemKeyFromString(key)
+	k := xmemprot.MemKeyFromString(key)
 	str, err := this.service.Dump(this.name, k, all)
 	if err != nil {
 		s.Writeln("ERROR: " + err.Error())

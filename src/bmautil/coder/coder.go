@@ -33,9 +33,11 @@ func (this LenBytesCoder) DoDecode(r *byteutil.BytesBufferReader, maxlen int) ([
 		return nil, fmt.Errorf("too large bytes block - %d/%d", l, maxlen)
 	}
 	p := make([]byte, l)
-	_, err = r.Read(p)
-	if err != nil {
-		return nil, err
+	if l > 0 {
+		_, err = r.Read(p)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return p, nil
 }
@@ -105,6 +107,35 @@ func (this stringCoder) DoDecode(r *byteutil.BytesBufferReader) string {
 func (this stringCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
 	s := this.DoDecode(r)
 	return s, nil
+}
+
+// string
+type boolCoder bool
+
+func (this boolCoder) DoEncode(w *byteutil.BytesBufferWriter, v bool) {
+	b := byte(0)
+	if v {
+		b = 1
+	}
+	w.WriteByte(b)
+}
+
+func (this boolCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
+	this.DoEncode(w, v.(bool))
+	return nil
+}
+
+func (this boolCoder) DoDecode(r *byteutil.BytesBufferReader) (bool, error) {
+	b, err := r.ReadByte()
+	if err != nil {
+		return false, err
+	}
+	return b != 0, err
+}
+
+func (this boolCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
+	v, err := this.DoDecode(r)
+	return v, err
 }
 
 // intx
@@ -605,6 +636,7 @@ var (
 	LenBytes  LenBytesCoder
 	String    stringCoder
 	LenString LenStringCoder
+	Bool      boolCoder
 	Int       intCoder
 	Int8      int8Coder
 	Int16     int16Coder

@@ -1,9 +1,10 @@
-package xmem
+package xmemservice
 
 import (
 	"bmautil/binlog"
 	"bmautil/valutil"
 	"bytes"
+	"esp/xmem/xmemprot"
 	"fmt"
 )
 
@@ -55,7 +56,7 @@ type localMemGroup struct {
 	lisRoot *localMemLis
 	count   int64
 	size    int64
-	version MemVer
+	version xmemprot.MemVer
 
 	// for binlog & master/slave sync
 	blver     binlog.BinlogVer
@@ -93,7 +94,7 @@ func (this *localMemGroup) Dump() string {
 	return buf.String()
 }
 
-func (this *localMemGroup) Walk(key MemKey, w XMemWalker) bool {
+func (this *localMemGroup) Walk(key xmemprot.MemKey, w XMemWalker) bool {
 	item, ok := this.Get(key)
 	if ok {
 		item.Walk(key, w)
@@ -105,7 +106,7 @@ func (this *localMemGroup) Walk(key MemKey, w XMemWalker) bool {
 func (this *localMemGroup) Snapshot(coder XMemCoder) (*XMemGroupSnapshot, error) {
 	var rerr error
 	r := make([]*XMemSnapshot, 0, this.count)
-	this.root.Walk(MemKey{}, func(key MemKey, val interface{}, ver MemVer) WalkStep {
+	this.root.Walk(xmemprot.MemKey{}, func(key xmemprot.MemKey, val interface{}, ver xmemprot.MemVer) WalkStep {
 		k, bs, err := coder.Encode(val)
 		if err != nil {
 			rerr = err
@@ -139,9 +140,9 @@ func (this *localMemGroup) BuildFromSnapshot(coder XMemCoder, gss *XMemGroupSnap
 	ev := new(XMemEvent)
 	ev.Action = ACTION_CLEAR
 	ev.GroupName = this.name
-	ev.Key = MemKey{}
+	ev.Key = xmemprot.MemKey{}
 	ev.Value = nil
-	ev.Version = MemVer(0)
+	ev.Version = xmemprot.MemVer(0)
 	this.lisRoot.allInvokeListener([]*XMemEvent{ev})
 
 	if gss.BLVer >= 0 {
@@ -154,7 +155,7 @@ func (this *localMemGroup) BuildFromSnapshot(coder XMemCoder, gss *XMemGroupSnap
 		if err != nil {
 			return err
 		}
-		this.InitSet(&ctx, MemKeyFromString(ss.Key), val, sz, ss.Version)
+		this.InitSet(&ctx, xmemprot.MemKeyFromString(ss.Key), val, sz, ss.Version)
 	}
 	this.version = this.root.version
 
@@ -163,9 +164,9 @@ func (this *localMemGroup) BuildFromSnapshot(coder XMemCoder, gss *XMemGroupSnap
 	return nil
 }
 
-func (this *localMemGroup) NextVersion() MemVer {
+func (this *localMemGroup) NextVersion() xmemprot.MemVer {
 	this.version++
-	if this.version == VERSION_INVALID {
+	if this.version == xmemprot.VERSION_INVALID {
 		this.version++
 	}
 	return this.version
@@ -184,10 +185,10 @@ func itemAt(list []*localMemItem, idx int) *localMemItem {
 	return nil
 }
 
-func (this *localMemGroup) Query(key MemKey, ctx *localActionContext) ([]*localMemItem, bool, MemVer) {
+func (this *localMemGroup) Query(key xmemprot.MemKey, ctx *localActionContext) ([]*localMemItem, bool, xmemprot.MemVer) {
 	r := []*localMemItem{this.root}
 	cur := this.root
-	ver := VERSION_INVALID
+	ver := xmemprot.VERSION_INVALID
 	for i, k := range key {
 		if cur.items == nil {
 			if ctx == nil {
@@ -201,7 +202,7 @@ func (this *localMemGroup) Query(key MemKey, ctx *localActionContext) ([]*localM
 			if ctx == nil {
 				return r, false, ver
 			}
-			if ver == VERSION_INVALID {
+			if ver == xmemprot.VERSION_INVALID {
 				ver = this.NextVersion()
 			}
 			item = new(localMemItem)
@@ -219,7 +220,7 @@ func (this *localMemGroup) Query(key MemKey, ctx *localActionContext) ([]*localM
 	return r, true, ver
 }
 
-func (this *localMemGroup) LisQuery(key MemKey, createIfNotExists bool) ([]*localMemLis, bool) {
+func (this *localMemGroup) LisQuery(key xmemprot.MemKey, createIfNotExists bool) ([]*localMemLis, bool) {
 	r := []*localMemLis{this.lisRoot}
 	cur := this.lisRoot
 	for _, k := range key {
@@ -244,7 +245,7 @@ func (this *localMemGroup) LisQuery(key MemKey, createIfNotExists bool) ([]*loca
 	return r, true
 }
 
-func (this *localMemGroup) Get(key MemKey) (*localMemItem, bool) {
+func (this *localMemGroup) Get(key xmemprot.MemKey) (*localMemItem, bool) {
 	list, ok, _ := this.Query(key, nil)
 	if !ok {
 		return nil, false
@@ -252,14 +253,14 @@ func (this *localMemGroup) Get(key MemKey) (*localMemItem, bool) {
 	return itemAt(list, -1), true
 }
 
-func (this *localMemGroup) CompareAndSet(key MemKey, val interface{}, sz int, ver MemVer) MemVer {
+func (this *localMemGroup) CompareAndSet(key xmemprot.MemKey, val interface{}, sz int, ver xmemprot.MemVer) xmemprot.MemVer {
 	list, ok, _ := this.Query(key, nil)
 	if !ok {
-		return VERSION_INVALID
+		return xmemprot.VERSION_INVALID
 	}
 	item := itemAt(list, -1)
 	if item.version != ver {
-		return VERSION_INVALID
+		return xmemprot.VERSION_INVALID
 	}
 
 	nver := this.NextVersion()
@@ -274,10 +275,10 @@ func (this *localMemGroup) CompareAndSet(key MemKey, val interface{}, sz int, ve
 	return nver
 }
 
-func (this *localMemGroup) Set(key MemKey, val interface{}, sz int) MemVer {
+func (this *localMemGroup) Set(key xmemprot.MemKey, val interface{}, sz int) xmemprot.MemVer {
 	var ctx localActionContext
 	list, _, ver := this.Query(key, &ctx)
-	if ver == VERSION_INVALID {
+	if ver == xmemprot.VERSION_INVALID {
 		ver = this.NextVersion()
 	}
 	for _, pi := range list {
@@ -294,15 +295,15 @@ func (this *localMemGroup) Set(key MemKey, val interface{}, sz int) MemVer {
 	return ver
 }
 
-func (this *localMemGroup) SetIfAbsent(key MemKey, val interface{}, sz int) MemVer {
+func (this *localMemGroup) SetIfAbsent(key xmemprot.MemKey, val interface{}, sz int) xmemprot.MemVer {
 	_, b, _ := this.Query(key, nil)
 	if b {
-		return VERSION_INVALID
+		return xmemprot.VERSION_INVALID
 	}
 	return this.Set(key, val, sz)
 }
 
-func (this *localMemGroup) InitSet(ctx *localActionContext, key MemKey, val interface{}, sz int, ver MemVer) {
+func (this *localMemGroup) InitSet(ctx *localActionContext, key xmemprot.MemKey, val interface{}, sz int, ver xmemprot.MemVer) {
 	list, _, _ := this.Query(key, ctx)
 	for _, pi := range list {
 		pi.version = ver
@@ -316,7 +317,7 @@ func (this *localMemGroup) InitSet(ctx *localActionContext, key MemKey, val inte
 	this.tryInvokeListener(ctx, ACTION_UPDATE, key, item)
 }
 
-func (this *localMemGroup) doDelete(ctx *localActionContext, key MemKey, cur *localMemItem) {
+func (this *localMemGroup) doDelete(ctx *localActionContext, key xmemprot.MemKey, cur *localMemItem) {
 	for k, item := range cur.items {
 		nkey := append(key, k)
 
@@ -334,23 +335,23 @@ func (this *localMemGroup) doDelete(ctx *localActionContext, key MemKey, cur *lo
 	this.count--
 }
 
-func (this *localMemGroup) Delete(key MemKey) MemVer {
-	return this.CompareAndDelete(key, VERSION_INVALID)
+func (this *localMemGroup) Delete(key xmemprot.MemKey) xmemprot.MemVer {
+	return this.CompareAndDelete(key, xmemprot.VERSION_INVALID)
 }
 
-func (this *localMemGroup) CompareAndDelete(key MemKey, cver MemVer) MemVer {
+func (this *localMemGroup) CompareAndDelete(key xmemprot.MemKey, cver xmemprot.MemVer) xmemprot.MemVer {
 	list, ok, _ := this.Query(key, nil)
 	if !ok {
-		return VERSION_INVALID
+		return xmemprot.VERSION_INVALID
 	}
 	if len(list) == 1 {
 		// don't delete root
-		return VERSION_INVALID
+		return xmemprot.VERSION_INVALID
 	}
 	item := itemAt(list, -1)
-	if cver != VERSION_INVALID {
+	if cver != xmemprot.VERSION_INVALID {
 		if item.version != cver {
-			return VERSION_INVALID
+			return xmemprot.VERSION_INVALID
 		}
 	}
 	p := itemAt(list, -2)
@@ -369,7 +370,7 @@ func (this *localMemGroup) CompareAndDelete(key MemKey, cver MemVer) MemVer {
 	return ver
 }
 
-func (this *localMemGroup) AddListener(key MemKey, id string, lis XMemListener) bool {
+func (this *localMemGroup) AddListener(key xmemprot.MemKey, id string, lis XMemListener) bool {
 	items, _ := this.LisQuery(key, true)
 	item := items[len(items)-1]
 	if item.listeners == nil {
@@ -379,7 +380,7 @@ func (this *localMemGroup) AddListener(key MemKey, id string, lis XMemListener) 
 	return true
 }
 
-func (this *localMemGroup) RemoveListener(key MemKey, id string) {
+func (this *localMemGroup) RemoveListener(key xmemprot.MemKey, id string) {
 	items, ok := this.LisQuery(key, false)
 	if !ok {
 		return
@@ -408,7 +409,7 @@ func safeInvokeListener(lis XMemListener, elist []*XMemEvent) {
 	}
 }
 
-func (this *localMemGroup) tryInvokeListener(ctx *localActionContext, action Action, key MemKey, eitem *localMemItem) {
+func (this *localMemGroup) tryInvokeListener(ctx *localActionContext, action Action, key xmemprot.MemKey, eitem *localMemItem) {
 	list, _ := this.LisQuery(key, false)
 	var ev *XMemEvent
 	for _, item := range list {
@@ -426,7 +427,7 @@ func (this *localMemGroup) tryInvokeListener(ctx *localActionContext, action Act
 	}
 }
 
-func (this *localMemGroup) invokeListener(action Action, key MemKey, eitem *localMemItem) {
+func (this *localMemGroup) invokeListener(action Action, key xmemprot.MemKey, eitem *localMemItem) {
 	list, _ := this.LisQuery(key, false)
 	var elist []*XMemEvent
 	for _, item := range list {

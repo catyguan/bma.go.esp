@@ -1,4 +1,6 @@
-package xmem
+package xmemservice
+
+import "esp/xmem/xmemprot"
 
 type XMem4Service struct {
 	service *Service
@@ -10,13 +12,13 @@ func (this *XMem4Service) Init(s *Service, n string) {
 	this.name = n
 }
 
-func (this *XMem4Service) Get(key MemKey) (interface{}, MemVer, bool, error) {
+func (this *XMem4Service) Get(key xmemprot.MemKey) (interface{}, xmemprot.MemVer, bool, error) {
 	return this.GetAndListen(key, "", nil)
 }
 
-func (this *XMem4Service) GetAndListen(key MemKey, id string, lis XMemListener) (interface{}, MemVer, bool, error) {
+func (this *XMem4Service) GetAndListen(key xmemprot.MemKey, id string, lis XMemListener) (interface{}, xmemprot.MemVer, bool, error) {
 	var rval interface{}
-	rver := VERSION_INVALID
+	rver := xmemprot.VERSION_INVALID
 	rb := false
 	err := this.service.executor.DoSync("xmemGet", func() error {
 		si, err := this.service.doGetGroup(this.name)
@@ -38,11 +40,11 @@ func (this *XMem4Service) GetAndListen(key MemKey, id string, lis XMemListener) 
 	return rval, rver, rb, err
 }
 
-func (this *XMem4Service) List(key MemKey) ([]string, bool, error) {
+func (this *XMem4Service) List(key xmemprot.MemKey) ([]string, bool, error) {
 	return this.ListAndListen(key, "", nil)
 }
 
-func (this *XMem4Service) ListAndListen(key MemKey, id string, lis XMemListener) ([]string, bool, error) {
+func (this *XMem4Service) ListAndListen(key xmemprot.MemKey, id string, lis XMemListener) ([]string, bool, error) {
 	var rlist []string
 	rb := false
 	err := this.service.executor.DoSync("xmemList", func() error {
@@ -68,7 +70,7 @@ func (this *XMem4Service) ListAndListen(key MemKey, id string, lis XMemListener)
 	return rlist, rb, err
 }
 
-func (this *XMem4Service) AddListener(key MemKey, id string, lis XMemListener) error {
+func (this *XMem4Service) AddListener(key xmemprot.MemKey, id string, lis XMemListener) error {
 	err := this.service.executor.DoSync("xmemAddListener", func() error {
 		si, err := this.service.doGetGroup(this.name)
 		if err != nil {
@@ -80,7 +82,7 @@ func (this *XMem4Service) AddListener(key MemKey, id string, lis XMemListener) e
 	return err
 }
 
-func (this *XMem4Service) RemoveListener(key MemKey, id string) error {
+func (this *XMem4Service) RemoveListener(key xmemprot.MemKey, id string) error {
 	err := this.service.executor.DoSync("xmemRemoveListener", func() error {
 		si, err := this.service.doGetGroup(this.name)
 		if err != nil {
@@ -92,10 +94,10 @@ func (this *XMem4Service) RemoveListener(key MemKey, id string) error {
 	return err
 }
 
-func (this *XMem4Service) Set(key MemKey, val interface{}, sz int) (MemVer, error) {
-	rver := VERSION_INVALID
+func (this *XMem4Service) Set(key xmemprot.MemKey, val interface{}, sz int) (xmemprot.MemVer, error) {
+	rver := xmemprot.VERSION_INVALID
 	err := this.service.executor.DoSync("xmemSet", func() error {
-		b, err := this.service.doSetOp(this.name, key, val, sz, VERSION_INVALID, false)
+		b, err := this.service.doSetOp(this.name, key, val, sz, xmemprot.VERSION_INVALID, false)
 		if err != nil {
 			return err
 		}
@@ -105,8 +107,8 @@ func (this *XMem4Service) Set(key MemKey, val interface{}, sz int) (MemVer, erro
 	return rver, err
 }
 
-func (this *XMem4Service) CompareAndSet(key MemKey, val interface{}, sz int, ver MemVer) (MemVer, error) {
-	rver := VERSION_INVALID
+func (this *XMem4Service) CompareAndSet(key xmemprot.MemKey, val interface{}, sz int, ver xmemprot.MemVer) (xmemprot.MemVer, error) {
+	rver := xmemprot.VERSION_INVALID
 	err := this.service.executor.DoSync("xmemCompareAndSet", func() error {
 		b, err := this.service.doSetOp(this.name, key, val, sz, ver, false)
 		if err != nil {
@@ -118,10 +120,10 @@ func (this *XMem4Service) CompareAndSet(key MemKey, val interface{}, sz int, ver
 	return rver, err
 }
 
-func (this *XMem4Service) SetIfAbsent(key MemKey, val interface{}, sz int) (MemVer, error) {
-	rver := VERSION_INVALID
+func (this *XMem4Service) SetIfAbsent(key xmemprot.MemKey, val interface{}, sz int) (xmemprot.MemVer, error) {
+	rver := xmemprot.VERSION_INVALID
 	err := this.service.executor.DoSync("xmemSetIfAbsent", func() error {
-		b, err := this.service.doSetOp(this.name, key, val, sz, VERSION_INVALID, true)
+		b, err := this.service.doSetOp(this.name, key, val, sz, xmemprot.VERSION_INVALID, true)
 		if err != nil {
 			return err
 		}
@@ -131,11 +133,11 @@ func (this *XMem4Service) SetIfAbsent(key MemKey, val interface{}, sz int) (MemV
 	return rver, err
 }
 
-func (this *XMem4Service) Delete(key MemKey) (bool, error) {
-	return this.CompareAndDelete(key, VERSION_INVALID)
+func (this *XMem4Service) Delete(key xmemprot.MemKey) (bool, error) {
+	return this.CompareAndDelete(key, xmemprot.VERSION_INVALID)
 }
 
-func (this *XMem4Service) CompareAndDelete(key MemKey, ver MemVer) (bool, error) {
+func (this *XMem4Service) CompareAndDelete(key xmemprot.MemKey, ver xmemprot.MemVer) (bool, error) {
 	rb := false
 	err := this.service.executor.DoSync("xmemDelete", func() error {
 		b, err := this.service.doDeleteOp(this.name, key, ver)
