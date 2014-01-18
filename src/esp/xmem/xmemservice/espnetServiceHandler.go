@@ -48,8 +48,73 @@ func (this *ServiceHandler) Serv(msg *espnet.Message, rep espnet.ServiceResponse
 			return err
 		}
 		return this.actionSet(msg, req, rep)
+	case xmemprot.SHA_DELETE:
+		req := new(xmemprot.SHRequestDelete)
+		err = req.Read(msg)
+		if err != nil {
+			return err
+		}
+		return this.actionDelete(msg, req, rep)
+	case xmemprot.SHA_LIST:
+		req := new(xmemprot.SHRequestList)
+		err = req.Read(msg)
+		if err != nil {
+			return err
+		}
+		return this.actionList(msg, req, rep)
 	}
 	return logger.Warn(tag, "unknow Action %d", v)
+}
+
+func (this *ServiceHandler) actionList(msg *espnet.Message, req *xmemprot.SHRequestList, rep espnet.ServiceResponser) error {
+	xm, err := this.service.CreateXMem(req.Group)
+	if err != nil {
+		return err
+	}
+	nlist, done, rerr := xm.List(xmemprot.MemKeyFromString(req.Key))
+	if rerr != nil {
+		return rerr
+	}
+	resp := new(xmemprot.SHResponseList)
+	resp.Names = nlist
+	resp.Miss = !done
+
+	logger.Debug(tag, "actionList(%v) -> %v", req, resp)
+
+	rmsg := msg.ReplyMessage()
+	resp.Write(rmsg)
+
+	rep.SendMessage(rmsg)
+
+	return nil
+}
+
+func (this *ServiceHandler) actionDelete(msg *espnet.Message, req *xmemprot.SHRequestDelete, rep espnet.ServiceResponser) error {
+	xm, err := this.service.CreateXMem(req.Group)
+	if err != nil {
+		return err
+	}
+	var rb bool
+	var rerr error
+	if req.Version.Valid() {
+		rb, rerr = xm.CompareAndDelete(xmemprot.MemKeyFromString(req.Key), req.Version)
+	} else {
+		rb, rerr = xm.Delete(xmemprot.MemKeyFromString(req.Key))
+	}
+	if rerr != nil {
+		return rerr
+	}
+	resp := new(xmemprot.SHResponseDelete)
+	resp.Done = rb
+
+	logger.Debug(tag, "actionDelete(%v) -> %v", req, resp)
+
+	rmsg := msg.ReplyMessage()
+	resp.Write(rmsg)
+
+	rep.SendMessage(rmsg)
+
+	return nil
 }
 
 func (this *ServiceHandler) actionGet(msg *espnet.Message, req *xmemprot.SHRequestGet, rep espnet.ServiceResponser) error {
@@ -57,7 +122,10 @@ func (this *ServiceHandler) actionGet(msg *espnet.Message, req *xmemprot.SHReque
 	if err != nil {
 		return err
 	}
-	val, ver, hit, err := xm.Get(xmemprot.MemKeyFromString(req.Key))
+	val, ver, hit, rerr := xm.Get(xmemprot.MemKeyFromString(req.Key))
+	if rerr != nil {
+		return rerr
+	}
 	resp := new(xmemprot.SHResponseGet)
 	resp.Miss = !hit
 	resp.Value = val

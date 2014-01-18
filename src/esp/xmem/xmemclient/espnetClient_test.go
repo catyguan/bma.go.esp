@@ -1,7 +1,8 @@
-package xmemservice
+package xmemclient
 
 import (
 	"esp/espnet"
+	"esp/xmem/xmemprot"
 	"fmt"
 	"testing"
 	"time"
@@ -19,21 +20,8 @@ func TestSet4Client(t *testing.T) {
 	defer cl.Close()
 	defer fmt.Println("end")
 
-	msg := espnet.NewMessage()
-	msg.SetAddress(espnet.NewAddress("xmem"))
-	req := new(SHRequestSet)
-	req.InitSet("test", MemKey{"a", "b"}, 1234, 8)
-	req.Write(msg)
-	fmt.Println("call request")
-	rmsg, err2 := cl.Call(msg, time.NewTimer(2*time.Second))
-	if err2 != nil {
-		t.Error(err2)
-		return
-	}
-
-	o := new(SHResponseSet)
-	o.Read(rmsg)
-	fmt.Println("RETURN", o)
+	xm := NewClient(cl, espnet.NewAddress("xmem"), "test")
+	fmt.Println(xm.Set(xmemprot.MemKey{"a", "b"}, 1234, 8))
 }
 
 func TestGet4Client(t *testing.T) {
@@ -48,21 +36,24 @@ func TestGet4Client(t *testing.T) {
 	defer cl.Close()
 	defer fmt.Println("end")
 
-	msg := espnet.NewMessage()
-	msg.SetAddress(espnet.NewAddress("xmem"))
-	req := new(SHRequestGet)
-	req.Init("test", MemKey{"a", "e"})
-	req.Write(msg)
-	fmt.Println("call request")
-	rmsg, err2 := cl.Call(msg, time.NewTimer(2*time.Second))
-	if err2 != nil {
-		t.Error(err2)
+	xm := NewClient(cl, espnet.NewAddress("xmem"), "test")
+	fmt.Println(xm.Get(xmemprot.MemKey{"a", "e"}))
+}
+
+func TestList4Client(t *testing.T) {
+	cl := espnet.NewChannelClient()
+	cfg := new(espnet.DialConfig)
+	cfg.Address = "127.0.0.1:8080"
+	err := cl.Dial("test", cfg, "espnet")
+	if err != nil {
+		t.Error(err)
 		return
 	}
+	defer cl.Close()
+	defer fmt.Println("end")
 
-	o := new(SHResponseGet)
-	o.Read(rmsg)
-	fmt.Println("RETURN", o)
+	xm := NewClient(cl, espnet.NewAddress("xmem"), "test")
+	fmt.Println(xm.List(xmemprot.MemKey{"a"}))
 }
 
 func TestSlaveJoin4Client(t *testing.T) {
@@ -81,7 +72,7 @@ func TestSlaveJoin4Client(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		} else {
-			o := new(SHEventBinlog)
+			o := new(xmemprot.SHEventBinlog)
 			o.Read(msg)
 			fmt.Println("MESSAGE", o)
 		}
@@ -90,7 +81,7 @@ func TestSlaveJoin4Client(t *testing.T) {
 
 	msg := espnet.NewMessage()
 	msg.SetAddress(espnet.NewAddress("xmem"))
-	req := new(SHRequestSlaveJoin)
+	req := new(xmemprot.SHRequestSlaveJoin)
 	req.Group = "test"
 	req.Version = 0
 	req.Write(msg)

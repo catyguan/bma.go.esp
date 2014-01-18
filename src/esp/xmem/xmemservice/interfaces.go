@@ -7,45 +7,6 @@ import (
 	"esp/xmem/xmemprot"
 )
 
-// Action
-type Action int
-
-func (O Action) String() string {
-	switch O {
-	case ACTION_NONE:
-		return "NONE"
-	case ACTION_NEW:
-		return "NEW"
-	case ACTION_UPDATE:
-		return "UDPATE"
-	case ACTION_DELETE:
-		return "DELETE"
-	case ACTION_CLEAR:
-		return "CLEAR"
-	default:
-		return "UNKNOW"
-	}
-}
-
-const (
-	ACTION_NONE = iota
-	ACTION_NEW
-	ACTION_UPDATE
-	ACTION_DELETE
-	ACTION_CLEAR
-)
-
-// XMemEvent & Listener
-type XMemEvent struct {
-	Action    Action
-	GroupName string
-	Key       xmemprot.MemKey
-	Value     interface{}
-	Version   xmemprot.MemVer
-}
-
-type XMemListener func(events []*XMemEvent)
-
 // Walk
 type WalkStep int
 
@@ -153,21 +114,4 @@ func (this *XMemGroupSnapshot) Decode(data []byte) error {
 	}
 	this.Snapshots = slist
 	return nil
-}
-
-// API
-type XMem interface {
-	Get(key xmemprot.MemKey) (interface{}, xmemprot.MemVer, bool, error)
-	GetAndListen(key xmemprot.MemKey, id string, lis XMemListener) (interface{}, xmemprot.MemVer, bool, error)
-	List(key xmemprot.MemKey) ([]string, bool, error)
-	ListAndListen(key xmemprot.MemKey, id string, lis XMemListener) ([]string, bool, error)
-	AddListener(key xmemprot.MemKey, id string, lis XMemListener) error
-	RemoveListener(key xmemprot.MemKey, id string) error
-
-	Set(key xmemprot.MemKey, val interface{}, sz int) (xmemprot.MemVer, error)
-	CompareAndSet(key xmemprot.MemKey, val interface{}, sz int, ver xmemprot.MemVer) (xmemprot.MemVer, error)
-	SetIfAbsent(key xmemprot.MemKey, val interface{}, sz int) (xmemprot.MemVer, error)
-
-	Delete(key xmemprot.MemKey) (bool, error)
-	CompareAndDelete(key xmemprot.MemKey, ver xmemprot.MemVer) (bool, error)
 }

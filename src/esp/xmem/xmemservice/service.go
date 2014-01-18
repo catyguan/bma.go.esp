@@ -150,8 +150,8 @@ func (this *Service) RunBinlog(name string, fileName string) error {
 	})
 }
 
-func (this *Service) CreateXMem(name string) (XMem, error) {
-	var r XMem
+func (this *Service) CreateXMem(name string) (xmemprot.XMem, error) {
+	var r xmemprot.XMem
 	err := this.executor.DoSync("createXMem", func() error {
 		_, err := this.doGetGroup(name)
 		if err != nil {

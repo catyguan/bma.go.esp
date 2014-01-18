@@ -11,10 +11,10 @@ import (
 // localMemLis
 type localMemLis struct {
 	items     map[string]*localMemLis
-	listeners map[string]XMemListener
+	listeners map[string]xmemprot.XMemListener
 }
 
-func (this *localMemLis) allInvokeListener(elist []*XMemEvent) {
+func (this *localMemLis) allInvokeListener(elist []*xmemprot.XMemEvent) {
 	for _, lis := range this.listeners {
 		safeInvokeListener(lis, elist)
 	}
@@ -25,16 +25,16 @@ func (this *localMemLis) allInvokeListener(elist []*XMemEvent) {
 
 // localActionContext
 type localActionContext struct {
-	listeners map[*localMemLis][]*XMemEvent
+	listeners map[*localMemLis][]*xmemprot.XMemEvent
 }
 
-func (this *localActionContext) Add(item *localMemLis, ev *XMemEvent) {
+func (this *localActionContext) Add(item *localMemLis, ev *xmemprot.XMemEvent) {
 	if this.listeners == nil {
-		this.listeners = make(map[*localMemLis][]*XMemEvent)
+		this.listeners = make(map[*localMemLis][]*xmemprot.XMemEvent)
 	}
 	elist, ok := this.listeners[item]
 	if !ok {
-		elist = []*XMemEvent{ev}
+		elist = []*xmemprot.XMemEvent{ev}
 	} else {
 		elist = append(elist, ev)
 	}
@@ -137,13 +137,13 @@ func (this *localMemGroup) Clear() {
 func (this *localMemGroup) BuildFromSnapshot(coder XMemCoder, gss *XMemGroupSnapshot) error {
 	this.Clear()
 
-	ev := new(XMemEvent)
-	ev.Action = ACTION_CLEAR
+	ev := new(xmemprot.XMemEvent)
+	ev.Action = xmemprot.ACTION_CLEAR
 	ev.GroupName = this.name
 	ev.Key = xmemprot.MemKey{}
 	ev.Value = nil
 	ev.Version = xmemprot.MemVer(0)
-	this.lisRoot.allInvokeListener([]*XMemEvent{ev})
+	this.lisRoot.allInvokeListener([]*xmemprot.XMemEvent{ev})
 
 	if gss.BLVer >= 0 {
 		this.blver = gss.BLVer
@@ -212,7 +212,7 @@ func (this *localMemGroup) Query(key xmemprot.MemKey, ctx *localActionContext) (
 			this.size += local_SIZE_ITEM
 			this.count++
 
-			this.tryInvokeListener(ctx, ACTION_NEW, key[:i+1], item)
+			this.tryInvokeListener(ctx, xmemprot.ACTION_NEW, key[:i+1], item)
 		}
 		r = append(r, item)
 		cur = item
@@ -271,7 +271,7 @@ func (this *localMemGroup) CompareAndSet(key xmemprot.MemKey, val interface{}, s
 	item.size = sz
 	this.size += int64(sz)
 
-	this.invokeListener(ACTION_UPDATE, key, item)
+	this.invokeListener(xmemprot.ACTION_UPDATE, key, item)
 	return nver
 }
 
@@ -290,7 +290,7 @@ func (this *localMemGroup) Set(key xmemprot.MemKey, val interface{}, sz int) xme
 	item.size = sz
 	this.size += int64(sz)
 
-	this.tryInvokeListener(&ctx, ACTION_UPDATE, key, item)
+	this.tryInvokeListener(&ctx, xmemprot.ACTION_UPDATE, key, item)
 	ctx.Invoke()
 	return ver
 }
@@ -314,7 +314,7 @@ func (this *localMemGroup) InitSet(ctx *localActionContext, key xmemprot.MemKey,
 	item.size = sz
 	this.size += int64(sz)
 
-	this.tryInvokeListener(ctx, ACTION_UPDATE, key, item)
+	this.tryInvokeListener(ctx, xmemprot.ACTION_UPDATE, key, item)
 }
 
 func (this *localMemGroup) doDelete(ctx *localActionContext, key xmemprot.MemKey, cur *localMemItem) {
@@ -322,7 +322,7 @@ func (this *localMemGroup) doDelete(ctx *localActionContext, key xmemprot.MemKey
 		nkey := append(key, k)
 
 		delete(cur.items, k)
-		this.tryInvokeListener(ctx, ACTION_DELETE, nkey, item)
+		this.tryInvokeListener(ctx, xmemprot.ACTION_DELETE, nkey, item)
 		this.doDelete(ctx, nkey, item)
 	}
 	cur.items = nil
@@ -364,17 +364,17 @@ func (this *localMemGroup) CompareAndDelete(key xmemprot.MemKey, cver xmemprot.M
 
 	var ctx localActionContext
 	delete(p.items, skey)
-	this.tryInvokeListener(&ctx, ACTION_DELETE, key, item)
+	this.tryInvokeListener(&ctx, xmemprot.ACTION_DELETE, key, item)
 	this.doDelete(&ctx, key, item)
 	ctx.Invoke()
 	return ver
 }
 
-func (this *localMemGroup) AddListener(key xmemprot.MemKey, id string, lis XMemListener) bool {
+func (this *localMemGroup) AddListener(key xmemprot.MemKey, id string, lis xmemprot.XMemListener) bool {
 	items, _ := this.LisQuery(key, true)
 	item := items[len(items)-1]
 	if item.listeners == nil {
-		item.listeners = make(map[string]XMemListener)
+		item.listeners = make(map[string]xmemprot.XMemListener)
 	}
 	item.listeners[id] = lis
 	return true
@@ -400,7 +400,7 @@ func (this *localMemGroup) RemoveListener(key xmemprot.MemKey, id string) {
 	}
 }
 
-func safeInvokeListener(lis XMemListener, elist []*XMemEvent) {
+func safeInvokeListener(lis xmemprot.XMemListener, elist []*xmemprot.XMemEvent) {
 	defer func() {
 		recover()
 	}()
@@ -409,13 +409,13 @@ func safeInvokeListener(lis XMemListener, elist []*XMemEvent) {
 	}
 }
 
-func (this *localMemGroup) tryInvokeListener(ctx *localActionContext, action Action, key xmemprot.MemKey, eitem *localMemItem) {
+func (this *localMemGroup) tryInvokeListener(ctx *localActionContext, action xmemprot.Action, key xmemprot.MemKey, eitem *localMemItem) {
 	list, _ := this.LisQuery(key, false)
-	var ev *XMemEvent
+	var ev *xmemprot.XMemEvent
 	for _, item := range list {
 		if len(item.listeners) > 0 {
 			if ev == nil {
-				ev = new(XMemEvent)
+				ev = new(xmemprot.XMemEvent)
 				ev.Action = action
 				ev.Key = key
 				ev.GroupName = this.name
@@ -427,19 +427,19 @@ func (this *localMemGroup) tryInvokeListener(ctx *localActionContext, action Act
 	}
 }
 
-func (this *localMemGroup) invokeListener(action Action, key xmemprot.MemKey, eitem *localMemItem) {
+func (this *localMemGroup) invokeListener(action xmemprot.Action, key xmemprot.MemKey, eitem *localMemItem) {
 	list, _ := this.LisQuery(key, false)
-	var elist []*XMemEvent
+	var elist []*xmemprot.XMemEvent
 	for _, item := range list {
 		for _, lis := range item.listeners {
 			if elist == nil {
-				ev := new(XMemEvent)
+				ev := new(xmemprot.XMemEvent)
 				ev.Action = action
 				ev.Key = key
 				ev.GroupName = this.name
 				ev.Value = eitem.value
 				ev.Version = eitem.version
-				elist = []*XMemEvent{ev}
+				elist = []*xmemprot.XMemEvent{ev}
 			}
 			safeInvokeListener(lis, elist)
 		}

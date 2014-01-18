@@ -16,7 +16,7 @@ func (this *XMem4Service) Get(key xmemprot.MemKey) (interface{}, xmemprot.MemVer
 	return this.GetAndListen(key, "", nil)
 }
 
-func (this *XMem4Service) GetAndListen(key xmemprot.MemKey, id string, lis XMemListener) (interface{}, xmemprot.MemVer, bool, error) {
+func (this *XMem4Service) GetAndListen(key xmemprot.MemKey, id string, lis xmemprot.XMemListener) (interface{}, xmemprot.MemVer, bool, error) {
 	var rval interface{}
 	rver := xmemprot.VERSION_INVALID
 	rb := false
@@ -44,7 +44,7 @@ func (this *XMem4Service) List(key xmemprot.MemKey) ([]string, bool, error) {
 	return this.ListAndListen(key, "", nil)
 }
 
-func (this *XMem4Service) ListAndListen(key xmemprot.MemKey, id string, lis XMemListener) ([]string, bool, error) {
+func (this *XMem4Service) ListAndListen(key xmemprot.MemKey, id string, lis xmemprot.XMemListener) ([]string, bool, error) {
 	var rlist []string
 	rb := false
 	err := this.service.executor.DoSync("xmemList", func() error {
@@ -70,7 +70,7 @@ func (this *XMem4Service) ListAndListen(key xmemprot.MemKey, id string, lis XMem
 	return rlist, rb, err
 }
 
-func (this *XMem4Service) AddListener(key xmemprot.MemKey, id string, lis XMemListener) error {
+func (this *XMem4Service) AddListener(key xmemprot.MemKey, id string, lis xmemprot.XMemListener) error {
 	err := this.service.executor.DoSync("xmemAddListener", func() error {
 		si, err := this.service.doGetGroup(this.name)
 		if err != nil {

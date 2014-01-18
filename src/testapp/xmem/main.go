@@ -6,7 +6,7 @@ import (
 	"esp/shell"
 	"esp/shell/telnetcmd"
 	"esp/sqlite"
-	"esp/xmem"
+	"esp/xmem/xmemservice"
 	"telnetserver"
 )
 
@@ -22,7 +22,7 @@ func main() {
 	shl.AddDir(sqliteServer.NewShellDir())
 
 	// xmemServer
-	xmemService := xmem.NewService("xmemService", sqliteServer)
+	xmemService := xmemservice.NewService("xmemService", sqliteServer)
 	boot.QuickDefine(xmemService, "", true)
 	shl.AddDir(xmemService.NewShellDir())
 

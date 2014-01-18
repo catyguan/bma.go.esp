@@ -1,12 +1,12 @@
 package main
 
 import (
-	"esp/xmem"
+	"esp/xmem/xmemservice"
 	"logger"
 )
 
 type Tester struct {
-	xmems *xmem.Service
+	xmems *xmemservice.Service
 }
 
 func (this *Tester) Name() string {
@@ -14,9 +14,9 @@ func (this *Tester) Name() string {
 }
 
 func (this *Tester) Run() bool {
-	prof := new(xmem.MemGroupProfile)
+	prof := new(xmemservice.MemGroupProfile)
 	prof.Name = "test"
-	prof.Coder = xmem.SimpleCoder(0)
+	prof.Coder = xmemservice.SimpleCoder(0)
 	err := this.xmems.EnableMemGroup(prof)
 	if err != nil {
 		logger.Warn("test", "error - %s", err)
