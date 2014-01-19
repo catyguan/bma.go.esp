@@ -1,0 +1,24 @@
+{
+	"global" : {
+		"Debug" : true,
+		"GOMAXPROCS" : 5
+	},
+	"sqliteServer" : {
+		"Database" : {
+			"local" : {
+				"Dsn" : "${CWD}/local2.db"
+			}
+		}
+	},	
+	"telnetServer" : {
+		"Port" : "1081",
+		"BlackIp" : "168.0.0.1, 12.0.0.2",
+		"WhiteIp" : "127.0.0.1"
+	},
+	"xmemService" : {
+		"SafeMode" : true
+	},
+	"managePoint" : {
+		"Port" : "8081"
+	}
+}

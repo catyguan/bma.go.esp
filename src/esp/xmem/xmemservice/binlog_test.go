@@ -4,6 +4,7 @@ import (
 	"bmautil/binlog"
 	"boot"
 	"esp/sqlite"
+	"esp/xmem/xmemprot"
 	"fmt"
 	"logger"
 	"testing"
@@ -33,14 +34,14 @@ func TestBinlog(t *testing.T) {
 			return
 		}
 		fmt.Println("do set")
-		xm.Set(MemKey{"a"}, nil, 0)
-		xm.Set(MemKey{"a", "b", "c"}, 123, 4)
-		xm.Set(MemKey{"a", "b", "d"}, 234, 4)
-		xm.Set(MemKey{"a", "e"}, 345, 4)
-		xm.Delete(MemKey{"a", "b"})
+		xm.Set(xmemprot.MemKey{"a"}, nil, 0)
+		xm.Set(xmemprot.MemKey{"a", "b", "c"}, 123, 4)
+		xm.Set(xmemprot.MemKey{"a", "b", "d"}, 234, 4)
+		xm.Set(xmemprot.MemKey{"a", "e"}, 345, 4)
+		xm.Delete(xmemprot.MemKey{"a", "b"})
 
 		fmt.Println("----Dump----")
-		str, err := xmemService.Dump("test", MemKey{}, true)
+		str, err := xmemService.Dump("test", xmemprot.MemKey{}, true)
 		fmt.Print(str)
 	}
 	if f1 != nil {
@@ -68,7 +69,7 @@ func TestBinlogRun(t *testing.T) {
 		xmemService.RunBinlog("test", "test.blog")
 
 		fmt.Println("----Dump----")
-		str, _ := xmemService.Dump("test", MemKey{}, true)
+		str, _ := xmemService.Dump("test", xmemprot.MemKey{}, true)
 		fmt.Print(str)
 	}
 	if f1 != nil {

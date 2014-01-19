@@ -2,6 +2,7 @@ package xmemservice
 
 import (
 	"esp/espnet"
+	"esp/xmem/xmemprot"
 	"fmt"
 	"testing"
 	"time"
@@ -21,8 +22,8 @@ func TestSet4Client(t *testing.T) {
 
 	msg := espnet.NewMessage()
 	msg.SetAddress(espnet.NewAddress("xmem"))
-	req := new(SHRequestSet)
-	req.InitSet("test", MemKey{"a", "b"}, 1234, 8)
+	req := new(xmemprot.SHRequestSet)
+	req.InitSet("test", xmemprot.MemKey{"a", "b"}, 1234, 8)
 	req.Write(msg)
 	fmt.Println("call request")
 	rmsg, err2 := cl.Call(msg, time.NewTimer(2*time.Second))
@@ -31,7 +32,7 @@ func TestSet4Client(t *testing.T) {
 		return
 	}
 
-	o := new(SHResponseSet)
+	o := new(xmemprot.SHResponseSet)
 	o.Read(rmsg)
 	fmt.Println("RETURN", o)
 }
@@ -50,8 +51,8 @@ func TestGet4Client(t *testing.T) {
 
 	msg := espnet.NewMessage()
 	msg.SetAddress(espnet.NewAddress("xmem"))
-	req := new(SHRequestGet)
-	req.Init("test", MemKey{"a", "e"})
+	req := new(xmemprot.SHRequestGet)
+	req.Init("test", xmemprot.MemKey{"a", "e"})
 	req.Write(msg)
 	fmt.Println("call request")
 	rmsg, err2 := cl.Call(msg, time.NewTimer(2*time.Second))
@@ -60,7 +61,7 @@ func TestGet4Client(t *testing.T) {
 		return
 	}
 
-	o := new(SHResponseGet)
+	o := new(xmemprot.SHResponseGet)
 	o.Read(rmsg)
 	fmt.Println("RETURN", o)
 }
@@ -81,7 +82,7 @@ func TestSlaveJoin4Client(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		} else {
-			o := new(SHEventBinlog)
+			o := new(xmemprot.SHEventBinlog)
 			o.Read(msg)
 			fmt.Println("MESSAGE", o)
 		}
@@ -90,7 +91,7 @@ func TestSlaveJoin4Client(t *testing.T) {
 
 	msg := espnet.NewMessage()
 	msg.SetAddress(espnet.NewAddress("xmem"))
-	req := new(SHRequestSlaveJoin)
+	req := new(xmemprot.SHRequestSlaveJoin)
 	req.Group = "test"
 	req.Version = 0
 	req.Write(msg)

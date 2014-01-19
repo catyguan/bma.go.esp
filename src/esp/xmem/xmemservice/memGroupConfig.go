@@ -7,14 +7,20 @@ import (
 )
 
 type MemGroupConfig struct {
-	NoSave    bool
-	BLConfig  *binlog.BinlogConfig
-	MasterURI string
+	NoSave        bool
+	BLConfig      *binlog.BinlogConfig
+	BLSlaveConfig *BLSlaveConfig
 }
 
 func (this *MemGroupConfig) Valid() error {
 	if this.BLConfig != nil {
 		err := this.BLConfig.Valid()
+		if err != nil {
+			return err
+		}
+	}
+	if this.BLSlaveConfig != nil {
+		err := this.BLSlaveConfig.Valid()
 		if err != nil {
 			return err
 		}
@@ -36,6 +42,10 @@ func (this *MemGroupConfig) IsBinlogWrite() bool {
 	return true
 }
 
+func (this *MemGroupConfig) IsEnableBinlogSlave() bool {
+	return this.BLSlaveConfig != nil
+}
+
 func (this *MemGroupConfig) GetProperties() []*uprop.UProperty {
 	b := new(uprop.UPropertyBuilder)
 	b.NewProp("disableSave", "disable memory save").BeValue(this.NoSave, func(v string) error {
@@ -54,8 +64,23 @@ func (this *MemGroupConfig) GetProperties() []*uprop.UProperty {
 		return nil
 	})
 	if this.BLConfig != nil {
-		blcprops := this.BLConfig.GetProperties()
-		b.MergeWithPrex(blcprops, "blog.")
+		props := this.BLConfig.GetProperties()
+		b.MergeWithPrex(props, "blog.")
+	}
+	b.NewProp("mss", "enable binlog master/slave sync").BeValue(this.IsEnableBinlogSlave(), func(v string) error {
+		e := valutil.ToBool(v, this.IsEnableBinlogSlave())
+		if e {
+			if this.BLSlaveConfig == nil {
+				this.BLSlaveConfig = new(BLSlaveConfig)
+			}
+		} else {
+			this.BLSlaveConfig = nil
+		}
+		return nil
+	})
+	if this.BLSlaveConfig != nil {
+		props := this.BLSlaveConfig.GetProperties()
+		b.MergeWithPrex(props, "mss.")
 	}
 	return b.AsList()
 }

@@ -32,10 +32,16 @@ func (this *Service) stopHandler() {
 		if si.group.blservice != nil {
 			si.group.blservice.Stop()
 		}
+		if si.group.blslave != nil {
+			si.group.blslave.Stop()
+		}
 	}
 	for _, si := range this.memgroups {
 		if si.group.blservice != nil {
 			si.group.blservice.WaitStop()
+		}
+		if si.group.blslave != nil {
+			si.group.blslave.WaitStop()
 		}
 	}
 	for _, si := range this.memgroups {
@@ -122,10 +128,6 @@ func (this *Service) doCreateMemGroup(name string, cfg *MemGroupConfig) (*servic
 	item.group = mg
 	this.memgroups[name] = item
 
-	if cfg.IsEnableBinlog() {
-		this.doStartBinlog(name, mg, cfg)
-	}
-
 	return item, nil
 }
 
@@ -156,12 +158,40 @@ func (this *Service) doUpdateMemGroupConfig(name string, cfg *MemGroupConfig) er
 		}
 	}
 
+	if item.config.IsEnableBinlogSlave() {
+		doStop := false
+		if !cfg.IsEnableBinlogSlave() {
+			doStop = true
+		} else {
+			if cfg.BLSlaveConfig.NeedRestart(item.config.BLSlaveConfig, name) {
+				doStop = true
+			}
+		}
+
+		if doStop {
+			err := this.doStopBinlogSlave(name, item.group)
+			if err != nil {
+				logger.Debug(tag, "stop binlog slave fail - %s", err)
+				return err
+			}
+		}
+	}
+
 	item.config = cfg
 
-	if cfg.IsEnableBinlog() && item.group.blservice == nil {
-		err := this.doStartBinlog(name, item.group, cfg)
-		if err != nil {
-			return err
+	if item.profile != nil {
+		if cfg.IsEnableBinlog() && item.group.blservice == nil {
+			err := this.doStartBinlog(name, item.group, cfg)
+			if err != nil {
+				return err
+			}
+		}
+
+		if cfg.IsEnableBinlogSlave() && item.group.blslave == nil {
+			err := this.doStartBinlogSlave(name, item.group, cfg)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -189,6 +219,14 @@ func (this *Service) doEnableMemGroup(prof *MemGroupProfile) error {
 			return err
 		}
 	}
+
+	if item.config.IsEnableBinlog() {
+		this.doStartBinlog(prof.Name, item.group, item.config)
+	}
+	if item.config.IsEnableBinlogSlave() {
+		this.doStartBinlogSlave(prof.Name, item.group, item.config)
+	}
+
 	return nil
 }
 

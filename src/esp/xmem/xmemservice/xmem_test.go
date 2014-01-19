@@ -3,6 +3,7 @@ package xmemservice
 import (
 	"boot"
 	"esp/sqlite"
+	"esp/xmem/xmemprot"
 	"fmt"
 	"logger"
 	"testing"
@@ -36,17 +37,17 @@ func TestXMem4Service(t *testing.T) {
 			logger.Error("test", "CreateXMem error - %s", err)
 			return
 		}
-		_, _, b, err := xm.Get(MemKey{"a"})
+		_, _, b, err := xm.Get(xmemprot.MemKey{"a"})
 		if !b && err == nil {
 			fmt.Println("do init set")
-			xm.Set(MemKey{"a"}, nil, 0)
-			xm.Set(MemKey{"a", "b", "c"}, 123, 4)
-			xm.Set(MemKey{"a", "b", "d"}, 234, 4)
-			xm.Set(MemKey{"a", "e"}, 345, 4)
+			xm.Set(xmemprot.MemKey{"a"}, nil, 0)
+			xm.Set(xmemprot.MemKey{"a", "b", "c"}, 123, 4)
+			xm.Set(xmemprot.MemKey{"a", "b", "d"}, 234, 4)
+			xm.Set(xmemprot.MemKey{"a", "e"}, 345, 4)
 		}
 
 		fmt.Println("----Dump----")
-		str, err := xmemService.Dump("test", MemKey{}, true)
+		str, err := xmemService.Dump("test", xmemprot.MemKey{}, true)
 		fmt.Print(str)
 	}
 	if f1 != nil {

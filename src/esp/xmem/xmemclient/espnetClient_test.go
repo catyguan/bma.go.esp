@@ -21,7 +21,7 @@ func TestSet4Client(t *testing.T) {
 	defer fmt.Println("end")
 
 	xm := NewClient(cl, espnet.NewAddress("xmem"), "test")
-	fmt.Println(xm.Set(xmemprot.MemKey{"a", "b"}, 1234, 8))
+	fmt.Println(xm.Set(xmemprot.MemKey{"a", "c"}, 234, 8))
 }
 
 func TestGet4Client(t *testing.T) {

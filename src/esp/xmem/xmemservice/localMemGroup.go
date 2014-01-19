@@ -62,6 +62,7 @@ type localMemGroup struct {
 	blver     binlog.BinlogVer
 	blservice *binlog.Service
 	blwriter  *binlog.Writer
+	blslave   *BLSlave
 }
 
 func newLocalMemGroup(n string) *localMemGroup {
