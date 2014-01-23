@@ -13,6 +13,8 @@ const (
 	tableName = "tbl_nodeid"
 )
 
+type NodeId uint64
+
 type Listener func(nodeId uint64)
 
 type Service struct {
