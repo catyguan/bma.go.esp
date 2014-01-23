@@ -6,8 +6,6 @@ import (
 	"boot"
 	"config"
 	"database/sql"
-	"encoding/json"
-	"fmt"
 	// "fmt"
 	"logger"
 	_ "github.com/mattn/go-sqlite3"
@@ -257,57 +255,4 @@ func InitTable(dbName string, tableName string, sqlstr []string) SqliteDatabaseI
 		}
 		return nil
 	}
-}
-
-func (this *SqliteServer) InitRuntmeConfigTable(tableName string, ids []int) {
-	sqlstr := make([]string, 0)
-	sqlstr = append(sqlstr, fmt.Sprintf("create table %s (id integer not null primary key, content text)", tableName))
-	if ids != nil {
-		for _, id := range ids {
-			sqlstr = append(sqlstr, fmt.Sprintf("insert into %s values (%d, '')", tableName, id))
-		}
-	}
-	this.AddInit(InitTable("local", tableName, sqlstr))
-}
-
-func (this *SqliteServer) LoadRuntimeConfig(tableName string, id int, cfgPtr interface{}) error {
-	content := ""
-	rowScan := func(rows *sql.Rows) error {
-		if rows.Next() {
-			return rows.Scan(&content)
-		}
-		return nil
-	}
-	sqlstr := fmt.Sprintf("SELECT content FROM %s WHERE id = ?", tableName)
-	action := sqlutil.QueryAction(rowScan, sqlstr, id)
-	event := make(chan error)
-	defer close(event)
-	this.Do("local", action, event)
-	if err := <-event; err != nil {
-		return logger.Error(tag, "load local data fail %s", err)
-	}
-	logger.Debug(tag, "load runtime config = %s", content)
-	if content != "" {
-		if err := json.Unmarshal([]byte(content), cfgPtr); err != nil {
-			return logger.Error(tag, "runtime config parse error => %s", err)
-		}
-	}
-	return nil
-}
-
-func (this *SqliteServer) StoreRuntimeConfig(tableName string, id int, cfgPtr interface{}) error {
-	data, err := json.Marshal(cfgPtr)
-	if err != nil {
-		logger.Error("ERROR: runtime config format error => %s", err)
-		return err
-	}
-	f := func(r int64) {
-		logger.Debug(tag, "store runtime config => %d", r)
-	}
-	content := string(data)
-	logger.Debug(tag, "store runtime config = %s", content)
-	sqlstr := fmt.Sprintf("UPDATE %s SET content = ? WHERE id = ?", tableName)
-	action := sqlutil.ExecuteAction(f, sqlstr, content, id)
-	logger.Info(tag, "do store runtime config")
-	return this.Do("local", action, nil)
 }
