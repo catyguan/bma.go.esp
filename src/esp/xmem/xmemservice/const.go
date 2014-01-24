@@ -1,4 +1,4 @@
-package xmem
+package xmemservice
 
 const (
 	tag = "xmem"

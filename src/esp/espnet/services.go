@@ -28,9 +28,35 @@ func NextMessageId() uint64 {
 }
 
 // Helper
+type ServiceResponser4S struct {
+	S MessageSender
+}
+
+func (this *ServiceResponser4S) GetChannel() Channel {
+	return nil
+}
+
+func (this *ServiceResponser4S) SendMessage(msg *Message) error {
+	return this.S(msg)
+}
+
+type ServiceResponser4C struct {
+	C Channel
+}
+
+func (this *ServiceResponser4C) GetChannel() Channel {
+	return this.C
+}
+
+func (this *ServiceResponser4C) SendMessage(msg *Message) error {
+	return this.C.SendMessage(msg)
+}
+
 func ConnectService(ch Channel, sh ServiceHandler) error {
+	csh := new(ServiceResponser4C)
+	csh.C = ch
 	ch.SetMessageListner(func(msg *Message) error {
-		return DoServiceHandle(sh, msg, ch.SendMessage)
+		return DoServiceHandle(sh, msg, csh)
 	})
 	return nil
 }

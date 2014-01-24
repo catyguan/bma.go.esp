@@ -19,3 +19,13 @@ func (this encoderFunc) Encode(w *byteutil.BytesBufferWriter, v interface{}) err
 func NewEncoderFuc(f func(w *byteutil.BytesBufferWriter, v interface{}) error) Encoder {
 	return encoderFunc(f)
 }
+
+type decoderFunc func(r *byteutil.BytesBufferReader) (interface{}, error)
+
+func (this decoderFunc) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
+	return this(r)
+}
+
+func NewDecoderFuc(f func(r *byteutil.BytesBufferReader) (interface{}, error)) Decoder {
+	return decoderFunc(f)
+}

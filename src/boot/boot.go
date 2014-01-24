@@ -292,7 +292,7 @@ func Init(cfg string) bool {
 	if !flag.Parsed() {
 		flag.Parse()
 	}
-	if cfg == "" {
+	if configFile != "" {
 		cfg = configFile
 	}
 	err := config.InitConfig(cfg)

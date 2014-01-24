@@ -109,6 +109,8 @@ func NewReplyMessage(msg *Message) *Message {
 	p2.PushBack(protpack.NewFrameV(MT_MESSAGE_KIND, MK_RESPONSE, FrameCoders.MessageKind))
 	for e := p1.Front(); e != nil; e = e.Next() {
 		switch e.MessageType() {
+		case MT_SESSION_INFO:
+			p2.PushBack(e.Clone(0, false))
 		case MT_HEADER, MT_DATA, MT_PAYLOAD, MT_TRACE, MT_TRACE_RESP:
 			continue
 		case MT_MESSAGE_KIND:
@@ -120,7 +122,6 @@ func NewReplyMessage(msg *Message) *Message {
 			p2.PushBack(e.Clone(MT_SOURCE_MESSAGE_ID, false))
 			continue
 		}
-		p2.PushBack(e.Clone(0, false))
 	}
 
 	return r
@@ -132,12 +133,26 @@ func NewPackageMessage(pack *protpack.Package) *Message {
 	return r
 }
 
+func NewBytesMessage(bs []byte) (*Message, error) {
+	pr := protpack.NewPackageReader()
+	pr.Append(bs)
+	p, err := pr.ReadPackage(len(bs) + 1)
+	if err != nil {
+		return nil, err
+	}
+	return NewPackageMessage(p), nil
+}
+
 type Message struct {
 	pack *protpack.Package
 }
 
 func (this *Message) Id() uint64 {
 	return FrameCoders.MessageId.Get(this.pack)
+}
+
+func (this *Message) SureId() uint64 {
+	return FrameCoders.MessageId.Sure(this.pack)
 }
 
 func (this *Message) SetId(v uint64) {
@@ -216,6 +231,12 @@ func (this *Message) Headers() *MessageValues {
 }
 func (this *Message) Datas() *MessageValues {
 	return &MessageValues{this, FrameCoders.Data}
+}
+func (this *Message) XDatas() *MessageXData {
+	return &MessageXData{this, FrameCoders.XData}
+}
+func (this *Message) XDataIterator() *mtXDataIterator {
+	return FrameCoders.XData.Iterator(this.ToPackage())
 }
 func (this *Message) GetPayload() (io.Reader, int) {
 	e := this.pack.FrameByType(MT_PAYLOAD)

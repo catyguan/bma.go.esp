@@ -1,9 +1,13 @@
-package xmem
+package xmemservice
 
 import (
+	"bmautil/binlog"
 	"bmautil/qexec"
+	"bytes"
 	"config"
 	"esp/sqlite"
+	"esp/xmem/xmemprot"
+	"fmt"
 	"logger"
 )
 
@@ -134,6 +138,61 @@ func (this *Service) LoadMemGroup(name string, fileName string) error {
 	})
 }
 
-func (this *Service) Get(key MemKey) error {
-	return nil
+func (this *Service) SaveBinlogSnapshot(name string, fileName string) error {
+	return this.executor.DoSync("saveBL", func() error {
+		return this.doSaveBinlogSnapshot(name, fileName)
+	})
+}
+
+func (this *Service) RunBinlog(name string, fileName string) error {
+	return this.executor.DoSync("runBL", func() error {
+		return this.doRunBinlog(name, fileName)
+	})
+}
+
+func (this *Service) CreateXMem(name string) (xmemprot.XMem, error) {
+	var r xmemprot.XMem
+	err := this.executor.DoSync("createXMem", func() error {
+		_, err := this.doGetGroup(name)
+		if err != nil {
+			return err
+		}
+		obj := new(XMem4Service)
+		obj.Init(this, name)
+		r = obj
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func (this *Service) Dump(g string, key xmemprot.MemKey, all bool) (string, error) {
+	str := ""
+	err := this.executor.DoSync("dump", func() error {
+		item, err := this.doGetGroup(g)
+		if err != nil {
+			return err
+		}
+		it, ok := item.group.Get(key)
+		if !ok {
+			return fmt.Errorf("<%s> not exists", key)
+		}
+		buf := bytes.NewBuffer([]byte{})
+		it.Dump(key.ToString(), buf, 0, all)
+		str = item.group.String() + "\n" + buf.String()
+		return nil
+	})
+	return str, err
+}
+
+func (this *Service) SlaveJoin(g string, ver binlog.BinlogVer, lis binlog.Listener) (*binlog.Reader, error) {
+	var rd *binlog.Reader
+	err := this.executor.DoSync("slaveJoin", func() error {
+		var err error
+		rd, err = this.doSlaveJoin(g, ver, lis)
+		return err
+	})
+	return rd, err
 }

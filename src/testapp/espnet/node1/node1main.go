@@ -4,6 +4,7 @@ import (
 	"bmautil/socket"
 	"boot"
 	"esp/espnet"
+	"esp/espnet/espnetutil"
 	"logger"
 )
 
@@ -24,8 +25,8 @@ var service *espnet.GoService
 var service2 *espnet.GoService
 var service3 *espnet.GoService
 
-var publisher *espnet.Publisher
-var hub *espnet.Broker
+var publisher *espnetutil.Publisher
+var hub *espnetutil.Broker
 
 func myInit() bool {
 
@@ -41,7 +42,7 @@ func myInit() bool {
 	pointSER := espnet.NewListenPoint("PSER", cfgSer, socketAcceptSer)
 	boot.QuickDefine(pointSER, "", true)
 
-	publisher = espnet.NewPublisher("P1", 16)
+	publisher = espnetutil.NewPublisher("P1", 16)
 	boot.QuickDefine(publisher, "", true)
 
 	cfgPub := new(espnet.ListenConfig)
@@ -49,7 +50,7 @@ func myInit() bool {
 	pointPUB := espnet.NewListenPoint("PPUB", cfgPub, socketAcceptPub)
 	boot.QuickDefine(pointPUB, "", true)
 
-	hub = espnet.NewBroker("HUB", 16)
+	hub = espnetutil.NewBroker("HUB", 16)
 	boot.QuickDefine(hub, "", true)
 
 	cfgPos := new(espnet.ListenConfig)

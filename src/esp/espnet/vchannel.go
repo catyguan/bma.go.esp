@@ -108,6 +108,8 @@ func (this *VChannelGroup) Remove(ch *VChannel) {
 		}
 		this.channels = tmp
 	}
+	ch.RemoveChannel = nil
+	ch.Sender = nil
 }
 
 func (this *VChannelGroup) OnClose() {

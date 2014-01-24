@@ -2,6 +2,7 @@ package espnet
 
 import (
 	"bmautil/qexec"
+	"bmautil/socket"
 	"bmautil/valutil"
 	"bytes"
 	"fmt"
@@ -56,7 +57,7 @@ func (this *QExecService) requestHandler(req interface{}) (bool, error) {
 		if v.Responser != nil && ctrl.Has(p) {
 			info := fmt.Sprintf("%s handle", this)
 			rmsg := ctrl.CreateReply(v.Message, info)
-			go v.Responser(rmsg)
+			go v.Responser.SendMessage(rmsg)
 		}
 		if this.rhandler != nil {
 			return true, this.rhandler(v.Message, v.Responser)
@@ -152,13 +153,22 @@ func (this *QExecService) WaitStop() bool {
 	return this.executor.WaitStop()
 }
 
+func (this *QExecService) AcceptESP(sock *socket.Socket) error {
+	ch := NewSocketChannel(sock, "espnet")
+	ConnectService(ch, this.PostRequest)
+	return nil
+}
+
 // QExecService's Channel
 func (this *QExecService) NewChannel() (Channel, error) {
 	r := new(VChannel)
 	r.InitVChannel(this.name)
 	r.RemoveChannel = this.channels.Remove
+
+	sch := new(ServiceResponser4S)
+	sch.S = r.ServiceResponse
 	r.Sender = func(msg *Message) error {
-		return DoServiceHandle(this.PostRequest, msg, r.ServiceResponse)
+		return DoServiceHandle(this.PostRequest, msg, sch)
 	}
 	this.channels.Add(r)
 	return r, nil

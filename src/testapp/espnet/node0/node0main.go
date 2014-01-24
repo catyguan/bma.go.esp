@@ -30,7 +30,7 @@ func myInit() bool {
 	smux.AddHandler(espnet.NewAddress("s2"), newHandleRequest("S2"))
 	smux.AddHandler(espnet.NewAddress("s3"), newHandleRequest("S3"))
 
-	service = espnet.NewGoService("SERVICE", 16, smux.Serve)
+	service = espnet.NewGoService("SERVICE", smux.Serve)
 	boot.QuickDefine(service, "", true)
 
 	cfg := new(espnet.DialConfig)

@@ -1,4 +1,4 @@
-package xmem
+package xmemservice
 
 import (
 	"bytes"

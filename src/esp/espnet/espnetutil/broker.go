@@ -1,25 +1,27 @@
-package espnet
+package espnetutil
 
 import (
+	Coders "bmautil/coder"
 	"errors"
+	"esp/espnet"
 	"fmt"
 	"logger"
 	"uuid"
 )
 
-type BrokerDispatch func(in Channel, list []Channel, msg *Message, left2right bool) (Channel, error)
+type BrokerDispatch func(in espnet.Channel, list []espnet.Channel, msg *espnet.Message, left2right bool) (espnet.Channel, error)
 
 type brokerREQ struct {
-	in  Channel
-	msg *Message
+	in  espnet.Channel
+	msg *espnet.Message
 	l2r bool
 }
 
 type Broker struct {
 	id    string
 	name  string
-	left  ChannelGroup
-	right ChannelGroup
+	left  espnet.ChannelGroup
+	right espnet.ChannelGroup
 	c     chan *brokerREQ
 
 	LeftDispatcher  BrokerDispatch
@@ -58,12 +60,12 @@ func (this *Broker) Start() bool {
 	return true
 }
 
-func (this *Broker) DefaultDispatch(in Channel, list []Channel, msg *Message, left2right bool) (Channel, error) {
+func (this *Broker) DefaultDispatch(in espnet.Channel, list []espnet.Channel, msg *espnet.Message, left2right bool) (espnet.Channel, error) {
 	mk := msg.GetKind()
-	if mk == MK_RESPONSE {
+	if mk == espnet.MK_RESPONSE {
 		p := msg.ToPackage()
 		if p != nil {
-			v, _ := FrameCoders.SessionInfo.Pop(p, this.id, Coders.Uint32)
+			v, _ := espnet.FrameCoders.SessionInfo.Pop(p, this.id, Coders.Uint32)
 			if v != nil {
 				rv := v.(uint32)
 				for _, ch := range list {
@@ -76,10 +78,10 @@ func (this *Broker) DefaultDispatch(in Channel, list []Channel, msg *Message, le
 			}
 		}
 		return nil, nil
-	} else if mk == MK_REQUEST && in != nil {
+	} else if mk == espnet.MK_REQUEST && in != nil {
 		p := msg.ToPackage()
 		if p != nil {
-			FrameCoders.SessionInfo.Set(p, this.id, in.Id(), Coders.Uint32)
+			espnet.FrameCoders.SessionInfo.Set(p, this.id, in.Id(), Coders.Uint32)
 		}
 	}
 
@@ -102,7 +104,7 @@ func (this *Broker) run() {
 	defer func() {
 		close(this.c)
 	}()
-	var llist, rlist []Channel
+	var llist, rlist []espnet.Channel
 	var lmark, rmark int64
 	for {
 		req := <-this.c
@@ -113,7 +115,7 @@ func (this *Broker) run() {
 			return
 		}
 		var dis BrokerDispatch
-		var list []Channel
+		var list []espnet.Channel
 		if req.l2r {
 			rlist, rmark = this.right.Snapshot(rmark, rlist)
 			list = rlist
@@ -130,7 +132,7 @@ func (this *Broker) run() {
 			}
 		}
 
-		var ch Channel
+		var ch espnet.Channel
 		if len(list) > 0 {
 			var err error
 			ch, err = dis(req.in, list, req.msg, req.l2r)
@@ -147,7 +149,7 @@ func (this *Broker) run() {
 		}
 
 		if req.in != nil {
-			ctrl := FrameCoders.Trace
+			ctrl := espnet.FrameCoders.Trace
 			p := req.msg.ToPackage()
 			if ctrl.Has(p) {
 				info := fmt.Sprintf("%s -> %s", this, ch)
@@ -184,35 +186,35 @@ func (this *Broker) WaitClose() {
 	this.right.WaitClosed()
 }
 
-func (this *Broker) AddLeft(ch Channel, link bool) {
+func (this *Broker) AddLeft(ch espnet.Channel, link bool) {
 	if this.left.Add(ch) {
 		if link {
-			ch.SetMessageListner(func(msg *Message) error {
+			ch.SetMessageListner(func(msg *espnet.Message) error {
 				return this.LeftSendMessage(ch, msg)
 			})
 		}
 	}
 }
 
-func (this *Broker) RemoveLeft(ch Channel) {
+func (this *Broker) RemoveLeft(ch espnet.Channel) {
 	this.left.Remove(ch)
 }
 
-func (this *Broker) AddRight(ch Channel, link bool) {
+func (this *Broker) AddRight(ch espnet.Channel, link bool) {
 	if this.right.Add(ch) {
 		if link {
-			ch.SetMessageListner(func(msg *Message) error {
+			ch.SetMessageListner(func(msg *espnet.Message) error {
 				return this.RightSendMessage(ch, msg)
 			})
 		}
 	}
 }
 
-func (this *Broker) RemoveRight(ch Channel) {
+func (this *Broker) RemoveRight(ch espnet.Channel) {
 	this.right.Remove(ch)
 }
 
-func (this *Broker) LeftSendMessage(ch Channel, msg *Message) (r error) {
+func (this *Broker) LeftSendMessage(ch espnet.Channel, msg *espnet.Message) (r error) {
 	if this.left.IsClosing() {
 		return errors.New("closed")
 	}
@@ -225,7 +227,7 @@ func (this *Broker) LeftSendMessage(ch Channel, msg *Message) (r error) {
 	return nil
 }
 
-func (this *Broker) RightSendMessage(ch Channel, msg *Message) (r error) {
+func (this *Broker) RightSendMessage(ch espnet.Channel, msg *espnet.Message) (r error) {
 	if this.left.IsClosing() {
 		return errors.New("closed")
 	}

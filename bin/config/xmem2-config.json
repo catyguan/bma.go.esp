@@ -6,12 +6,12 @@
 	"sqliteServer" : {
 		"Database" : {
 			"local" : {
-				"Dsn" : "${CWD}/local.db"
+				"Dsn" : "${CWD}/local2.db"
 			}
 		}
 	},	
 	"telnetServer" : {
-		"Port" : "1080",
+		"Port" : "1081",
 		"BlackIp" : "168.0.0.1, 12.0.0.2",
 		"WhiteIp" : "127.0.0.1"
 	},
@@ -19,6 +19,6 @@
 		"SafeMode" : true
 	},
 	"managePoint" : {
-		"Port" : "8080"
+		"Port" : "8081"
 	}
 }

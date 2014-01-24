@@ -1,16 +1,17 @@
-package xmem
+package xmemservice
 
 import (
 	"boot"
 	"bytes"
 	"encoding/binary"
 	"esp/sqlite"
+	"esp/xmem/xmemprot"
 	"fmt"
 	"io/ioutil"
 	"testing"
 )
 
-func listener(elist []*XMemEvent) {
+func listener(elist []*xmemprot.XMemEvent) {
 	fmt.Println("EVENT ------")
 	for _, ev := range elist {
 		fmt.Println("\t", ev.Action, ev.GroupName, ev.Key, ev.Value, ev.Version)
@@ -19,22 +20,22 @@ func listener(elist []*XMemEvent) {
 
 func TestLocalMemGroup(t *testing.T) {
 	mg := newLocalMemGroup("test")
-	mg.AddListener(MemKey{}, "test", listener)
+	mg.AddListener(xmemprot.MemKey{}, "test", listener)
 
-	key := MemKey{"a", "b", "c"}
+	key := xmemprot.MemKey{"a", "b", "c"}
 	fmt.Println(mg.Get(key))
-	mg.Set(MemKey{"a"}, nil, 0)
+	mg.Set(xmemprot.MemKey{"a"}, nil, 0)
 	mg.Set(key, 123, 4)
-	mg.Set(MemKey{"a", "b", "d"}, 234, 4)
-	mg.Set(MemKey{"a", "e"}, 345, 4)
+	mg.Set(xmemprot.MemKey{"a", "b", "d"}, 234, 4)
+	mg.Set(xmemprot.MemKey{"a", "e"}, 345, 4)
 
 	fmt.Println(mg.Get(key))
 
 	fmt.Println("----AfterSet----")
 	fmt.Print(mg.Dump())
 
-	mg.Delete(MemKey{"a", "b"})
-	mg.Delete(MemKey{"a", "f"})
+	mg.Delete(xmemprot.MemKey{"a", "b"})
+	mg.Delete(xmemprot.MemKey{"a", "f"})
 	fmt.Println("----AfterDelete----")
 	fmt.Print(mg.Dump())
 }
@@ -42,15 +43,15 @@ func TestLocalMemGroup(t *testing.T) {
 func TestWalk(t *testing.T) {
 	mg := newLocalMemGroup("test")
 
-	mg.Set(MemKey{"a"}, nil, 0)
-	mg.Set(MemKey{"a", "b", "c"}, 123, 4)
-	mg.Set(MemKey{"a", "b", "d"}, 234, 4)
-	mg.Set(MemKey{"a", "e"}, 345, 4)
+	mg.Set(xmemprot.MemKey{"a"}, nil, 0)
+	mg.Set(xmemprot.MemKey{"a", "b", "c"}, 123, 4)
+	mg.Set(xmemprot.MemKey{"a", "b", "d"}, 234, 4)
+	mg.Set(xmemprot.MemKey{"a", "e"}, 345, 4)
 
 	fmt.Println("----Dump----")
 	fmt.Print(mg.Dump())
 
-	mg.Walk(MemKey{}, func(key MemKey, val interface{}, ver MemVer) WalkStep {
+	mg.Walk(xmemprot.MemKey{}, func(key xmemprot.MemKey, val interface{}, ver xmemprot.MemVer) WalkStep {
 		fmt.Println(key, val, ver)
 		k, _ := key.At(-1)
 		if k == "b" {
@@ -93,24 +94,28 @@ func TestSnapshot(t *testing.T) {
 
 	mg := newLocalMemGroup("test")
 
-	mg.Set(MemKey{"a"}, nil, 0)
-	mg.Set(MemKey{"a", "b", "c"}, 123, 4)
-	mg.Set(MemKey{"a", "b", "d"}, 234, 4)
-	mg.Set(MemKey{"a", "e"}, 345, 4)
+	mg.Set(xmemprot.MemKey{"a"}, nil, 0)
+	mg.Set(xmemprot.MemKey{"a", "b", "c"}, 123, 4)
+	mg.Set(xmemprot.MemKey{"a", "b", "d"}, 234, 4)
+	mg.Set(xmemprot.MemKey{"a", "e"}, 345, 4)
 
 	fmt.Println("----Dump----")
 	fmt.Print(mg.Dump())
 
-	slist, _ := mg.Snapshot(c)
+	gss, _ := mg.Snapshot(c)
 	fmt.Println("----Snapshot----")
-	for _, ss := range slist {
+	for _, ss := range gss.Snapshots {
 		fmt.Println(ss)
 	}
+	bs, _ := gss.Encode()
+
+	gss2 := new(XMemGroupSnapshot)
+	gss2.Decode(bs)
 
 	mg2 := newLocalMemGroup("test2")
-	mg2.AddListener(MemKey{}, "test", listener)
+	mg2.AddListener(xmemprot.MemKey{}, "test", listener)
 
-	mg2.BuildFromSnapshot(c, slist)
+	mg2.BuildFromSnapshot(c, gss2)
 	fmt.Println("----Dump2----")
 	fmt.Print(mg2.Dump())
 }
@@ -130,10 +135,10 @@ func TestSaveLoad(t *testing.T) {
 	f1 := func() {
 		mg := newLocalMemGroup("test")
 
-		mg.Set(MemKey{"a"}, nil, 0)
-		mg.Set(MemKey{"a", "b", "c"}, 123, 4)
-		mg.Set(MemKey{"a", "b", "d"}, 234, 4)
-		mg.Set(MemKey{"a", "e"}, 345, 4)
+		mg.Set(xmemprot.MemKey{"a"}, nil, 0)
+		mg.Set(xmemprot.MemKey{"a", "b", "c"}, 123, 4)
+		mg.Set(xmemprot.MemKey{"a", "b", "d"}, 234, 4)
+		mg.Set(xmemprot.MemKey{"a", "e"}, 345, 4)
 
 		fmt.Println("----Dump----")
 		fmt.Print(mg.Dump())
