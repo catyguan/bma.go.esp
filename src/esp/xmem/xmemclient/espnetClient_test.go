@@ -27,7 +27,7 @@ func TestSet4Client(t *testing.T) {
 func TestGet4Client(t *testing.T) {
 	cl := espnet.NewChannelClient()
 	cfg := new(espnet.DialConfig)
-	cfg.Address = "127.0.0.1:8080"
+	cfg.Address = "127.0.0.1:8081"
 	err := cl.Dial("test", cfg, "espnet")
 	if err != nil {
 		t.Error(err)
@@ -37,7 +37,7 @@ func TestGet4Client(t *testing.T) {
 	defer fmt.Println("end")
 
 	xm := NewClient(cl, espnet.NewAddress("xmem"), "test")
-	fmt.Println(xm.Get(xmemprot.MemKey{"a", "e"}))
+	fmt.Println(xm.Get(xmemprot.MemKey{"a", "c"}))
 }
 
 func TestList4Client(t *testing.T) {

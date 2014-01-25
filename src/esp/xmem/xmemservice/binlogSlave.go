@@ -9,7 +9,6 @@ import (
 	"esp/xmem/xmemprot"
 	"fmt"
 	"logger"
-	"time"
 	"uprop"
 )
 
@@ -96,16 +95,10 @@ func (this *BLSlave) Run() bool {
 	if this.config == nil || this.config.Valid() != nil {
 		panic("BLSlave config invalid")
 	}
-	dcfg := new(espnet.DialPoolConfig)
-	dcfg.Dial.Address = this.config.Address
-	dcfg.Dial.TimeoutMS = this.config.TimeoutMS
-	dcfg.MaxSize = 1
-	dcfg.InitSize = 1
-	err := dcfg.Valid()
-	if err != nil {
-		panic("init DialPoolConfig error " + err.Error())
-	}
-	this.dial = espnet.NewDialPool(this.name+"_blslave", dcfg, this.OnSocketInit)
+	dcfg := new(espnet.DialPersistentConfig)
+	dcfg.Address = this.config.Address
+	dcfg.TimeoutMS = this.config.TimeoutMS
+	this.dial, _ = espnet.NewDialPersistent(this.name+"_blslave", dcfg, this.OnSocketAccept)
 	if !boot.RuntimeStartRun(this.dial) {
 		boot.RuntimeStopCloseClean(this.dial, false)
 		this.dial = nil
@@ -113,35 +106,9 @@ func (this *BLSlave) Run() bool {
 	return true
 }
 
-func (this *BLSlave) OnSocketInit(sock *socket.Socket) error {
-	go this.doConnectMaster()
-	return nil
-}
-
-func (this *BLSlave) doConnectMaster() {
-	if this.client != nil {
-		this.client.Close()
-		this.client = nil
-	}
-	sock, err := this.dial.GetSocket(time.Duration(this.config.TimeoutMS)*time.Millisecond, true)
-	if err != nil {
-		logger.Warn(tag, "BLSlave(%s) get socket fail - %s", this.name, err)
-		return
-	}
-
-	ch := espnet.NewSocketChannel(sock, "espnet")
-	cl := new(espnet.ChannelClient)
-	err = cl.Connect(ch, true)
-	if err != nil {
-		logger.Warn(tag, "ChannelClient connect channel fail - %s", err)
-		return
-	}
-	this.client = cl
-
-	cl.SetMessageListner(this.OnMessage)
-
+func (this *BLSlave) OnSocketAccept(sock *socket.Socket) error {
 	var ver binlog.BinlogVer
-	err = this.service.executor.DoSync("getSlaveVer", func() error {
+	err := this.service.executor.DoSync("getSlaveVer", func() error {
 		si, err := this.service.doGetGroup(this.name)
 		if err != nil {
 			return err
@@ -151,8 +118,23 @@ func (this *BLSlave) doConnectMaster() {
 	})
 	if err != nil {
 		logger.Warn(tag, "BLSlave(%s) get blversion fail and stop - %s", this.name, err)
-		return
+		return err
 	}
+
+	if this.client != nil {
+		this.client.Close()
+		this.client = nil
+	}
+	ch := espnet.NewSocketChannel(sock, "espnet")
+	cl := new(espnet.ChannelClient)
+	err = cl.Connect(ch, true)
+	if err != nil {
+		logger.Warn(tag, "ChannelClient connect channel fail - %s", err)
+		return err
+	}
+	this.client = cl
+
+	cl.SetMessageListner(this.OnMessage)
 
 	msg := espnet.NewMessage()
 	msg.SetAddress(espnet.NewAddress(this.config.SerivceName))
@@ -165,6 +147,7 @@ func (this *BLSlave) doConnectMaster() {
 	if err != nil {
 		cl.Close()
 	}
+	return nil
 }
 
 func (this *BLSlave) OnMessage(msg *espnet.Message) error {
