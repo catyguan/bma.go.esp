@@ -91,6 +91,7 @@ func (this *Proxy) OutgoSendMessage(msg *espnet.Message) error {
 			this.outgoStatus = OGS_IDLE
 			och := this.outgo
 			this.outgo = nil
+			och.SetMessageListner(nil)
 			och.AskClose()
 		} else {
 			this.outgoStatus = OGS_REP_ING
@@ -126,18 +127,6 @@ func (this *Proxy) OnMainClose() {
 	och := this.outgo
 	this.outgo = nil
 	this.doClose(och, true)
-}
-
-func (this *Proxy) OutgoClose() {
-	och := this.outgo
-	this.outgo = nil
-	if och != nil {
-		och.SetMessageListner(nil)
-	}
-
-	mch := this.main
-	this.main = nil
-	this.doClose(mch, false)
 }
 
 func (this *Proxy) Kill() error {
