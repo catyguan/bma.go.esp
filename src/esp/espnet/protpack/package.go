@@ -3,7 +3,6 @@ package protpack
 import (
 	"bmautil/byteutil"
 	"bytes"
-	"errors"
 	"fmt"
 )
 
@@ -173,7 +172,6 @@ func (this *Package) ToBytesBuffer() (*byteutil.BytesBuffer, error) {
 
 // PackageReader
 type PackageReader struct {
-	readedSize int
 	buffer     *byteutil.BytesBuffer
 
 	hbyte []byte
@@ -199,26 +197,13 @@ func (this *PackageReader) String() string {
 	if this.frame != nil {
 		buf.WriteString("F")
 	}
-	buf.WriteString(fmt.Sprintf("%d/%d", this.readedSize, this.buffer.DataSize()))
+	buf.WriteString(fmt.Sprintf("%d", this.buffer.DataSize()))
 	buf.WriteString("]")
 	return buf.String()
 }
 
 func (this *PackageReader) Append(b []byte) {
 	this.buffer.Add(b)
-}
-
-func (this *PackageReader) checkSize(r int, mp int) error {
-	if mp <= 0 {
-		return nil
-	}
-	if r < 0 {
-		return errors.New(fmt.Sprintf("maxframe[%d] invalid - %d", mp, r))
-	}
-	if this.readedSize+r > mp {
-		return errors.New(fmt.Sprintf("maxframe[%d] limit - %d", mp, this.readedSize+r))
-	}
-	return nil
 }
 
 func (this *PackageReader) ReadPackage(mp int) (*Package, error) {
@@ -228,37 +213,29 @@ func (this *PackageReader) ReadPackage(mp int) (*Package, error) {
 	for {
 		if this.frame == nil {
 			// read frame header
-			if err := this.checkSize(size_FHEADER, mp); err != nil {
-				return nil, err
-			}
 			if !this.buffer.CheckAndPop(this.hbyte, size_FHEADER) {
 				return nil, nil
 			}
-			this.readedSize += size_FHEADER
-
 			this.fheader.Read(this.hbyte, 0)
+			if mp>0 && this.fheader.Size>uint32(mp) {
+				return nil,fmt.Errorf("maxframe %d/%d", this.fheader.Size, mp)
+			}
 			this.frame = newFrameH(this.fheader)
 		}
 
 		// read frame body
 		done := false
 		remain := int(this.fheader.Size) - this.frame.data.DataSize()
-		if err := this.checkSize(remain, mp); err != nil {
-			return nil, err
-		}
 		if remain == 0 {
 			done = true
 		} else {
-			var rd int
-			rd, done = this.buffer.PopTo(this.frame.data, remain)
-			this.readedSize += rd
+			_, done = this.buffer.PopTo(this.frame.data, remain)
 		}
 		if done {
 			if this.frame.MessageType() == MT_END {
 				this.frame = nil
 				p := this.pack
 				this.pack = nil
-				this.readedSize = 0
 				return p, nil
 			}
 			this.pack.PushBack(this.frame)

@@ -12,7 +12,7 @@ type ChannelCoder4Espnet struct {
 }
 
 func (this *ChannelCoder4Espnet) Init() {
-	this.maxframe = 1024 * 1024
+	this.maxframe = 0xFFFFFF
 	this.reader = protpack.NewPackageReader()
 }
 

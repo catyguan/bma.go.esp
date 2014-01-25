@@ -74,7 +74,7 @@ func TestMix(t *testing.T) {
 	}
 	r, _ := bl.NewReader()
 
-	seq := BinlogVer(1389524665278066109)
+	seq := BinlogVer(1390639648191602509)
 	if true {
 		r.SeekAndListen(seq, lis)
 	} else {
