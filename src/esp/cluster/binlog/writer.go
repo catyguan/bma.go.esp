@@ -1,14 +1,21 @@
 package binlog
 
-import "logger"
+import (
+	"esp/cluster/clusterbase"
+	"fmt"
+	"logger"
+)
 
 type Writer struct {
 	service *Service
 }
 
-func (this *Writer) Write(bs []byte) bool {
+func (this *Writer) Write(ver clusterbase.OpVer, bs []byte) bool {
 	err := this.service.executor.DoNow("write", func() error {
-		this.service.doWrite(bs)
+		if ver <= this.service.lastver {
+			return fmt.Errorf("invalid ver %d (lastver=%d)", ver, this.service.lastver)
+		}
+		this.service.doWrite(ver, bs)
 		return nil
 	})
 	if err != nil {
@@ -18,20 +25,10 @@ func (this *Writer) Write(bs []byte) bool {
 	return true
 }
 
-func (this *Writer) WriteRetVer(bs []byte) (BinlogVer, error) {
-	rv := BinlogVer(0)
-	err := this.service.executor.DoSync("write", func() error {
-		this.service.doWrite(bs)
-		rv = this.service.seq
-		return nil
-	})
-	return rv, err
-}
-
-func (this *Writer) GerVersion() (BinlogVer, error) {
-	rv := BinlogVer(0)
+func (this *Writer) GerVersion() (clusterbase.OpVer, error) {
+	rv := clusterbase.OpVer(0)
 	err := this.service.executor.DoSync("getver", func() error {
-		rv = this.service.seq
+		rv = this.service.lastver
 		return nil
 	})
 	return rv, err

@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	tag       = "nodeid"
-	tableName = "tbl_nodeid"
+	tag   = "nodeid"
+	rtKey = ".nodeid"
 )
 
 type NodeId uint64
@@ -92,12 +92,12 @@ func (this *Service) Save() error {
 }
 
 func (this *Service) initDatabase() {
-	this.database.InitRuntmeConfigTable(tableName, []int{1})
+	this.database.InitRuntmeConfigTable()
 }
 
 func (this *Service) loadRuntimeConfig() bool {
 	var cfg configInfo
-	err := this.database.LoadRuntimeConfig(tableName, 1, &cfg)
+	err := this.database.LoadRuntimeConfig(this.name+rtKey, &cfg)
 	if err != nil {
 		logger.Error(tag, "loadRuntimeConfig fail - %s", err)
 		return false
@@ -109,7 +109,7 @@ func (this *Service) loadRuntimeConfig() bool {
 func (this *Service) storeRuntimeConfig() error {
 	cfg := new(configInfo)
 	cfg.NodeId = this.nodeId
-	return this.database.StoreRuntimeConfig(tableName, 1, cfg)
+	return this.database.StoreRuntimeConfig(this.name+rtKey, cfg)
 }
 
 func (this *Service) GetId() uint64 {

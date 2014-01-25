@@ -3,6 +3,7 @@ package binlog
 import (
 	"encoding/binary"
 	"errors"
+	"esp/cluster/clusterbase"
 	"io"
 	"logger"
 	"os"
@@ -14,7 +15,7 @@ type Reader struct {
 	listener     Listener
 	attachWriter bool
 
-	lastseq BinlogVer
+	lastver clusterbase.OpVer
 	rbuffer []byte
 	readed  int
 	data    []byte
@@ -46,13 +47,13 @@ func (this *Reader) doReadHead() (bool, error) {
 	return true, nil
 }
 
-func (this *Reader) header() (BinlogVer, int) {
+func (this *Reader) header() (clusterbase.OpVer, int) {
 	tm := binary.BigEndian.Uint64(this.rbuffer)
 	l := binary.BigEndian.Uint32(this.rbuffer[8:])
-	return BinlogVer(tm), int(l)
+	return clusterbase.OpVer(tm), int(l)
 }
 
-func (this *Reader) doRead() (BinlogVer, []byte, error) {
+func (this *Reader) doRead() (clusterbase.OpVer, []byte, error) {
 	ok, err := this.doReadHead()
 	if !ok {
 		return 0, nil, err
@@ -76,22 +77,22 @@ func (this *Reader) doRead() (BinlogVer, []byte, error) {
 	return tm, data, nil
 }
 
-func (this *Reader) Read() (BinlogVer, []byte, error) {
-	var seq BinlogVer
+func (this *Reader) Read() (clusterbase.OpVer, []byte, error) {
+	var ver clusterbase.OpVer
 	var data []byte
 	err := this.service.executor.DoSync("read", func() error {
 		var err error
-		seq, data, err = this.doRead()
+		ver, data, err = this.doRead()
 		return err
 	})
-	return seq, data, err
+	return ver, data, err
 }
 
 func (this *Reader) Reset() {
 	this.rfd.Seek(0, os.SEEK_SET)
 }
 
-func (this *Reader) Seek(seq BinlogVer) (bool, error) {
+func (this *Reader) Seek(ver clusterbase.OpVer) (bool, error) {
 	for {
 		ok, err := this.doReadHead()
 		if !ok {
@@ -104,18 +105,18 @@ func (this *Reader) Seek(seq BinlogVer) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		if tm > seq {
+		if tm > ver {
 			return false, nil
 		}
 		this.readed = 0
 		_, err = this.rfd.Seek(int64(l), os.SEEK_CUR)
-		if tm == seq {
+		if tm == ver {
 			return true, nil
 		}
 	}
 }
 
-type Listener func(seq BinlogVer, data []byte, closed bool)
+type Listener func(ver clusterbase.OpVer, data []byte, closed bool)
 
 func (this *Reader) SetListener(lis Listener) bool {
 	if this.listener != nil {
@@ -145,22 +146,22 @@ func (this *Reader) doPeek() {
 	if this.attachWriter {
 		return
 	}
-	seq, data, err := this.doRead()
+	ver, data, err := this.doRead()
 	if err != nil {
 		logger.Debug(tag, "peek read error - %s", err)
 		return
 	}
 	if data == nil {
 		this.attachWriter = true
-		this.lastseq = this.service.seq
+		this.lastver = this.service.lastver
 		return
 	}
-	this.listener(seq, data, false)
+	this.listener(ver, data, false)
 	go this.Peek()
 }
 
-func (this *Reader) SeekAndListen(seq BinlogVer, lis Listener) bool {
-	_, err := this.Seek(seq)
+func (this *Reader) SeekAndListen(ver clusterbase.OpVer, lis Listener) bool {
+	_, err := this.Seek(ver)
 	if err != nil {
 		return false
 	}

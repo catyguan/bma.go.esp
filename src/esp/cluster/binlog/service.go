@@ -1,42 +1,17 @@
 package binlog
 
 import (
-	"bmautil/byteutil"
 	"bmautil/qexec"
 	"encoding/binary"
+	"esp/cluster/clusterbase"
 	"logger"
 	"os"
-	"time"
 )
 
 const (
 	tag        = "binlog"
 	headerSize = 8 + 4
 )
-
-type BinlogVer int64
-
-type BinlogVerCoder int
-
-func (this BinlogVerCoder) DoEncode(w *byteutil.BytesBufferWriter, v BinlogVer) {
-	binary.Write(w, binary.BigEndian, int64(v))
-}
-
-func (this BinlogVerCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
-	this.DoEncode(w, v.(BinlogVer))
-	return nil
-}
-
-func (this BinlogVerCoder) DoDecode(r *byteutil.BytesBufferReader) (BinlogVer, error) {
-	var v BinlogVer
-	err := binary.Read(r, binary.BigEndian, &v)
-	return BinlogVer(v), err
-}
-
-func (this BinlogVerCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
-	v, err := this.DoDecode(r)
-	return v, err
-}
 
 // Service
 type Service struct {
@@ -45,7 +20,7 @@ type Service struct {
 	executor *qexec.QueueExecutor
 
 	wfd     *os.File
-	seq     BinlogVer
+	lastver clusterbase.OpVer
 	opc     int
 	wbuffer []byte
 	readers map[*Reader]bool
@@ -55,7 +30,6 @@ func NewBinLog(n string, bufsize int, cfg *BinlogConfig) *Service {
 	this := new(Service)
 	this.name = n
 	this.config = cfg
-	this.seq = BinlogVer(time.Now().UnixNano())
 	this.executor = qexec.NewQueueExecutor(n, bufsize, this.requestHandler)
 	this.executor.StopHandler = this.stopHandler
 	this.wbuffer = make([]byte, headerSize)
@@ -147,16 +121,19 @@ func (this *Service) doCloseReader(rd *Reader) {
 	}
 }
 
-func (this *Service) doWrite(bs []byte) {
+func (this *Service) doWrite(ver clusterbase.OpVer, bs []byte) {
 	if this.wfd == nil {
 		logger.Debug(tag, "'%s' binlog closed when write", this.name)
 		return
 	}
-	old := this.seq
-	this.seq++
-	len := uint32(len(bs))
-	binary.BigEndian.PutUint64(this.wbuffer, uint64(this.seq))
-	binary.BigEndian.PutUint32(this.wbuffer[8:], len)
+	if ver <= this.lastver {
+		return
+	}
+	old := this.lastver
+	this.lastver = ver
+	l := uint32(len(bs))
+	binary.BigEndian.PutUint64(this.wbuffer, uint64(ver))
+	binary.BigEndian.PutUint32(this.wbuffer[8:], l)
 	_, err := this.wfd.Write(this.wbuffer)
 	if err != nil {
 		logger.Warn(tag, "'%s' write '%s' fail - %s", this.name, this.config.FileName, err)
@@ -177,9 +154,9 @@ func (this *Service) doWrite(bs []byte) {
 
 	// push to waiting reader
 	for rd, _ := range this.readers {
-		if rd.listener != nil && rd.lastseq == old {
-			rd.listener(this.seq, bs, false)
-			rd.lastseq = this.seq
+		if rd.listener != nil && rd.lastver == old {
+			rd.listener(ver, bs, false)
+			rd.lastver = ver
 		}
 	}
 }
