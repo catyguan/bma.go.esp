@@ -1,84 +1,110 @@
 package espnet
 
-import "bytes"
+import (
+	"bytes"
+	"esp/espnet/protpack"
+	"fmt"
+	"sort"
+)
 
-type Address []string
+const (
+	ADDRESS_GROUP   = int(50)
+	ADDRESS_HOST    = int(40)
+	ADDRESS_SERVICE = int(30)
+	ADDRESS_OP      = int(20)
+	ADDRESS_OBJECT  = int(10)
+)
 
-func NewAddress(s string) Address {
-	return Address([]string{s})
+type Address struct {
+	pack       *protpack.Package
+	coder      addrCoder
+	annotation map[int]string
 }
 
-func NewAddressN(s ...string) Address {
-	return Address(s)
+func NewAddress() *Address {
+	this := new(Address)
+	return this
 }
 
-func (this Address) Size() int {
-	return len(this)
+func NewAddressP(pack *protpack.Package, mt byte) *Address {
+	this := new(Address)
+	this.pack = pack
+	this.coder = addrCoder(mt)
+	return this
 }
 
-func (this Address) Identity() string {
-	if len(this) > 0 {
-		return this[0]
+func (this *Address) Annotations() []int {
+	if this.pack != nil {
+		return this.coder.List(this.pack)
+	}
+	r := make([]int, 0, len(this.annotation))
+	if this.annotation != nil {
+		for v, _ := range this.annotation {
+			r = append(r, v)
+		}
+	}
+	return r
+}
+
+func (this *Address) Get(ann int) string {
+	if this.pack != nil {
+		v, err := this.coder.Get(this.pack, ann)
+		if err != nil {
+			return v
+		}
+	} else {
+		if this.annotation != nil {
+			v, ok := this.annotation[ann]
+			if ok {
+				return v
+			}
+		}
 	}
 	return ""
 }
 
-func (this Address) ListIdentity() []string {
-	c := len(this)
-	r := make([]string, c)
-	copy(r, this)
-	return r
+func (this *Address) Set(ann int, val string) {
+	if this.pack != nil {
+		this.coder.Set(this.pack, ann, val)
+	} else {
+		if this.annotation != nil {
+			this.annotation = make(map[int]string)
+		}
+		this.annotation[ann] = val
+	}
 }
 
-func (this Address) String() string {
+func (this *Address) Remove(ann int) {
+	if this.pack != nil {
+		this.coder.Remove(this.pack, ann)
+	} else {
+		if this.annotation != nil {
+			delete(this.annotation, ann)
+		}
+	}
+}
+
+func (this *Address) Bind(pack *protpack.Package, mt byte) {
+	coder := addrCoder(mt)
+	coder.Clear(this.pack)
+	for ann, v := range this.annotation {
+		coder.Set(this.pack, ann, v)
+	}
+}
+
+func (this *Address) String() string {
+	anns := this.Annotations()
+	sort.Sort(sort.IntSlice(anns))
+
 	buf := bytes.NewBuffer(make([]byte, 0))
 	buf.WriteString("Address[")
-	for i, s := range this {
+	for i, ann := range anns {
+		v := this.Get(ann)
 		if i > 0 {
 			buf.WriteString(",")
 		}
-		buf.WriteString(s)
+		buf.WriteString(fmt.Sprintf("%d=%s", ann, v))
 	}
 	buf.WriteString("]")
 	return buf.String()
-}
-
-func (this Address) Add(a string) Address {
-	r := append(this, a)
-	return Address(r)
-}
-
-func (this Address) AddUnique(a string) Address {
-	for _, s := range this {
-		if a == s {
-			return this
-		}
-	}
-	return this.Add(a)
-}
-
-func (this Address) AddAll(a []string) Address {
-	r := make(Address, len(this)+len(a))
-	copy(r, this)
-	copy(r[len(this):], a)
-	return r
-}
-
-func (this Address) AddAllUnique(a []string) Address {
-	m := make(map[string]bool)
-	for _, s := range this {
-		m[s] = true
-	}
-	for _, s := range a {
-		m[s] = true
-	}
-	r := make(Address, 0, len(m))
-	for s, _ := range m {
-		r = append(r, s)
-	}
-	return r
-}
-
-func (this Address) Append(a Address) Address {
-	return this.AddAllUnique([]string(a))
 }
