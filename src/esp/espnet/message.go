@@ -202,20 +202,26 @@ func (this *Message) Dump() string {
 	return buf.String()
 }
 
-func (this *Message) GetAddress() Address {
-	return FrameCoders.Address.Get(this.pack)
+func (this *Message) GetAddress() *Address {
+	return NewAddressP(this.pack, byte(FrameCoders.Address))
 }
 
-func (this *Message) SetAddress(addr Address) {
-	FrameCoders.Address.Set(this.pack, addr)
+func (this *Message) SetAddress(addr *Address) {
+	if addr.pack != nil && addr.pack == this.pack {
+		return
+	}
+	addr.Bind(this.pack, byte(FrameCoders.Address))
 }
 
-func (this *Message) GetSourceAddress() Address {
-	return FrameCoders.SourceAddress.Get(this.pack)
+func (this *Message) GetSourceAddress() *Address {
+	return NewAddressP(this.pack, byte(FrameCoders.SourceAddress))
 }
 
-func (this *Message) SetSourceAddress(addr Address) {
-	FrameCoders.SourceAddress.Set(this.pack, addr)
+func (this *Message) SetSourceAddress(addr *Address) {
+	if addr.pack != nil && addr.pack == this.pack {
+		return
+	}
+	addr.Bind(this.pack, byte(FrameCoders.SourceAddress))
 }
 
 func (this *Message) GetKind() MessageKind {

@@ -30,14 +30,12 @@ func NewServiceMux(wlock sync.Locker, rlock sync.Locker) *ServiceMux {
 	return this
 }
 
-func (this *ServiceMux) AddHandler(a Address, h ServiceHandler) {
+func (this *ServiceMux) AddHandler(addr string, h ServiceHandler) {
 	if this.wlock != nil {
 		this.wlock.Lock()
 		defer this.wlock.Unlock()
 	}
-	for _, s := range a {
-		this.handlers[s] = h
-	}
+	this.handlers[addr] = h
 }
 
 func (this *ServiceMux) AddMatcher(m ServiceMuxMatch, h ServiceHandler) {
