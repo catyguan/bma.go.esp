@@ -138,19 +138,19 @@ func (O mt_xdata) Remove(p *protpack.Package, xid int) {
 	})
 }
 
-func (O mt_xdata) Iterator(p *protpack.Package) *mtXDataIterator {
-	r := new(mtXDataIterator)
+func (O mt_xdata) Iterator(p *protpack.Package) *XDataIterator {
+	r := new(XDataIterator)
 	r.frame = p.Front()
 	r.mt = O
 	return r
 }
 
-type mtXDataIterator struct {
+type XDataIterator struct {
 	frame *protpack.Frame
 	mt    mt_xdata
 }
 
-func (this *mtXDataIterator) moveFirst() {
+func (this *XDataIterator) moveFirst() {
 	for {
 		if this.frame == nil {
 			return
@@ -162,14 +162,14 @@ func (this *mtXDataIterator) moveFirst() {
 	}
 }
 
-func (this *mtXDataIterator) IsEnd() bool {
+func (this *XDataIterator) IsEnd() bool {
 	if this.frame == nil {
 		return true
 	}
 	return false
 }
 
-func (this *mtXDataIterator) Next() {
+func (this *XDataIterator) Next() {
 	if this.IsEnd() {
 		return
 	}
@@ -184,7 +184,7 @@ func (this *mtXDataIterator) Next() {
 	}
 }
 
-func (this *mtXDataIterator) Xid() int {
+func (this *XDataIterator) Xid() int {
 	if this.frame == nil {
 		return 0
 	}
@@ -195,7 +195,7 @@ func (this *mtXDataIterator) Xid() int {
 	return xid
 }
 
-func (this *mtXDataIterator) Value(dec protpack.Decoder) (interface{}, error) {
+func (this *XDataIterator) Value(dec protpack.Decoder) (interface{}, error) {
 	if this.frame == nil {
 		return nil, errors.New("end")
 	}
@@ -212,6 +212,6 @@ func (this *MessageXData) Add(xid int, value interface{}, enc protpack.Encoder) 
 	this.coder.Add(this.msg.ToPackage(), xid, value, enc)
 }
 
-func (this *MessageXData) Iterator() *mtXDataIterator {
+func (this *MessageXData) Iterator() *XDataIterator {
 	return this.coder.Iterator(this.msg.ToPackage())
 }

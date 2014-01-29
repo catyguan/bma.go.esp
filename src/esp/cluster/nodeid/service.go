@@ -1,6 +1,8 @@
 package nodeid
 
 import (
+	"bmautil/byteutil"
+	"bmautil/coder"
 	"config"
 	"esp/sqlite"
 	"logger"
@@ -14,6 +16,29 @@ const (
 )
 
 type NodeId uint64
+
+const (
+	INVALID = NodeId(0)
+)
+
+var (
+	Coder = mycoder(0)
+)
+
+type mycoder int
+
+func (O mycoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
+	coder.Uint64.DoEncode(w, uint64(v.(NodeId)))
+	return nil
+}
+
+func (O mycoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
+	v, err := coder.Uint64.DoDecode(r)
+	if err != nil {
+		return nil, err
+	}
+	return NodeId(v), nil
+}
 
 type Listener func(nodeId uint64)
 

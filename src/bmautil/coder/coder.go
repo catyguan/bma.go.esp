@@ -643,7 +643,7 @@ var (
 	Int32     int32Coder
 	Int64     int64Coder
 	Uint      uintCoder
-	Uint18    uint8Coder
+	Uint8     uint8Coder
 	Uint16    uint16Coder
 	Uint32    uint32Coder
 	Uint64    uint64Coder

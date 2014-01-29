@@ -61,13 +61,12 @@ func (this *ServiceMux) Match(msg *Message) ServiceHandler {
 	}
 	a := msg.GetAddress()
 	if a != nil {
-		for _, s := range a {
-			if h, ok := this.handlers[s]; ok {
-				if logger.EnableDebug(tag) {
-					logger.Debug(tag, "%s hit :-> %p", s, h)
-				}
-				return h
+		s := a.Get(ADDRESS_OP)
+		if h, ok := this.handlers[s]; ok {
+			if logger.EnableDebug(tag) {
+				logger.Debug(tag, "%s hit :-> %p", s, h)
 			}
+			return h
 		}
 	}
 	return nil

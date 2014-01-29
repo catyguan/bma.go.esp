@@ -241,7 +241,7 @@ func (this *Message) Datas() *MessageValues {
 func (this *Message) XDatas() *MessageXData {
 	return &MessageXData{this, FrameCoders.XData}
 }
-func (this *Message) XDataIterator() *mtXDataIterator {
+func (this *Message) XDataIterator() *XDataIterator {
 	return FrameCoders.XData.Iterator(this.ToPackage())
 }
 func (this *Message) GetPayload() (io.Reader, int) {
