@@ -176,30 +176,21 @@ func (this *Message) dumpValues(buf *bytes.Buffer, vs *MessageValues) {
 	}
 }
 
+func (this *Message) dumpXData(buf *bytes.Buffer, it *XDataIterator) {
+	if it == nil {
+		return
+	}
+	for i := 0; !it.IsEnd(); it.Next() {
+		if i > 0 {
+			buf.WriteString("; ")
+		}
+		i++
+		buf.WriteString(fmt.Sprintf("%d", it.Xid()))
+	}
+}
+
 func (this *Message) Dump() string {
-	buf := bytes.NewBuffer(make([]byte, 0))
-	buf.WriteString("[")
-	if id := this.Id(); id > 0 {
-		buf.WriteString(fmt.Sprintf("%d;", id))
-	}
-	if this.GetAddress() != nil {
-		buf.WriteString(this.GetAddress().String())
-	}
-	if this.GetKind() != MK_UNKNOW {
-		buf.WriteString(",")
-		buf.WriteString(this.GetKind().String())
-	}
-	buf.WriteString("][")
-	this.dumpValues(buf, this.Headers())
-	buf.WriteString("][")
-	this.dumpValues(buf, this.Datas())
-	buf.WriteString("]PL{")
-	bs := this.GetPayloadB()
-	if bs != nil {
-		buf.WriteString(fmt.Sprintf("%d", len(bs)))
-	}
-	buf.WriteString("}")
-	return buf.String()
+	return this.pack.String()
 }
 
 func (this *Message) GetAddress() *Address {
@@ -242,7 +233,9 @@ func (this *Message) XDatas() *MessageXData {
 	return &MessageXData{this, FrameCoders.XData}
 }
 func (this *Message) XDataIterator() *XDataIterator {
-	return FrameCoders.XData.Iterator(this.ToPackage())
+	it := FrameCoders.XData.Iterator(this.ToPackage())
+	it.moveFirst()
+	return it
 }
 func (this *Message) GetPayload() (io.Reader, int) {
 	e := this.pack.FrameByType(MT_PAYLOAD)

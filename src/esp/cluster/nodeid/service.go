@@ -40,14 +40,14 @@ func (O mycoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
 	return NodeId(v), nil
 }
 
-type Listener func(nodeId uint64)
+type Listener func(nodeId NodeId)
 
 type Service struct {
 	name     string
 	database *sqlite.SqliteServer
 
 	lock      sync.Mutex
-	nodeId    uint64
+	nodeId    NodeId
 	listeners map[string]Listener
 }
 
@@ -74,7 +74,7 @@ func (this *Service) Init() bool {
 			logger.Error(tag, "config.NodeId invalid")
 			return false
 		}
-		this.nodeId = cfg.NodeId
+		this.nodeId = NodeId(cfg.NodeId)
 	}
 	return true
 }
@@ -99,7 +99,7 @@ func (this *Service) Start() bool {
 		for i := 0; i < sz; i++ {
 			val += (val * 37) + uint64(str[i])
 		}
-		this.nodeId = val
+		this.nodeId = NodeId(val)
 		if this.nodeId != 0 {
 			err = this.storeRuntimeConfig()
 			if err != nil {
@@ -127,21 +127,23 @@ func (this *Service) loadRuntimeConfig() bool {
 		logger.Error(tag, "loadRuntimeConfig fail - %s", err)
 		return false
 	}
-	this.nodeId = cfg.NodeId
+	if cfg.NodeId > 0 {
+		this.nodeId = NodeId(cfg.NodeId)
+	}
 	return true
 }
 
 func (this *Service) storeRuntimeConfig() error {
 	cfg := new(configInfo)
-	cfg.NodeId = this.nodeId
+	cfg.NodeId = uint64(this.nodeId)
 	return this.database.StoreRuntimeConfig(this.name+rtKey, cfg)
 }
 
-func (this *Service) GetId() uint64 {
+func (this *Service) GetId() NodeId {
 	return this.nodeId
 }
 
-func (this *Service) GetAndListen(id string, lis Listener) uint64 {
+func (this *Service) GetAndListen(id string, lis Listener) NodeId {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	if this.listeners == nil {
@@ -159,8 +161,8 @@ func (this *Service) RemoveListen(id string) {
 	}
 }
 
-func (this *Service) SetId(nid uint64) error {
-	var old uint64
+func (this *Service) SetId(nid NodeId) error {
+	var old NodeId
 	this.lock.Lock()
 	old, this.nodeId = this.nodeId, nid
 	err := this.storeRuntimeConfig()

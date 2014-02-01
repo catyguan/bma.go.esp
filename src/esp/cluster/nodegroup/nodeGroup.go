@@ -1,9 +1,13 @@
 package nodegroup
 
 import (
+	"bmautil/qexec"
+	"esp/cluster/election"
 	"esp/cluster/nodeid"
 	"esp/espnet"
-	"sync"
+	"fmt"
+	"logger"
+	"time"
 )
 
 type Action int
@@ -14,25 +18,68 @@ const (
 	ACTION_UPDATE = Action(3)
 )
 
-type Listener func(action Action, nid nodeid.NodeId, ch espnet.Channel, data interface{})
+// ngSuperior
+type ngSuperior struct {
+	ng *NodeGroup
+}
 
-type ngItem struct {
-	channel espnet.Channel
-	data    interface{}
+func (this *ngSuperior) Name() string {
+	return this.ng.Name()
+}
+
+func (this *ngSuperior) AsyncPostVote(who nodeid.NodeId, vote *election.VoteReq) {
+	this.ng.asyncPostVote(who, vote)
+}
+
+func (this *ngSuperior) AsyncRespVote(who nodeid.NodeId, resp *election.VoteResp) {
+	this.ng.asyncRespVote(who, resp)
+}
+
+func (this *ngSuperior) AsyncPostAnnounce(who nodeid.NodeId, ann *election.AnnounceReq) {
+	this.ng.asyncPostAnnounce(who, ann)
+}
+
+func (this *ngSuperior) AsyncRespAnnounce(who nodeid.NodeId, resp *election.AnnounceResp) {
+	this.ng.asyncRespAnnounce(who, resp)
+}
+
+func (this *ngSuperior) DoStartLead(old nodeid.NodeId) error {
+	return this.ng.doStartLead(old)
+}
+
+func (this *ngSuperior) DoStartFollow(lid nodeid.NodeId) error {
+	return this.ng.doStartFollow(lid)
+}
+
+func (this *ngSuperior) DoStopFollow() error {
+	return this.ng.doStopFollow()
+}
+
+func (this *ngSuperior) OnCandidateInvalid(id nodeid.NodeId) {
+	this.ng.onCandidateInvalid(id)
 }
 
 type NodeGroup struct {
-	name      string
-	lock      sync.RWMutex
-	items     map[nodeid.NodeId]*ngItem
-	listeners map[string]Listener
+	name    string
+	service *Service
+	config  *NodeGroupConfig
+
+	candidate *election.Candidate
+	executor  *qexec.QueueExecutor
+	channels  map[nodeid.NodeId]espnet.Channel
 }
 
-func NewNodeGroup(name string) *NodeGroup {
+func newNodeGroup(name string, s *Service, cfg *NodeGroupConfig) *NodeGroup {
 	this := new(NodeGroup)
 	this.name = name
-	this.items = make(map[nodeid.NodeId]*ngItem)
-	this.listeners = make(map[string]Listener)
+	this.service = s
+	this.config = cfg
+	sp := new(ngSuperior)
+	sp.ng = this
+	this.candidate = election.NewCandidate(s.GetNodeId(), sp)
+	this.executor = qexec.NewQueueExecutor(tag, 128, this.requestHandler)
+	this.executor.StopHandler = this.stopHandler
+	this.channels = make(map[nodeid.NodeId]espnet.Channel)
 	return this
 }
 
@@ -40,121 +87,184 @@ func (this *NodeGroup) Name() string {
 	return this.name
 }
 
-func (this *NodeGroup) doAddListener(n string, lis Listener) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	this.listeners[n] = lis
+func (this *NodeGroup) String() string {
+	return this.candidate.String()
 }
 
-func (this *NodeGroup) AddListener(n string, lis Listener, fireEvent bool) {
-	this.doAddListener(n, lis)
-	if fireEvent {
-		this.lock.RLock()
-		defer this.lock.RUnlock()
-		for nid, item := range this.items {
-			lis(ACTION_JOIN, nid, item.channel, item.data)
-		}
-	}
-}
-
-func (this *NodeGroup) RemoveListener(n string) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	delete(this.listeners, n)
-}
-
-func (this *NodeGroup) doJoin(nid nodeid.NodeId, ch espnet.Channel, data interface{}) bool {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	_, ok := this.items[nid]
-	if ok {
+func (this *NodeGroup) Start() bool {
+	if !this.executor.Run() {
 		return false
 	}
-	item := new(ngItem)
-	item.channel = ch
-	item.data = data
-	this.items[nid] = item
+	this.executor.DoSync("init", func() error {
+		return this.doInit()
+	})
 	return true
 }
 
-func (this *NodeGroup) Join(nid nodeid.NodeId, ch espnet.Channel, data interface{}) bool {
-	if !this.doJoin(nid, ch, data) {
-		return false
-	}
-	this.lock.RLock()
-	defer this.lock.RUnlock()
-	for _, lis := range this.listeners {
-		lis(ACTION_JOIN, nid, ch, data)
-	}
-	return true
-}
-
-func (this *NodeGroup) doLeave(nid nodeid.NodeId) *ngItem {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	old, ok := this.items[nid]
-	if !ok {
-		return nil
-	}
-	delete(this.items, nid)
-	return old
-}
-
-func (this *NodeGroup) Leave(nid nodeid.NodeId) bool {
-	old := this.doLeave(nid)
-	if old == nil {
-		return false
-	}
-	this.lock.RLock()
-	defer this.lock.RUnlock()
-	for _, lis := range this.listeners {
-		lis(ACTION_LEAVE, nid, old.channel, old.data)
-	}
-	return true
-}
-
-func (this *NodeGroup) Set(nid nodeid.NodeId, data interface{}) bool {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
-	item, ok := this.items[nid]
-	if ok {
-		item.data = data
-		for _, lis := range this.listeners {
-			lis(ACTION_UPDATE, nid, item.channel, data)
-		}
-		return true
-	}
+func (this *NodeGroup) Stop() bool {
+	this.executor.Stop()
 	return false
 }
 
-func (this *NodeGroup) LockAndSet(nid nodeid.NodeId, data interface{}) bool {
-	r := false
-	this.lock.Lock()
-	item, ok := this.items[nid]
-	if ok {
-		item.data = data
-		r = true
-	}
-	this.lock.Unlock()
-
-	if !r {
-		return false
-	}
-
-	this.lock.RLock()
-	defer this.lock.RUnlock()
-	for _, lis := range this.listeners {
-		lis(ACTION_UPDATE, nid, item.channel, data)
-	}
-	return r
+func (this *NodeGroup) Cleanup() bool {
+	this.executor.WaitStop()
+	return true
 }
 
-func (this *NodeGroup) Get(nid nodeid.NodeId) (espnet.Channel, interface{}) {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
-	item, ok := this.items[nid]
-	if ok {
-		return item.channel, item.data
+func (this *NodeGroup) WaitStop() {
+	this.executor.WaitStop()
+}
+
+func (this *NodeGroup) requestHandler(ev interface{}) (bool, error) {
+	switch rv := ev.(type) {
+	case func() error:
+		return true, rv()
 	}
-	return nil, nil
+	return true, nil
+}
+
+func (this *NodeGroup) stopHandler() {
+	this.doStopFollow()
+	for nid, _ := range this.channels {
+		this.doCloseNode(nid, false)
+	}
+}
+
+func (this *NodeGroup) doInit() error {
+	this.doStartIdleCheck()
+	return nil
+}
+
+func (this *NodeGroup) doStartIdleCheck() {
+	if this.executor.IsClosing() {
+		return
+	}
+	time.AfterFunc(time.Duration(this.config.IdleCheckMS)*time.Millisecond, func() {
+		if this.executor.IsClosing() {
+			return
+		}
+		this.candidate.CheckIdle()
+		this.doStartIdleCheck()
+	})
+}
+
+func (this *NodeGroup) doWaitTimeout(id nodeid.NodeId, epoch election.EpochId, vote bool) {
+	if this.executor.IsClosing() {
+		return
+	}
+	time.AfterFunc(time.Duration(this.config.ReqTimeoutMS)*time.Millisecond, func() {
+		if this.executor.IsClosing() {
+			return
+		}
+		this.candidate.OnReqTimeout(id, epoch, vote)
+	})
+}
+
+// interface impl
+func (this *NodeGroup) asyncPostVote(who nodeid.NodeId, req *election.VoteReq) {
+	ch, ok := this.channels[who]
+	if !ok {
+		err := fmt.Errorf("Node[%d] no channel")
+		this.executor.DoNow("err", func() error {
+			this.candidate.OnVoteResp(nil, err)
+			return nil
+		})
+		return
+	}
+	msg := espnet.NewMessage()
+	addr := msg.GetAddress()
+	addr.Set(espnet.ADDRESS_SERVICE, this.config.ServiceName)
+	addr.Set(espnet.ADDRESS_OBJECT, this.name)
+	req.Write(msg)
+	err := ch.SendMessage(msg)
+	if err != nil {
+		this.executor.DoNow("err", func() error {
+			this.candidate.OnVoteResp(nil, err)
+			return nil
+		})
+		return
+	}
+	this.doWaitTimeout(who, req.Epoch, true)
+}
+
+func (this *NodeGroup) asyncRespVote(who nodeid.NodeId, resp *election.VoteResp) {
+	ch, ok := this.channels[who]
+	if !ok {
+		logger.Warn(tag, "%s respVote fail - Node[%d] no channel", this, who)
+		this.candidate.LeavePartner(who)
+		return
+	}
+	msg := espnet.NewMessage()
+	addr := msg.GetAddress()
+	addr.Set(espnet.ADDRESS_SERVICE, this.config.ServiceName)
+	addr.Set(espnet.ADDRESS_OBJECT, this.name)
+	resp.Write(msg)
+	err := ch.SendMessage(msg)
+	if err != nil {
+		logger.Warn(tag, "%s respVote fail - %s", this, err)
+		this.candidate.LeavePartner(who)
+		return
+	}
+}
+
+func (this *NodeGroup) asyncPostAnnounce(who nodeid.NodeId, req *election.AnnounceReq) {
+	ch, ok := this.channels[who]
+	if !ok {
+		err := fmt.Errorf("Node[%d] no channel")
+		this.executor.DoNow("err", func() error {
+			this.candidate.OnVoteResp(nil, err)
+			return nil
+		})
+		return
+	}
+	msg := espnet.NewMessage()
+	addr := msg.GetAddress()
+	addr.Set(espnet.ADDRESS_SERVICE, this.config.ServiceName)
+	addr.Set(espnet.ADDRESS_OBJECT, this.name)
+	req.Write(msg)
+	err := ch.SendMessage(msg)
+	if err != nil {
+		this.executor.DoNow("err", func() error {
+			this.candidate.OnAnnounceResp(nil, err)
+			return nil
+		})
+	}
+	this.doWaitTimeout(who, req.Epoch, false)
+}
+
+func (this *NodeGroup) asyncRespAnnounce(who nodeid.NodeId, resp *election.AnnounceResp) {
+	ch, ok := this.channels[who]
+	if !ok {
+		logger.Warn(tag, "%s respAnnounce fail - Node[%d] no channel", this, who)
+		this.candidate.LeavePartner(who)
+		return
+	}
+
+	msg := espnet.NewMessage()
+	addr := msg.GetAddress()
+	addr.Set(espnet.ADDRESS_SERVICE, this.config.ServiceName)
+	addr.Set(espnet.ADDRESS_OBJECT, this.name)
+	resp.Write(msg)
+	err := ch.SendMessage(msg)
+	if err != nil {
+		logger.Warn(tag, "%s respAnnounce fail - %s", this, err)
+		this.candidate.LeavePartner(who)
+	}
+}
+
+func (this *NodeGroup) doStartLead(old nodeid.NodeId) error {
+	logger.Debug(tag, "%s doStartLead(%d)", this, old)
+	return nil
+}
+
+func (this *NodeGroup) doStartFollow(lid nodeid.NodeId) error {
+	return nil
+}
+
+func (this *NodeGroup) doStopFollow() error {
+	return nil
+}
+
+func (this *NodeGroup) onCandidateInvalid(id nodeid.NodeId) {
+	this.doCloseNode(id, false)
 }

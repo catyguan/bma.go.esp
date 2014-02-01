@@ -49,7 +49,7 @@ func (this *Address) Annotations() []int {
 func (this *Address) Get(ann int) string {
 	if this.pack != nil {
 		v, err := this.coder.Get(this.pack, ann)
-		if err != nil {
+		if err == nil {
 			return v
 		}
 	} else {
@@ -94,7 +94,7 @@ func (this *Address) Bind(pack *protpack.Package, mt byte) {
 
 func (this *Address) String() string {
 	anns := this.Annotations()
-	sort.Sort(sort.IntSlice(anns))
+	sort.Reverse(sort.IntSlice(anns))
 
 	buf := bytes.NewBuffer(make([]byte, 0))
 	buf.WriteString("Address[")

@@ -1,10 +1,12 @@
 package nodegroup
 
 import (
-	"config"
+	"boot"
+	"esp/cluster/nodeid"
+	"esp/sqlite"
+	"fmt"
 	"logger"
 	"sync"
-	"uuid"
 )
 
 const (
@@ -12,15 +14,20 @@ const (
 )
 
 type Service struct {
-	name string
+	name       string
+	database   *sqlite.SqliteServer
+	nidService *nodeid.Service
+	nodeId     nodeid.NodeId
 
 	lock   sync.RWMutex
 	groups map[string]*NodeGroup
 }
 
-func NewService(name string) *Service {
+func NewService(name string, db *sqlite.SqliteServer, nid *nodeid.Service) *Service {
 	this := new(Service)
 	this.name = name
+	this.database = db
+	this.nidService = nid
 	this.groups = make(map[string]*NodeGroup)
 	return this
 }
@@ -33,111 +40,80 @@ type configInfo struct {
 	NodeId uint64
 }
 
-func (this *Service) Init() bool {
-	cfg := configInfo{}
-	if config.GetBeanConfig(this.name, &cfg) {
-		if cfg.NodeId == 0 {
-			logger.Error(tag, "config.NodeId invalid")
-			return false
-		}
-		this.nodeId = cfg.NodeId
-	}
-	return true
+func (this *Service) onNodeIdChange(nodeId nodeid.NodeId) {
+	// TODO
 }
 
 func (this *Service) Start() bool {
-	ok := this.loadRuntimeConfig()
-	if !ok {
-		return false
-	}
-	for {
-		if this.nodeId != 0 {
-			break
-		}
-		uid, err := uuid.NewV4()
-		if err != nil {
-			logger.Error(tag, "create uuid fail - %s", err)
-			return false
-		}
-		var val uint64 = 1
-		str := uid.String()
-		sz := len(str)
-		for i := 0; i < sz; i++ {
-			val += (val * 37) + uint64(str[i])
-		}
-		this.nodeId = val
-		if this.nodeId != 0 {
-			err = this.storeRuntimeConfig()
-			if err != nil {
-				logger.Error(tag, "store nodeId fail - %s", err)
-				return false
-			}
-		}
-	}
-
+	this.nodeId = this.nidService.GetAndListen("nodegroup_servie_"+this.name, this.onNodeIdChange)
 	return true
 }
 
-func (this *Service) Save() error {
-	return this.storeRuntimeConfig()
-}
-
-func (this *Service) initDatabase() {
-	this.database.InitRuntmeConfigTable()
-}
-
-func (this *Service) loadRuntimeConfig() bool {
-	var cfg configInfo
-	err := this.database.LoadRuntimeConfig(this.name+rtKey, &cfg)
-	if err != nil {
-		logger.Error(tag, "loadRuntimeConfig fail - %s", err)
-		return false
+func (this *Service) Close() bool {
+	nl := make([]string, 0)
+	this.lock.RLock()
+	for n, _ := range this.groups {
+		nl = append(nl, n)
 	}
-	this.nodeId = cfg.NodeId
+	this.lock.RUnlock()
+
+	for _, n := range nl {
+		this.CloseGroup(n, false)
+	}
 	return true
 }
 
-func (this *Service) storeRuntimeConfig() error {
-	cfg := new(configInfo)
-	cfg.NodeId = this.nodeId
-	return this.database.StoreRuntimeConfig(this.name+rtKey, cfg)
-}
-
-func (this *Service) GetId() uint64 {
+func (this *Service) GetNodeId() nodeid.NodeId {
 	return this.nodeId
 }
 
-func (this *Service) GetAndListen(id string, lis Listener) uint64 {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	if this.listeners == nil {
-		this.listeners = make(map[string]Listener)
+func (this *Service) GetGroup(n string) *NodeGroup {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+	o, ok := this.groups[n]
+	if ok {
+		return o
 	}
-	this.listeners[id] = lis
-	return this.nodeId
+	return nil
 }
 
-func (this *Service) RemoveListen(id string) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	if this.listeners != nil {
-		delete(this.listeners, id)
-	}
-}
-
-func (this *Service) SetId(nid uint64) error {
-	var old uint64
-	this.lock.Lock()
-	old, this.nodeId = this.nodeId, nid
-	err := this.storeRuntimeConfig()
+func (this *Service) CreateGroup(n string, cfg *NodeGroupConfig) (*NodeGroup, error) {
+	ng, err := func() (*NodeGroup, error) {
+		this.lock.Lock()
+		defer this.lock.Unlock()
+		_, ok := this.groups[n]
+		if ok {
+			return nil, fmt.Errorf("group(%s) exists", n)
+		}
+		r := newNodeGroup(n, this, cfg)
+		this.groups[n] = r
+		return r, nil
+	}()
 	if err != nil {
+		return nil, err
+	}
+	if !boot.RuntimeStartRun(ng) {
+		boot.RuntimeStopCloseClean(ng, false)
+		this.lock.Lock()
+		delete(this.groups, n)
 		this.lock.Unlock()
-		this.nodeId = old
-		return err
+		return nil, fmt.Errorf("group(%s) start fail", n)
+	}
+	logger.Debug(tag, "CreateGroup(%s) done", n)
+	return ng, nil
+}
+
+func (this *Service) CloseGroup(n string, wait bool) *NodeGroup {
+	this.lock.Lock()
+	ng, ok := this.groups[n]
+	if ok {
+		delete(this.groups, n)
 	}
 	this.lock.Unlock()
-	for _, lis := range this.listeners {
-		lis(nid)
+	if ok {
+		boot.RuntimeStopCloseClean(ng, false)
+		logger.Debug(tag, "CloseGroup(%s) done", n)
+		return ng
 	}
 	return nil
 }

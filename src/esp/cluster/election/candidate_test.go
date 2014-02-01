@@ -30,12 +30,12 @@ func (this *VM4Test) Run() {
 					if o != s {
 						func(o *Superior4Test) {
 							o.DoNow(func() {
-								st := new(candidateState)
+								st := new(CandidateState)
 								*st = s.c.state
 								o.c.JoinPartner(st)
 							})
 							s.DoNow(func() {
-								st := new(candidateState)
+								st := new(CandidateState)
 								*st = o.c.state
 								s.c.JoinPartner(st)
 							})
@@ -163,6 +163,10 @@ func (this *Superior4Test) DoStartFollow(lid nodeid.NodeId) error {
 
 func (this *Superior4Test) DoStopFollow() error {
 	return nil
+}
+
+func (this *Superior4Test) OnCandidateInvalid(id nodeid.NodeId) {
+
 }
 
 func TestBase(t *testing.T) {

@@ -34,19 +34,19 @@ const (
 	STATUS_FOLLOWING
 )
 
-type candidateState struct {
+type CandidateState struct {
 	Id     nodeid.NodeId
 	Epoch  EpochId
 	Status Status
 	Leader nodeid.NodeId
 }
 
-func (this *candidateState) String() string {
+func (this *CandidateState) String() string {
 	return fmt.Sprintf("%d,%s,%d:%d", this.Id, this.Status, this.Epoch, this.Leader)
 }
 
 type VoteReq struct {
-	candidateState
+	CandidateState
 	Proposal nodeid.NodeId
 	Renew    bool
 }
@@ -55,7 +55,7 @@ type VoteResp struct {
 	Id     nodeid.NodeId
 	Epoch  EpochId
 	Accept bool
-	State  *candidateState
+	State  *CandidateState
 }
 
 func AcceptVote(id nodeid.NodeId, req *VoteReq) *VoteResp {
@@ -66,7 +66,7 @@ func AcceptVote(id nodeid.NodeId, req *VoteReq) *VoteResp {
 	return r
 }
 
-func RejectVote(req *VoteReq, st *candidateState) *VoteResp {
+func RejectVote(req *VoteReq, st *CandidateState) *VoteResp {
 	r := new(VoteResp)
 	r.Id = st.Id
 	r.Epoch = req.Epoch
@@ -76,14 +76,14 @@ func RejectVote(req *VoteReq, st *candidateState) *VoteResp {
 }
 
 type AnnounceReq struct {
-	candidateState
+	CandidateState
 }
 
 type AnnounceResp struct {
 	Id     nodeid.NodeId
 	Epoch  EpochId
 	Accept bool
-	State  *candidateState
+	State  *CandidateState
 }
 
 func AcceptAnnounce(id nodeid.NodeId, req *AnnounceReq) *AnnounceResp {
@@ -94,7 +94,7 @@ func AcceptAnnounce(id nodeid.NodeId, req *AnnounceReq) *AnnounceResp {
 	return r
 }
 
-func RejectAnnounce(req *AnnounceReq, st *candidateState) *AnnounceResp {
+func RejectAnnounce(req *AnnounceReq, st *CandidateState) *AnnounceResp {
 	r := new(AnnounceResp)
 	r.Id = st.Id
 	r.Epoch = req.Epoch
@@ -105,6 +105,8 @@ func RejectAnnounce(req *AnnounceReq, st *candidateState) *AnnounceResp {
 
 type ISuperior interface {
 	Name() string
+
+	OnCandidateInvalid(id nodeid.NodeId)
 
 	AsyncPostVote(who nodeid.NodeId, req *VoteReq)
 	AsyncRespVote(who nodeid.NodeId, resp *VoteResp)
