@@ -6,7 +6,6 @@ import (
 	"bmautil/valutil"
 	"errors"
 	"logger"
-	"runtime/debug"
 	"time"
 )
 
@@ -88,7 +87,7 @@ func (this *QueueExecutor) Execute(req *Request) (running bool, err error) {
 			}
 		}
 		if err != nil {
-			logger.Error(this.Tag, "execte fail - %s\n%s", err.Error(), string(debug.Stack()))
+			logger.Error(this.Tag, "execte '%s' fail - %s", req.name, err.Error())
 			if this.ErrorHandler != nil {
 				safe(func() {
 					running = this.ErrorHandler(req.data, err)

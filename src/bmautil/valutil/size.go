@@ -9,10 +9,11 @@ import (
 type SizeUnit int8
 
 const (
-	SizeB = 0
-	SizeK = 1
-	SizeM = 2
-	SizeG = 3
+	SizeAny = -1
+	SizeB   = 0
+	SizeK   = 1
+	SizeM   = 2
+	SizeG   = 3
 )
 
 func (level SizeUnit) CompareLevelTo(other SizeUnit) int {
@@ -48,14 +49,19 @@ func NewSizeUnit(s uint8) (SizeUnit, bool) {
 }
 
 func MakeSizeString(size uint64) string {
-	if size < 1024*1024 {
-		return SizeString(size, 1024, SizeK)
-	} else {
-		return SizeString(size, 1024, SizeM)
-	}
+	return SizeString(size, 1024, SizeAny)
 }
 
 func SizeString(size uint64, base int, sizeUnit SizeUnit) string {
+	if sizeUnit == SizeAny {
+		if size < uint64(base) {
+			sizeUnit = SizeB
+		} else if size < uint64(base)*uint64(base) {
+			sizeUnit = SizeK
+		} else {
+			sizeUnit = SizeM
+		}
+	}
 	lv := math.Pow(float64(base), float64(sizeUnit))
 	v := float64(size) / lv
 	if math.Floor(v) == v {

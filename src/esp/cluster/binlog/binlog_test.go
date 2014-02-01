@@ -1,45 +1,62 @@
 package binlog
 
 import (
+	"esp/cluster/clusterbase"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
 
-func TestWrite(t *testing.T) {
+func makeConfig() *BinlogConfig {
 	cfg := new(BinlogConfig)
-	cfg.FileName = "test.blog"
+	wd, _ := os.Getwd()
+	cfg.LogDir = filepath.Join(wd, "testdir")
+	cfg.FileFormatter = "test_%04d.blog"
+	err := cfg.Valid()
+	if err != nil {
+		panic(err)
+	}
+	return cfg
+}
+
+func TestWrite(t *testing.T) {
+	cfg := makeConfig()
+	cfg.FileMaxSize = 130
 
 	bl := NewBinLog("test", 32, cfg)
 	bl.Run()
 
 	w, _ := bl.NewWriter()
 
-	w.Write([]byte("hello"))
-	w.Write([]byte("hello2"))
-
+	lver, _ := w.GerVersion()
+	fmt.Println(w.Write(lver+1, []byte("hello")))
+	fmt.Println(w.Write(lver+2, []byte("hello2")))
+	lver, _ = w.GerVersion()
+	fmt.Println("last version", lver)
 	time.Sleep(1 * time.Second)
 	bl.Stop()
 	bl.WaitStop()
 }
 
 func TestRead(t *testing.T) {
-	cfg := new(BinlogConfig)
+	cfg := makeConfig()
 	cfg.Readonly = true
-	cfg.FileName = "test.blog"
 
 	bl := NewBinLog("test", 32, cfg)
 	bl.Run()
 
-	r, _ := bl.NewReader()
-
-	fmt.Println(r.Seek(1389522970898990710))
+	r, _ := bl.NewReader(clusterbase.OpVer(9))
 	for {
-		seq, bs, err := r.Read()
-		if bs == nil {
+		ok, seq, bs, err := r.Read()
+		if !ok {
 			break
 		}
 		fmt.Println("READ", seq, string(bs), err)
+		if err != nil {
+			break
+		}
 	}
 	time.Sleep(1 * time.Second)
 
@@ -47,6 +64,7 @@ func TestRead(t *testing.T) {
 	bl.WaitStop()
 }
 
+/*
 func TestMix(t *testing.T) {
 	cfg := new(BinlogConfig)
 	cfg.FileName = "test.blog"
@@ -94,3 +112,4 @@ func TestMix(t *testing.T) {
 	bl.Stop()
 	bl.WaitStop()
 }
+*/

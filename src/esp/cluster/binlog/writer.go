@@ -10,19 +10,21 @@ type Writer struct {
 	service *Service
 }
 
-func (this *Writer) Write(ver clusterbase.OpVer, bs []byte) bool {
-	err := this.service.executor.DoNow("write", func() error {
+func (this *Writer) Write(ver clusterbase.OpVer, bs []byte) (bool, error) {
+	r := false
+	err := this.service.executor.DoSync("write", func() error {
 		if ver <= this.service.lastver {
 			return fmt.Errorf("invalid ver %d (lastver=%d)", ver, this.service.lastver)
 		}
-		this.service.doWrite(ver, bs)
-		return nil
+		rv, err := this.service.doWrite(ver, bs)
+		r = rv
+		return err
 	})
 	if err != nil {
 		logger.Warn(tag, "'%s' write fail - %s", this.service.name, err)
-		return false
+		return false, err
 	}
-	return true
+	return r, err
 }
 
 func (this *Writer) GerVersion() (clusterbase.OpVer, error) {
