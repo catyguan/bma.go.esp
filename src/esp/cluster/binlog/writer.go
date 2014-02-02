@@ -27,7 +27,7 @@ func (this *Writer) Write(ver clusterbase.OpVer, bs []byte) (bool, error) {
 	return r, err
 }
 
-func (this *Writer) GerVersion() (clusterbase.OpVer, error) {
+func (this *Writer) GetVersion() (clusterbase.OpVer, error) {
 	rv := clusterbase.OpVer(0)
 	err := this.service.executor.DoSync("getver", func() error {
 		rv = this.service.lastver

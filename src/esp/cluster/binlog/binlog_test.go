@@ -14,6 +14,8 @@ func makeConfig() *BinlogConfig {
 	wd, _ := os.Getwd()
 	cfg.LogDir = filepath.Join(wd, "testdir")
 	cfg.FileFormatter = "test_%04d.blog"
+	cfg.FileMaxSize = 1024
+
 	err := cfg.Valid()
 	if err != nil {
 		panic(err)
@@ -23,17 +25,16 @@ func makeConfig() *BinlogConfig {
 
 func TestWrite(t *testing.T) {
 	cfg := makeConfig()
-	cfg.FileMaxSize = 130
 
 	bl := NewBinLog("test", 32, cfg)
 	bl.Run()
 
 	w, _ := bl.NewWriter()
 
-	lver, _ := w.GerVersion()
+	lver, _ := w.GetVersion()
 	fmt.Println(w.Write(lver+1, []byte("hello")))
 	fmt.Println(w.Write(lver+2, []byte("hello2")))
-	lver, _ = w.GerVersion()
+	lver, _ = w.GetVersion()
 	fmt.Println("last version", lver)
 	time.Sleep(1 * time.Second)
 	bl.Stop()
@@ -47,69 +48,77 @@ func TestRead(t *testing.T) {
 	bl := NewBinLog("test", 32, cfg)
 	bl.Run()
 
-	r, _ := bl.NewReader(clusterbase.OpVer(9))
-	for {
-		ok, seq, bs, err := r.Read()
-		if !ok {
-			break
+	r, _ := bl.NewReader()
+	err0 := r.Seek(8)
+	if err0 == nil {
+		for {
+			ok, seq, bs, err := r.Read()
+			if !ok {
+				break
+			}
+			fmt.Println("READ", seq, string(bs), err)
+			if err != nil {
+				break
+			}
 		}
-		fmt.Println("READ", seq, string(bs), err)
-		if err != nil {
-			break
-		}
+		time.Sleep(1 * time.Second)
+	} else {
+		fmt.Println("seek fail", err0)
 	}
-	time.Sleep(1 * time.Second)
 
 	bl.Stop()
 	bl.WaitStop()
 }
 
-/*
-func TestMix(t *testing.T) {
-	cfg := new(BinlogConfig)
-	cfg.FileName = "test.blog"
+func l4test(ver clusterbase.OpVer, bs []byte, closed bool) {
+	if closed {
+		fmt.Println("LISTENER CLOSED")
+	} else {
+		fmt.Println("PUSH", ver, string(bs))
+	}
+}
+
+func TestFollow(t *testing.T) {
+	cfg := makeConfig()
+	cfg.Readonly = true
 
 	bl := NewBinLog("test", 32, cfg)
 	bl.Run()
 
+	r, _ := bl.NewReader()
+	r.Follow(4, l4test)
+
+	bl.Stop()
+	bl.WaitStop()
+}
+
+func TestMix(t *testing.T) {
+	cfg := makeConfig()
+
+	bl := NewBinLog("test", 32, cfg)
+	bl.Run()
+	w, _ := bl.NewWriter()
+
 	go func() {
-		w, _ := bl.NewWriter()
+		wver, _ := w.GetVersion()
 		for {
+			wver++
 			time.Sleep(100 * time.Millisecond)
-			if !w.Write([]byte(time.Now().String())) {
+			ok, _ := w.Write(wver, []byte(time.Now().String()))
+			if !ok {
 				fmt.Println("WRITE EXIT")
 				return
 			}
 		}
 	}()
 
-	lis := func(seq BinlogVer, bs []byte, closed bool) {
-		if closed {
-			fmt.Println("LIS CLOSED")
-		} else {
-			fmt.Println("PUSH", seq, string(bs))
-		}
-	}
 	r, _ := bl.NewReader()
-
-	seq := BinlogVer(1390639648191602509)
-	if true {
-		r.SeekAndListen(seq, lis)
-	} else {
-		r.Seek(seq)
-		for {
-			seq, bs, err := r.Read()
-			if bs == nil {
-				break
-			}
-			fmt.Println("READ", seq, string(bs), err)
-		}
-		r.SetListener(lis)
-	}
+	r.Follow(0, l4test)
 
 	time.Sleep(1 * time.Second)
 	fmt.Println("END")
+	lver, _ := w.GetVersion()
+	fmt.Println("last version", lver)
 	bl.Stop()
 	bl.WaitStop()
 }
-*/

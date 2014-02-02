@@ -230,18 +230,6 @@ func (this *Service) doOpenWrite(forceNew bool) error {
 	return nil
 }
 
-func (this *Service) doOpenRead(ver clusterbase.OpVer) (*Reader, error) {
-	rd := new(Reader)
-	ok, err := this.doReaderOpen(rd, ver)
-	if err == nil && !ok {
-		err = fmt.Errorf("can't find ver %d", ver)
-	}
-	if err == nil {
-		this.readers[rd] = true
-	}
-	return rd, err
-}
-
 func (this *Service) doReaderOpen(rd *Reader, ver clusterbase.OpVer) (bool, error) {
 	// Seek log file
 	var info *binlogInfo
@@ -267,17 +255,22 @@ func (this *Service) doReaderOpen(rd *Reader, ver clusterbase.OpVer) (bool, erro
 	if err != nil {
 		return false, err
 	}
-	rd.initReader(this, fd, info, info.beginVer)
-	_, err = rd.doSeek(ver)
-	if err != nil {
-		return false, err
-	}
+	rd.initReader(fd, info, info.beginVer)
+	this.readers[rd] = true
 	return true, nil
 }
 
 func (this *Service) doClose() {
+	tmp := make([]*Reader, 0)
 	for rd, _ := range this.readers {
 		this.doCloseReader(rd)
+		tmp = append(tmp, rd)
+	}
+	for _, rd := range tmp {
+		if rd.puller != nil {
+			rd.puller.WaitClose()
+			rd.puller = nil
+		}
 	}
 	if this.wfd != nil {
 		this.wfd.Close()
@@ -291,9 +284,9 @@ func (this *Service) doCloseReader(rd *Reader) {
 		rd.rfd.Close()
 		rd.rfd = nil
 	}
-	if rd.listener != nil {
-		rd.listener(0, nil, true)
-		rd.listener = nil
+	if rd.puller != nil {
+		rd.pushData(0, nil, true)
+		rd.puller.Close()
 	}
 }
 
@@ -339,9 +332,9 @@ func (this *Service) doWrite(ver clusterbase.OpVer, bs []byte) (bool, error) {
 
 	// push to waiting reader
 	for rd, _ := range this.readers {
-		if rd.listener != nil && rd.lastver == old {
-			rd.listener(ver, bs, false)
-			rd.lastver = ver
+		// fmt.Println(rd.seeking, rd.listener != nil, rd.lastver, old)
+		if !rd.seeking && rd.listener != nil && rd.lastver == old {
+			rd.pushData(ver, bs, false)
 		}
 	}
 	return true, nil
@@ -353,19 +346,9 @@ func (this *Service) NewWriter() (*Writer, error) {
 	return w, nil
 }
 
-func (this *Service) NewReader(ver clusterbase.OpVer) (*Reader, error) {
-	var rd *Reader
-	err := this.executor.DoSync("reader", func() error {
-		// TODO
-		o, err := this.doOpenRead(ver)
-		if err != nil {
-			return err
-		}
-		rd = o
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
+func (this *Service) NewReader() (*Reader, error) {
+	rd := new(Reader)
+	rd.service = this
+	rd.seeking = true
 	return rd, nil
 }

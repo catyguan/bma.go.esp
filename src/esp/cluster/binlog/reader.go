@@ -1,9 +1,11 @@
 package binlog
 
 import (
+	"bmautil/qpushpull"
 	"encoding/binary"
 	"errors"
 	"esp/cluster/clusterbase"
+	"fmt"
 	"logger"
 	"os"
 )
@@ -16,10 +18,11 @@ type Reader struct {
 
 	lastver clusterbase.OpVer
 	rbuffer []byte
+	seeking bool
+	puller  *qpushpull.QueuePushPull
 }
 
-func (this *Reader) initReader(s *Service, fd *os.File, info *binlogInfo, ver clusterbase.OpVer) {
-	this.service = s
+func (this *Reader) initReader(fd *os.File, info *binlogInfo, ver clusterbase.OpVer) {
 	this.info = info
 	if this.rfd != nil {
 		this.rfd.Close()
@@ -28,6 +31,7 @@ func (this *Reader) initReader(s *Service, fd *os.File, info *binlogInfo, ver cl
 
 	this.lastver = ver
 	this.rbuffer = make([]byte, 8)
+	this.seeking = true
 }
 
 func (this *Reader) doReadLength() (uint32, error) {
@@ -56,22 +60,40 @@ func (this *Reader) doReadVer() (clusterbase.OpVer, error) {
 	return clusterbase.OpVer(v), nil
 }
 
-func (this *Reader) doRead() (clusterbase.OpVer, []byte, error) {
+func (this *Reader) doRead() (bool, clusterbase.OpVer, []byte, error) {
+	if this.lastver == this.service.lastver {
+		// end of binlog
+		return false, 0, nil, nil
+	}
+	rver := this.lastver + 1
+	if rver > this.info.lastVer {
+		// next binlog file
+		ok, err := this.service.doReaderOpen(this, rver)
+		if err != nil {
+			return false, 0, nil, err
+		}
+		if !ok {
+			// end of binlog
+			return false, 0, nil, nil
+		}
+	}
+
 	l, err := this.doReadLength()
 	if err != nil {
-		return clusterbase.OpVer(0), nil, err
+		return false, 0, nil, err
 	}
 	data := make([]byte, l)
 	_, err2 := this.rfd.Read(data)
 	if err2 != nil {
-		return clusterbase.OpVer(0), nil, err2
+		return false, 0, nil, err2
 	}
 	ver, err3 := this.doReadVer()
 	if err3 != nil {
-		return clusterbase.OpVer(0), nil, err3
+		return false, 0, nil, err3
 	}
 	this.lastver = ver
-	return ver, data, nil
+	return true, ver, data, nil
+
 }
 
 func (this *Reader) Read() (bool, clusterbase.OpVer, []byte, error) {
@@ -79,58 +101,39 @@ func (this *Reader) Read() (bool, clusterbase.OpVer, []byte, error) {
 	var ver clusterbase.OpVer
 	var data []byte
 	err := this.service.executor.DoSync("read", func() error {
-		if this.lastver == this.service.lastver {
-			// end of binlog
-			return nil
+		if this.seeking {
+			return fmt.Errorf("seeking, can't read")
 		}
-		var err error
-		for {
-			rver := this.lastver + 1
-			if rver <= this.info.lastVer {
-				r = true
-				ver, data, err = this.doRead()
-				break
-			}
-			// next binlog file
-			ok := false
-			ok, err = this.service.doReaderOpen(this, rver)
-			if err != nil {
-				break
-			}
-			if !ok {
-				// end of binlog
-				break
-			}
-		}
-		return err
+		var errv error
+		r, ver, data, errv = this.doRead()
+		return errv
 	})
 	return r, ver, data, err
 }
 
-func (this *Reader) Reset() {
-	this.rfd.Seek(0, os.SEEK_SET)
-}
-
-func (this *Reader) doSeek(fver clusterbase.OpVer) (bool, error) {
-	if this.lastver == this.service.lastver {
-		// end of binlog
-		return false, nil
-	}
-	if fver == this.info.beginVer {
-		return true, nil
-	}
-	if fver > this.info.lastVer {
-		// open correct binlog file
-		ok, err := this.service.doReaderOpen(this, fver)
-		if err != nil {
-			return false, err
-		}
-		if !ok {
+func (this *Reader) doSeekFile(fver clusterbase.OpVer) (bool, error) {
+	if this.info != nil {
+		if this.lastver == this.service.lastver {
 			// end of binlog
 			return false, nil
 		}
+		if fver >= this.info.beginVer && fver <= this.info.lastVer {
+			return true, nil
+		}
 	}
-	for {
+	// open correct binlog file
+	ok, err := this.service.doReaderOpen(this, fver)
+	if err != nil {
+		return false, err
+	}
+	return ok, nil
+}
+
+func (this *Reader) doSeekProcess(fver clusterbase.OpVer, num int) (bool, error) {
+	if fver == this.info.beginVer {
+		return true, nil
+	}
+	for i := 0; i < num; i++ {
 		l, err := this.doReadLength()
 		if err != nil {
 			return false, err
@@ -148,60 +151,116 @@ func (this *Reader) doSeek(fver clusterbase.OpVer) (bool, error) {
 			return true, nil
 		}
 	}
+	return false, nil
+}
+
+func (this *Reader) goSeek(ver clusterbase.OpVer, ch chan error) {
+	ok, err := this.doSeekProcess(ver, 10)
+	if err != nil {
+		ch <- err
+		close(ch)
+		return
+	}
+	if ok {
+		this.seeking = false
+		close(ch)
+		return
+	}
+	// logger.Debug(tag, "seek more %d->%d", this.lastver, ver)
+	go this.service.executor.DoNow("goseek", func() error {
+		this.goSeek(ver, ch)
+		return nil
+	})
+}
+
+func (this *Reader) Seek(ver clusterbase.OpVer) error {
+	ch := make(chan error, 1)
+	err := this.service.executor.DoNow("seek", func() error {
+		ok, err := this.doSeekFile(ver)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("version[%d] seek binlog file fail")
+		}
+		this.goSeek(ver, ch)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	err = <-ch
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type Listener func(ver clusterbase.OpVer, data []byte, closed bool)
 
-func (this *Reader) SetListener(lis Listener) bool {
+func (this *Reader) Follow(ver clusterbase.OpVer, lis Listener) error {
 	if this.listener != nil {
-		return false
+		return fmt.Errorf("already follow")
 	}
-	this.service.executor.DoNow("setlis", func() error {
+	err := this.service.executor.DoSync("setlis", func() error {
 		this.listener = lis
-		this.doPeek()
+		if this.puller == nil {
+			this.puller = qpushpull.NewQueuePushPull(8, this.qppHandler)
+			this.puller.Run()
+		}
 		return nil
 	})
-	return true
-}
-
-func (this *Reader) Peek() {
-	if this.rfd != nil {
-		this.service.executor.DoNow("peek", func() error {
-			this.doPeek()
+	if err != nil {
+		return err
+	}
+	err = this.Seek(ver)
+	if err != nil {
+		return err
+	}
+	for {
+		more := false
+		err = this.service.executor.DoSync("pick", func() error {
+			ok, ver, data, err := this.doRead()
+			if err != nil {
+				return err
+			}
+			if ok {
+				more = true
+				this.pushData(ver, data, false)
+			}
 			return nil
 		})
+		if err != nil {
+			return err
+		}
+		if !more {
+			logger.Debug(tag, "reader attach writer '%d'", this.lastver)
+			if this.rfd != nil {
+				this.rfd.Close()
+				this.rfd = nil
+			}
+			this.info = nil
+			break
+		}
 	}
+	return nil
 }
 
-func (this *Reader) doPeek() {
-	if this.listener == nil {
-		return
-	}
-	// TODO
-	// if this.attachWriter {
-	// 	return
-	// }
-	ver, data, err := this.doRead()
-	if err != nil {
-		logger.Debug(tag, "peek read error - %s", err)
-		return
-	}
-	if data == nil {
-		// TODO
-		// this.attachWriter = true
-		// this.lastver = this.service.lastver
-		return
-	}
-	this.listener(ver, data, false)
-	go this.Peek()
+type pushReq struct {
+	ver    clusterbase.OpVer
+	data   []byte
+	closed bool
 }
 
-func (this *Reader) SeekAndListen(ver clusterbase.OpVer, lis Listener) bool {
-	// _, err := this.Seek(ver)
-	// if err != nil {
-	// 	return false
-	// }
-	return this.SetListener(lis)
+func (this *Reader) pushData(ver clusterbase.OpVer, data []byte, closed bool) {
+	this.lastver = ver
+	req := &pushReq{ver, data, closed}
+	this.puller.Push(req)
+}
+
+func (this *Reader) qppHandler(req interface{}) {
+	o := req.(*pushReq)
+	this.listener(o.ver, o.data, o.closed)
 }
 
 func (this *Reader) Close() {
