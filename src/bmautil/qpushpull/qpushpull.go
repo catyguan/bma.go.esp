@@ -1,12 +1,10 @@
 package qpushpull
 
-import (
-	"fmt"
-	"logger"
-)
+import "fmt"
 
 const (
-	tag = "qpushpull"
+	tag   = "qpushpull"
+	debug = false
 )
 
 type Handler func(req interface{})
@@ -48,7 +46,9 @@ func (this *QueuePushPull) run1() {
 			return
 		}
 		if _, ok := req.(dopull); ok {
-			logger.Debug(tag, "c2 pull")
+			if debug {
+				fmt.Println(tag, "c2 pull")
+			}
 			c := cap(this.c2) - len(this.c2)
 			if c > len(this.buff) {
 				c = len(this.buff)
@@ -64,9 +64,10 @@ func (this *QueuePushPull) run1() {
 			this.buff = append(this.buff, req)
 			continue
 		}
-		if len(this.c2)+1 >= cap(this.c2) {
-			logger.Debug(tag, "c2 full, try pull")
-			this.c2 <- dopull(0)
+		if len(this.c2) >= cap(this.c2) {
+			if debug {
+				fmt.Println(tag, "c2 full, wait pull")
+			}
 			this.buff = append(this.buff, req)
 			continue
 		}
@@ -76,20 +77,21 @@ func (this *QueuePushPull) run1() {
 
 func (this *QueuePushPull) run2() {
 	for {
-		req := <-this.c2
-		if req == nil {
-			close(this.closed)
-			return
-		}
-		if _, ok := req.(dopull); ok {
-			logger.Debug(tag, "c2 send pull")
+		if len(this.c2) == 0 {
+			if debug {
+				fmt.Println(tag, "c2 send pull")
+			}
 			func() {
 				defer func() {
 					recover()
 				}()
 				this.c1 <- dopull(0)
 			}()
-			continue
+		}
+		req := <-this.c2
+		if req == nil {
+			close(this.closed)
+			return
 		}
 		this.handler(req)
 	}
