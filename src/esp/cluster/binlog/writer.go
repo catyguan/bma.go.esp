@@ -35,3 +35,13 @@ func (this *Writer) GetVersion() (clusterbase.OpVer, error) {
 	})
 	return rv, err
 }
+
+func (this *Writer) Truncate(ver clusterbase.OpVer) (bool, error) {
+	r := false
+	err := this.service.executor.DoSync("truncate", func() error {
+		rv, errv := this.service.doTruncate(ver)
+		r = rv
+		return errv
+	})
+	return r, err
+}

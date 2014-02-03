@@ -5,6 +5,7 @@ import (
 	"bmautil/valutil"
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"esp/cluster/clusterbase"
 	"fmt"
 	"io/ioutil"
@@ -230,7 +231,7 @@ func (this *Service) doOpenWrite(forceNew bool) error {
 	return nil
 }
 
-func (this *Service) doReaderOpen(rd *Reader, ver clusterbase.OpVer) (bool, error) {
+func (this *Service) doSelectOpen(ver clusterbase.OpVer, flag int) (*os.File, *binlogInfo, error) {
 	// Seek log file
 	var info *binlogInfo
 	if ver == clusterbase.OpVer(0) {
@@ -245,15 +246,30 @@ func (this *Service) doReaderOpen(rd *Reader, ver clusterbase.OpVer) (bool, erro
 		}
 	}
 	if info == nil {
-		return false, nil
+		return nil, nil, nil
 	}
 
 	// Open the log file
 	fn := this.config.GetFileName(info.num)
-	logger.Debug(tag, "%s open Reader(%d) - %s", this, ver, fn)
-	fd, err := os.OpenFile(fn, os.O_RDONLY, 0664)
+	logger.Debug(tag, "%s select(%d) open(%s)", this, ver, fn)
+	if flag == 0 {
+		flag = os.O_RDONLY
+	}
+	fd, err := os.OpenFile(fn, flag, 0664)
+	if err != nil {
+		return nil, nil, err
+	}
+	return fd, info, nil
+}
+
+func (this *Service) doOpenRead(rd *Reader, ver clusterbase.OpVer) (bool, error) {
+	// Seek log file
+	fd, info, err := this.doSelectOpen(ver, os.O_RDONLY)
 	if err != nil {
 		return false, err
+	}
+	if info == nil {
+		return false, nil
 	}
 	rd.initReader(fd, info, info.beginVer)
 	this.readers[rd] = true
@@ -336,6 +352,118 @@ func (this *Service) doWrite(ver clusterbase.OpVer, bs []byte) (bool, error) {
 		if !rd.seeking && rd.listener != nil && rd.lastver == old {
 			rd.pushData(ver, bs, false)
 		}
+	}
+	return true, nil
+}
+
+func (this *Service) doReadLength(fd *os.File, rbuf []byte) (uint32, error) {
+	if fd == nil {
+		return 0, errors.New("closed")
+	}
+	_, err := fd.Read(rbuf[0:4])
+	if err != nil {
+		return 0, err
+	}
+	v := binary.BigEndian.Uint32(rbuf)
+	return v, nil
+}
+
+func (this *Service) doReadVer(fd *os.File, rbuf []byte) (clusterbase.OpVer, error) {
+	if fd == nil {
+		return 0, errors.New("closed")
+	}
+	_, err := fd.Read(rbuf[0:8])
+	if err != nil {
+		return 0, err
+	}
+	v := binary.BigEndian.Uint64(rbuf)
+	return clusterbase.OpVer(v), nil
+}
+
+func (this *Service) doSeekProcess(fd *os.File, info *binlogInfo, rbuf []byte, fver clusterbase.OpVer, num int) (bool, error) {
+	if fver == info.beginVer {
+		return true, nil
+	}
+	if fver > info.lastVer {
+		return false, nil
+	}
+	for i := 0; i < num; i++ {
+		l, err := this.doReadLength(fd, rbuf)
+		if err != nil {
+			return false, err
+		}
+		_, err = fd.Seek(int64(l), os.SEEK_CUR)
+		if err != nil {
+			return false, err
+		}
+		ver, err2 := this.doReadVer(fd, rbuf)
+		if err2 != nil {
+			return false, err2
+		}
+		if ver >= fver {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (this *Service) doTruncate(ver clusterbase.OpVer) (bool, error) {
+	if ver > this.lastver {
+		return false, nil
+	}
+	if ver == this.lastver {
+		return true, nil
+	}
+	// close all
+	this.doClose()
+
+	fd, info, err := this.doSelectOpen(ver, os.O_RDWR)
+	if err != nil {
+		return false, err
+	}
+	defer fd.Close()
+	if info == nil {
+		return false, fmt.Errorf("can't truncate to %d", ver)
+	}
+	rbuf := make([]byte, 8)
+	ok, err2 := this.doSeekProcess(fd, info, rbuf, ver, 0x7FFFFFFF)
+	if err2 != nil {
+		return false, err2
+	}
+	if !ok {
+		return false, fmt.Errorf("can't seek %d when truncate", ver)
+	}
+	pos, err3 := fd.Seek(0, 1)
+	if err3 != nil {
+		return false, err3
+	}
+	logger.Debug(tag, "%s truncate '%s' %d", this, this.wfileName, pos)
+	fd.Truncate(pos)
+	fd.Close()
+
+	this.lastver = ver
+	info.lastVer = ver
+	info.fileSize = pos
+	idx := -1
+	for i, bi := range this.infos {
+		if bi.num > info.num {
+			if idx == -1 {
+				idx = i
+			}
+			fn := this.config.GetFileName(bi.num)
+			logger.Debug(tag, "%s truncate remove '%s'", this, fn)
+			err = os.Remove(fn)
+			if err != nil {
+				return false, err
+			}
+		}
+	}
+	if idx >= 0 {
+		this.infos = this.infos[0:idx]
+	}
+	err = this.doOpenWrite(false)
+	if err != nil {
+		return false, err
 	}
 	return true, nil
 }

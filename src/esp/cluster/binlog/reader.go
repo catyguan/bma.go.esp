@@ -2,8 +2,6 @@ package binlog
 
 import (
 	"bmautil/qpushpull"
-	"encoding/binary"
-	"errors"
 	"esp/cluster/clusterbase"
 	"fmt"
 	"logger"
@@ -34,32 +32,6 @@ func (this *Reader) initReader(fd *os.File, info *binlogInfo, ver clusterbase.Op
 	this.seeking = true
 }
 
-func (this *Reader) doReadLength() (uint32, error) {
-	fd := this.rfd
-	if fd == nil {
-		return 0, errors.New("closed")
-	}
-	_, err := this.rfd.Read(this.rbuffer[0:4])
-	if err != nil {
-		return 0, err
-	}
-	v := binary.BigEndian.Uint32(this.rbuffer)
-	return v, nil
-}
-
-func (this *Reader) doReadVer() (clusterbase.OpVer, error) {
-	fd := this.rfd
-	if fd == nil {
-		return clusterbase.OpVer(0), errors.New("closed")
-	}
-	_, err := this.rfd.Read(this.rbuffer)
-	if err != nil {
-		return 0, err
-	}
-	v := binary.BigEndian.Uint64(this.rbuffer)
-	return clusterbase.OpVer(v), nil
-}
-
 func (this *Reader) doRead() (bool, clusterbase.OpVer, []byte, error) {
 	if this.lastver == this.service.lastver {
 		// end of binlog
@@ -68,7 +40,7 @@ func (this *Reader) doRead() (bool, clusterbase.OpVer, []byte, error) {
 	rver := this.lastver + 1
 	if rver > this.info.lastVer {
 		// next binlog file
-		ok, err := this.service.doReaderOpen(this, rver)
+		ok, err := this.service.doOpenRead(this, rver)
 		if err != nil {
 			return false, 0, nil, err
 		}
@@ -78,7 +50,7 @@ func (this *Reader) doRead() (bool, clusterbase.OpVer, []byte, error) {
 		}
 	}
 
-	l, err := this.doReadLength()
+	l, err := this.service.doReadLength(this.rfd, this.rbuffer)
 	if err != nil {
 		return false, 0, nil, err
 	}
@@ -87,7 +59,7 @@ func (this *Reader) doRead() (bool, clusterbase.OpVer, []byte, error) {
 	if err2 != nil {
 		return false, 0, nil, err2
 	}
-	ver, err3 := this.doReadVer()
+	ver, err3 := this.service.doReadVer(this.rfd, this.rbuffer)
 	if err3 != nil {
 		return false, 0, nil, err3
 	}
@@ -122,46 +94,22 @@ func (this *Reader) doSeekFile(fver clusterbase.OpVer) (bool, error) {
 		}
 	}
 	// open correct binlog file
-	ok, err := this.service.doReaderOpen(this, fver)
+	ok, err := this.service.doOpenRead(this, fver)
 	if err != nil {
 		return false, err
 	}
 	return ok, nil
 }
 
-func (this *Reader) doSeekProcess(fver clusterbase.OpVer, num int) (bool, error) {
-	if fver == this.info.beginVer {
-		return true, nil
-	}
-	for i := 0; i < num; i++ {
-		l, err := this.doReadLength()
-		if err != nil {
-			return false, err
-		}
-		_, err = this.rfd.Seek(int64(l), os.SEEK_CUR)
-		if err != nil {
-			return false, err
-		}
-		ver, err2 := this.doReadVer()
-		if err2 != nil {
-			return false, err2
-		}
-		this.lastver = ver
-		if ver >= fver {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
 func (this *Reader) goSeek(ver clusterbase.OpVer, ch chan error) {
-	ok, err := this.doSeekProcess(ver, 10)
+	ok, err := this.service.doSeekProcess(this.rfd, this.info, this.rbuffer, ver, 10)
 	if err != nil {
 		ch <- err
 		close(ch)
 		return
 	}
 	if ok {
+		this.lastver = ver
 		this.seeking = false
 		close(ch)
 		return

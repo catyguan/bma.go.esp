@@ -41,6 +41,24 @@ func TestWrite(t *testing.T) {
 	bl.WaitStop()
 }
 
+func TestTruncate(t *testing.T) {
+	cfg := makeConfig()
+
+	bl := NewBinLog("test", 32, cfg)
+	bl.Run()
+
+	w, _ := bl.NewWriter()
+	ok, err := w.Truncate(16)
+	fmt.Println("truncate", ok, err)
+
+	lver, _ := w.GetVersion()
+	fmt.Println("last version", lver)
+
+	time.Sleep(1 * time.Second)
+	bl.Stop()
+	bl.WaitStop()
+}
+
 func TestRead(t *testing.T) {
 	cfg := makeConfig()
 	cfg.Readonly = true
