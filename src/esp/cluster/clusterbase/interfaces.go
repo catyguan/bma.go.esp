@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// OpVer
 type OpVer int64
 
 func NewOpVer() OpVer {
@@ -33,3 +34,14 @@ func (this OpVerCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error
 	v, err := this.DoDecode(r)
 	return v, err
 }
+
+// Role
+type RoleType int
+
+const (
+	ROLE_NONE     = 0
+	ROLE_LEADER   = 1
+	ROLE_FOLLOWER = 2
+	ROLE_LEANER   = 3
+	ROLE_OBSERVER = 4
+)

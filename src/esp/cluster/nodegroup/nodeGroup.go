@@ -2,11 +2,10 @@ package nodegroup
 
 import (
 	"bmautil/qexec"
+	"esp/cluster/clusterbase"
 	"esp/cluster/election"
 	"esp/cluster/nodeid"
 	"esp/espnet"
-	"fmt"
-	"logger"
 	"time"
 )
 
@@ -59,6 +58,7 @@ func (this *ngSuperior) OnCandidateInvalid(id nodeid.NodeId) {
 	this.ng.onCandidateInvalid(id)
 }
 
+// NodeGroup
 type NodeGroup struct {
 	name    string
 	service *Service
@@ -67,6 +67,8 @@ type NodeGroup struct {
 	candidate *election.Candidate
 	executor  *qexec.QueueExecutor
 	channels  map[nodeid.NodeId]espnet.Channel
+
+	role clusterbase.RoleType
 }
 
 func newNodeGroup(name string, s *Service, cfg *NodeGroupConfig) *NodeGroup {
@@ -80,6 +82,7 @@ func newNodeGroup(name string, s *Service, cfg *NodeGroupConfig) *NodeGroup {
 	this.executor = qexec.NewQueueExecutor(tag, 128, this.requestHandler)
 	this.executor.StopHandler = this.stopHandler
 	this.channels = make(map[nodeid.NodeId]espnet.Channel)
+	this.role = clusterbase.ROLE_NONE
 	return this
 }
 
@@ -124,7 +127,7 @@ func (this *NodeGroup) requestHandler(ev interface{}) (bool, error) {
 }
 
 func (this *NodeGroup) stopHandler() {
-	this.doStopFollow()
+	this.doStopAll()
 	for nid, _ := range this.channels {
 		this.doCloseNode(nid, false)
 	}
@@ -160,108 +163,17 @@ func (this *NodeGroup) doWaitTimeout(id nodeid.NodeId, epoch election.EpochId, v
 	})
 }
 
+func (this *NodeGroup) doStopAll() {
+
+}
+
 // interface impl
-func (this *NodeGroup) asyncPostVote(who nodeid.NodeId, req *election.VoteReq) {
-	ch, ok := this.channels[who]
-	if !ok {
-		err := fmt.Errorf("Node[%d] no channel")
-		this.executor.DoNow("err", func() error {
-			this.candidate.OnVoteResp(nil, err)
-			return nil
-		})
-		return
-	}
-	msg := espnet.NewMessage()
-	addr := msg.GetAddress()
-	addr.Set(espnet.ADDRESS_SERVICE, this.config.ServiceName)
-	addr.Set(espnet.ADDRESS_OBJECT, this.name)
-	req.Write(msg)
-	err := ch.SendMessage(msg)
-	if err != nil {
-		this.executor.DoNow("err", func() error {
-			this.candidate.OnVoteResp(nil, err)
-			return nil
-		})
-		return
-	}
-	this.doWaitTimeout(who, req.Epoch, true)
-}
-
-func (this *NodeGroup) asyncRespVote(who nodeid.NodeId, resp *election.VoteResp) {
-	ch, ok := this.channels[who]
-	if !ok {
-		logger.Warn(tag, "%s respVote fail - Node[%d] no channel", this, who)
-		this.candidate.LeavePartner(who)
-		return
-	}
-	msg := espnet.NewMessage()
-	addr := msg.GetAddress()
-	addr.Set(espnet.ADDRESS_SERVICE, this.config.ServiceName)
-	addr.Set(espnet.ADDRESS_OBJECT, this.name)
-	resp.Write(msg)
-	err := ch.SendMessage(msg)
-	if err != nil {
-		logger.Warn(tag, "%s respVote fail - %s", this, err)
-		this.candidate.LeavePartner(who)
-		return
-	}
-}
-
-func (this *NodeGroup) asyncPostAnnounce(who nodeid.NodeId, req *election.AnnounceReq) {
-	ch, ok := this.channels[who]
-	if !ok {
-		err := fmt.Errorf("Node[%d] no channel")
-		this.executor.DoNow("err", func() error {
-			this.candidate.OnVoteResp(nil, err)
-			return nil
-		})
-		return
-	}
-	msg := espnet.NewMessage()
-	addr := msg.GetAddress()
-	addr.Set(espnet.ADDRESS_SERVICE, this.config.ServiceName)
-	addr.Set(espnet.ADDRESS_OBJECT, this.name)
-	req.Write(msg)
-	err := ch.SendMessage(msg)
-	if err != nil {
-		this.executor.DoNow("err", func() error {
-			this.candidate.OnAnnounceResp(nil, err)
-			return nil
-		})
-	}
-	this.doWaitTimeout(who, req.Epoch, false)
-}
-
-func (this *NodeGroup) asyncRespAnnounce(who nodeid.NodeId, resp *election.AnnounceResp) {
-	ch, ok := this.channels[who]
-	if !ok {
-		logger.Warn(tag, "%s respAnnounce fail - Node[%d] no channel", this, who)
-		this.candidate.LeavePartner(who)
-		return
-	}
-
-	msg := espnet.NewMessage()
-	addr := msg.GetAddress()
-	addr.Set(espnet.ADDRESS_SERVICE, this.config.ServiceName)
-	addr.Set(espnet.ADDRESS_OBJECT, this.name)
-	resp.Write(msg)
-	err := ch.SendMessage(msg)
-	if err != nil {
-		logger.Warn(tag, "%s respAnnounce fail - %s", this, err)
-		this.candidate.LeavePartner(who)
-	}
-}
-
-func (this *NodeGroup) doStartLead(old nodeid.NodeId) error {
-	logger.Debug(tag, "%s doStartLead(%d)", this, old)
-	return nil
-}
-
 func (this *NodeGroup) doStartFollow(lid nodeid.NodeId) error {
 	return nil
 }
 
 func (this *NodeGroup) doStopFollow() error {
+	this.doStopAll()
 	return nil
 }
 
