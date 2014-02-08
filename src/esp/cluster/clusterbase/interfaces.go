@@ -45,3 +45,14 @@ const (
 	ROLE_LEANER   = 3
 	ROLE_OBSERVER = 4
 )
+
+// OpCoder
+type OpCoder interface {
+	Encode(w *byteutil.BytesBufferWriter, v interface{}) error
+	Decode(r *byteutil.BytesBufferReader) (interface{}, error)
+}
+
+// OpHandler
+type OpHandler interface {
+	Execute(op interface{}) error
+}
