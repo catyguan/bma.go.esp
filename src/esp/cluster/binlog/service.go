@@ -155,8 +155,8 @@ func (this *Service) doSetupInfo() error {
 		this.lastver = cver
 	}
 
-	buf := bytes.NewBuffer([]byte{})
 	if logger.EnableDebug(tag) {
+		buf := bytes.NewBuffer([]byte{})
 		for i, info := range this.infos {
 			if i != 0 {
 				buf.WriteString(",")
@@ -164,8 +164,8 @@ func (this *Service) doSetupInfo() error {
 			sz := valutil.MakeSizeString(uint64(info.fileSize))
 			buf.WriteString(fmt.Sprintf("%d[%d-%d,%s]", info.num, info.beginVer, info.lastVer, sz))
 		}
+		logger.Debug(tag, "%s setupInfo %s", this, buf.String())
 	}
-	logger.Debug(tag, "%s setupInfo %s", this, buf.String())
 	return nil
 }
 
