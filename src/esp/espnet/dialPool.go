@@ -97,7 +97,7 @@ func (this *DialPool) Name() string {
 }
 
 func (this *DialPool) String() string {
-	return fmt.Sprintf("DialPool[%s, %d/%d]", this.name, this.count, this.config.MaxSize)
+	return fmt.Sprintf("DialPool[%s, %d:%d/%d]", this.name, len(this.wait), this.count, this.config.MaxSize)
 }
 
 func (this *DialPool) GetSocket(timeout time.Duration, log bool) (*socket.Socket, error) {
@@ -163,7 +163,9 @@ func (this *DialPool) ReturnSocket(sock *socket.Socket) {
 	if c > int32(this.config.MaxSize) {
 		// don't return,close it
 		this.removeSocket(sock)
-		logger.Debug(tag, "%s max, close returnSocket", this)
+		if logger.EnableDebug(tag) {
+			logger.Debug(tag, "Pool[%s] max(%d,%d), close returnSocket", this.name, c, this.config.MaxSize)
+		}
 		return
 	}
 	defer func() {

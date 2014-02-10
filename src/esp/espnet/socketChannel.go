@@ -50,6 +50,7 @@ type SocketChannel struct {
 	propLock sync.Mutex
 	props    map[string]interface{}
 
+	lisGroup     CloseListenerGroup
 	socketReturn func(s *socket.Socket)
 }
 
@@ -102,21 +103,30 @@ func (this *SocketChannel) onReceiveEvent(ev interface{}) error {
 }
 
 func (this *SocketChannel) onSocketClose(sock *socket.Socket) {
+	this.lisGroup.OnClose()
+
 	this.propLock.Lock()
 	defer this.propLock.Unlock()
 	this.props = nil
 }
 
 func (this *SocketChannel) String() string {
-	return this.socket.String()
+	s := this.socket
+	if s == nil {
+		return "closedSocketChannel"
+	}
+	return s.String()
 }
 
 func (this *SocketChannel) GetProperty(name string) (interface{}, bool) {
-	switch name {
-	case PROP_SOCKET_REMOTE_ADDR:
-		return this.socket.Conn.RemoteAddr(), true
-	case PROP_SOCKET_LOCAL_ADDR:
-		return this.socket.Conn.LocalAddr(), true
+	s := this.socket
+	if s != nil {
+		switch name {
+		case PROP_SOCKET_REMOTE_ADDR:
+			return s.Conn.RemoteAddr(), true
+		case PROP_SOCKET_LOCAL_ADDR:
+			return s.Conn.LocalAddr(), true
+		}
 	}
 	if this.coder != nil {
 		if rv, ok := this.coder.GetProperty(name); ok {
@@ -134,74 +144,77 @@ func (this *SocketChannel) GetProperty(name string) (interface{}, bool) {
 }
 
 func (this *SocketChannel) SetProperty(name string, val interface{}) bool {
-	switch name {
-	case PROP_SOCKET_DEAD_LINE:
-		if v, ok := val.(time.Time); ok {
-			this.socket.Conn.SetDeadline(v)
+	s := this.socket
+	if s != nil {
+		switch name {
+		case PROP_SOCKET_DEAD_LINE:
+			if v, ok := val.(time.Time); ok {
+				s.Conn.SetDeadline(v)
+				return true
+			}
+		case PROP_SOCKET_READ_DEAD_LINE:
+			if v, ok := val.(time.Time); ok {
+				s.Conn.SetReadDeadline(v)
+				return true
+			}
+		case PROP_SOCKET_WRITE_DEAD_LINE:
+			if v, ok := val.(time.Time); ok {
+				s.Conn.SetWriteDeadline(v)
+				return true
+			}
+		case PROP_SOCKET_TRACE:
+			s.Trace = valutil.ToInt(val, 0)
 			return true
-		}
-	case PROP_SOCKET_READ_DEAD_LINE:
-		if v, ok := val.(time.Time); ok {
-			this.socket.Conn.SetReadDeadline(v)
-			return true
-		}
-	case PROP_SOCKET_WRITE_DEAD_LINE:
-		if v, ok := val.(time.Time); ok {
-			this.socket.Conn.SetWriteDeadline(v)
-			return true
-		}
-	case PROP_SOCKET_TRACE:
-		this.socket.Trace = valutil.ToInt(val, 0)
-		return true
-	case PROP_SOCKET_TIMEOUT:
-		if v, ok := val.(time.Duration); ok {
-			this.socket.Timeout = v
-			return true
-		}
-	case PROP_SOCKET_READ_BUFFER:
-		v := valutil.ToInt(val, -1)
-		if v > 0 {
-			this.socket.SetReadBuffer(v)
-			return true
-		}
-	case PROP_SOCKET_WRITE_BUFFER:
-		v := valutil.ToInt(val, -1)
-		if v > 0 {
-			this.socket.SetWriteBuffer(v)
-			return true
-		}
-	case PROP_SOCKET_WRITE_CHAN_SIZE:
-		v := valutil.ToInt(val, -1)
-		if v > 0 {
-			this.socket.SetWriteChanSize(v)
-			return true
+		case PROP_SOCKET_TIMEOUT:
+			if v, ok := val.(time.Duration); ok {
+				s.Timeout = v
+				return true
+			}
+		case PROP_SOCKET_READ_BUFFER:
+			v := valutil.ToInt(val, -1)
+			if v > 0 {
+				s.SetReadBuffer(v)
+				return true
+			}
+		case PROP_SOCKET_WRITE_BUFFER:
+			v := valutil.ToInt(val, -1)
+			if v > 0 {
+				s.SetWriteBuffer(v)
+				return true
+			}
+		case PROP_SOCKET_WRITE_CHAN_SIZE:
+			v := valutil.ToInt(val, -1)
+			if v > 0 {
+				s.SetWriteChanSize(v)
+				return true
+			}
 		}
 
-	}
-	if c, ok := this.socket.Conn.(*net.TCPConn); ok {
-		switch name {
-		case PROP_SOCKET_LINGER:
-			v := valutil.ToInt(val, -1)
-			if v >= 0 {
-				c.SetLinger(v)
-				return true
-			}
-		case PROP_SOCKET_KEEP_ALIVE:
-			v, ok := valutil.ToBoolNil(val)
-			if ok {
-				c.SetKeepAlive(v)
-				return true
-			}
-		case PROP_SOCKET_KEEP_ALIVE_PERIOD:
-			if v, ok := val.(time.Duration); ok {
-				c.SetKeepAlivePeriod(v)
-				return true
-			}
-		case PROP_SOCKET_NO_DELAY:
-			v, ok := valutil.ToBoolNil(val)
-			if ok {
-				c.SetNoDelay(v)
-				return true
+		if c, ok := s.Conn.(*net.TCPConn); ok {
+			switch name {
+			case PROP_SOCKET_LINGER:
+				v := valutil.ToInt(val, -1)
+				if v >= 0 {
+					c.SetLinger(v)
+					return true
+				}
+			case PROP_SOCKET_KEEP_ALIVE:
+				v, ok := valutil.ToBoolNil(val)
+				if ok {
+					c.SetKeepAlive(v)
+					return true
+				}
+			case PROP_SOCKET_KEEP_ALIVE_PERIOD:
+				if v, ok := val.(time.Duration); ok {
+					c.SetKeepAlivePeriod(v)
+					return true
+				}
+			case PROP_SOCKET_NO_DELAY:
+				v, ok := valutil.ToBoolNil(val)
+				if ok {
+					c.SetNoDelay(v)
+					return true
+				}
 			}
 		}
 	}
@@ -220,12 +233,17 @@ func (this *SocketChannel) SetProperty(name string, val interface{}) bool {
 }
 
 func (this *SocketChannel) PostEvent(ev interface{}) error {
+	s := this.socket
+	if s == nil {
+		return fmt.Errorf("closed")
+	}
+
 	cctype := CLOSE_CHANNEL_NONE
 	if msg, ok := ev.(*Message); ok {
 		p := msg.ToPackage()
 		ctrl := FrameCoders.Trace
 		if ctrl.Has(p) {
-			info := fmt.Sprintf("%s -> %s", this.socket.Conn.LocalAddr(), this.socket.Conn.RemoteAddr())
+			info := fmt.Sprintf("%s -> %s", s.Conn.LocalAddr(), s.Conn.RemoteAddr())
 			rmsg := ctrl.CreateReply(msg, info)
 			go this.onReceiveEvent(rmsg)
 		}
@@ -234,8 +252,9 @@ func (this *SocketChannel) PostEvent(ev interface{}) error {
 
 	if cctype == CLOSE_CHANNEL_NOW {
 		go func() {
-			if !this.socket.IsClosing() {
-				this.socket.Close()
+			s := this.socket
+			if s != nil && !s.IsClosing() {
+				s.Close()
 			}
 		}()
 		return nil
@@ -255,6 +274,10 @@ func (this *SocketChannel) PostEvent(ev interface{}) error {
 }
 
 func (this *SocketChannel) doPostEvent(ev interface{}, f4send socket.SocketWriteListener) error {
+	s := this.socket
+	if s == nil {
+		return fmt.Errorf("closed")
+	}
 	var req *socket.WriteReq
 	switch v := ev.(type) {
 	case []byte:
@@ -270,7 +293,7 @@ func (this *SocketChannel) doPostEvent(ev interface{}, f4send socket.SocketWrite
 		logger.Debug(tag, "unknow event %T", ev)
 	}
 	if req != nil {
-		return this.socket.Write(req)
+		return s.Write(req)
 	}
 	return nil
 }
@@ -280,13 +303,22 @@ func (this *SocketChannel) AskClose() {
 }
 
 func (this *SocketChannel) Close() {
+	this.propLock.Lock()
+	s := this.socket
+	this.socket = nil
+	this.propLock.Unlock()
+
+	if s == nil {
+		return
+	}
+
 	if this.socketReturn != nil {
-		this.socket.RemoveCloseListener(this.closeId())
+		s.RemoveCloseListener(this.closeId())
 		this.onSocketClose(nil)
-		this.socketReturn(this.socket)
+		this.socketReturn(s)
 	} else {
-		if !this.socket.IsClosing() {
-			this.socket.Close()
+		if !s.IsClosing() {
+			s.Close()
 		}
 	}
 }
@@ -327,13 +359,6 @@ func (this *SocketChannel) SetMessageListner(rec MessageListener) {
 }
 
 func (this *SocketChannel) SetCloseListener(name string, lis func()) error {
-	if lis != nil {
-		slis := func(s *socket.Socket) {
-			lis()
-		}
-		this.socket.AddCloseListener(slis, name)
-	} else {
-		this.socket.RemoveCloseListener(name)
-	}
+	this.lisGroup.Set(name, lis)
 	return nil
 }

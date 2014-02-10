@@ -1,4 +1,4 @@
-package cfprototype
+package espnetdriver
 
 import (
 	"bmautil/socket"
@@ -11,15 +11,15 @@ import (
 	"uprop"
 )
 
-// DialPoolPrototype
-type DialPoolPrototype struct {
+// DialPoolSource
+type DialPoolSource struct {
 	config       *espnet.DialPoolConfig
 	channelCoder string
 	getTimeout   time.Duration
 	trace        int
 }
 
-func (this *DialPoolPrototype) Valid() error {
+func (this *DialPoolSource) Valid() error {
 	if this.config == nil {
 		return errors.New("config empty")
 	}
@@ -35,7 +35,7 @@ func (this *DialPoolPrototype) Valid() error {
 	return nil
 }
 
-func (this *DialPoolPrototype) ToMap() map[string]interface{} {
+func (this *DialPoolSource) ToMap() map[string]interface{} {
 	if this.config != nil {
 		m := valutil.BeanToMap(this.config)
 		m["coder"] = this.channelCoder
@@ -47,7 +47,7 @@ func (this *DialPoolPrototype) ToMap() map[string]interface{} {
 	return nil
 }
 
-func (this *DialPoolPrototype) FromMap(data map[string]interface{}) error {
+func (this *DialPoolSource) FromMap(data map[string]interface{}) error {
 	if data != nil {
 		cfg := new(espnet.DialPoolConfig)
 		valutil.ToBean(data, cfg)
@@ -64,7 +64,7 @@ func (this *DialPoolPrototype) FromMap(data map[string]interface{}) error {
 	return nil
 }
 
-func (this *DialPoolPrototype) ToURI() (*url.URL, error) {
+func (this *DialPoolSource) ToURI() (*url.URL, error) {
 	if err := this.Valid(); err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func (this *DialPoolPrototype) ToURI() (*url.URL, error) {
 	return url.Parse(s)
 }
 
-func (this *DialPoolPrototype) FromURI(u *url.URL) error {
+func (this *DialPoolSource) FromURI(u *url.URL) error {
 	props := this.GetProperties()
 	q := u.Query()
 	for k, _ := range q {
@@ -95,7 +95,7 @@ func (this *DialPoolPrototype) FromURI(u *url.URL) error {
 	return this.Valid()
 }
 
-func (this *DialPoolPrototype) GetProperties() []*uprop.UProperty {
+func (this *DialPoolSource) GetProperties() []*uprop.UProperty {
 	r := make([]*uprop.UProperty, 0)
 	if this.config == nil {
 		this.config = new(espnet.DialPoolConfig)
@@ -165,7 +165,7 @@ func (this *DialPoolPrototype) GetProperties() []*uprop.UProperty {
 	return r
 }
 
-func (this *DialPoolPrototype) CreateChannelFactory(storage ChannelFactoryStorage, name string, start bool) (espnet.ChannelFactory, error) {
+func (this *DialPoolSource) CreateChannelFactory(storage ChannelFactoryStorage, name string, start bool) (espnet.ChannelFactory, error) {
 	if this.config == nil {
 		return nil, errors.New("config empty")
 	}
@@ -184,7 +184,7 @@ func (this *DialPoolPrototype) CreateChannelFactory(storage ChannelFactoryStorag
 	return pool.NewChannelFactory(this.channelCoder, this.getTimeout), nil
 }
 
-func (this *DialPoolPrototype) onSocketAccept(sock *socket.Socket) error {
+func (this *DialPoolSource) onSocketAccept(sock *socket.Socket) error {
 	if this.trace > 0 {
 		sock.Trace = this.trace
 	}

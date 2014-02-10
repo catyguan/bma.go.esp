@@ -1,4 +1,4 @@
-package cfprototype
+package espnetdriver
 
 import (
 	"bmautil/valutil"
@@ -308,7 +308,7 @@ func (this *LoadBalanceChannelFactory) proccess(ilist []*lbItem, ppos, dpos uint
 		pos := (int(ppos) + i) % c
 		item := ilist[pos]
 		f := item.factory
-		if fb, ok := f.(espnet.ChannelFactoryBreakSupport); ok {
+		if fb, ok := f.(espnet.BreakSupport); ok {
 			bv := fb.IsBreak()
 			if bv != nil && *bv {
 				logger.Debug(tag, "%s break, skip", f)
@@ -371,7 +371,7 @@ func (this *LoadBalanceChannelFactory) IsBreak() *bool {
 	unknow := false
 	for _, item := range ilist {
 		f := item.factory
-		if fb, ok := f.(espnet.ChannelFactoryBreakSupport); ok {
+		if fb, ok := f.(espnet.BreakSupport); ok {
 			vp := fb.IsBreak()
 			if vp != nil {
 				if *vp {

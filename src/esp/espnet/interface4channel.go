@@ -17,7 +17,7 @@ type Channel interface {
 	GetProperty(name string) (interface{}, bool)
 	SetProperty(name string, val interface{}) bool
 
-	// 上行的接收器，设置返回原有
+	// 上行的接收器
 	SetMessageListner(rec MessageListener)
 
 	SendMessage(ev *Message) error
@@ -30,7 +30,11 @@ type ChannelFactory interface {
 	NewChannel() (Channel, error)
 }
 
+type ChannelAcceptor interface {
+	SetChannelListener(lis ChannelListener)
+}
+
 // ChannelBreakSupport
-type ChannelFactoryBreakSupport interface {
+type BreakSupport interface {
 	IsBreak() *bool
 }

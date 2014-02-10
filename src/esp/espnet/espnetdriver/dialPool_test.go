@@ -1,4 +1,4 @@
-package cfprototype
+package espnetdriver
 
 import (
 	"boot"
@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func TestPrototype(t *testing.T) {
+func TestDialPoolProperties(t *testing.T) {
 	cfg := make(map[string]string)
 	cfg["max"] = "5"
 	cfg["init"] = "1"
@@ -15,7 +15,7 @@ func TestPrototype(t *testing.T) {
 	cfg["address"] = "127.0.0.1:1080"
 	cfg["retry.inc"] = "128"
 
-	p := new(DialPoolPrototype)
+	p := new(DialPoolSource)
 	props := p.GetProperties()
 	for _, prop := range props {
 		if v, ok := cfg[prop.Name]; ok {
@@ -27,7 +27,7 @@ func TestPrototype(t *testing.T) {
 	fmt.Println(p.ToURI())
 
 	if m == nil {
-		p2 := new(DialPoolPrototype)
+		p2 := new(DialPoolSource)
 		p2.FromMap(m)
 		fmt.Println(p2.config)
 		fmt.Println(p2.config.Retry)

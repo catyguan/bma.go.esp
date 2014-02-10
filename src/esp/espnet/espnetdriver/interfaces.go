@@ -1,4 +1,4 @@
-package cfprototype
+package espnetdriver
 
 import (
 	"esp/espnet"
@@ -11,14 +11,14 @@ const (
 	tag = "CFP"
 )
 
-type Provider4ChannelFactoryPrototype func() ChannelFactoryPrototype
+type ChannelDriver func() ChannelSource
 
 type ChannelFactoryStorage interface {
 	GetStorageVersion() uint64
 	GetChannelFactory(n string) (espnet.ChannelFactory, error)
 }
 
-type ChannelFactoryPrototype interface {
+type ChannelSource interface {
 	GetProperties() []*uprop.UProperty
 
 	Valid() error
@@ -35,37 +35,46 @@ type ChannelFactoryPrototype interface {
 }
 
 var (
-	regProviders map[string]Provider4ChannelFactoryPrototype
+	regDrivers map[string]ChannelDriver
 )
 
 func init() {
-	regProviders = make(map[string]Provider4ChannelFactoryPrototype)
-	regProviders["dial"] = func() ChannelFactoryPrototype {
-		return new(DialPoolPrototype)
+	regDrivers = make(map[string]ChannelDriver)
+	regDrivers["dial"] = func() ChannelSource {
+		return new(DialPoolSource)
 	}
-	regProviders["loadbalance"] = func() ChannelFactoryPrototype {
+	regDrivers["loadbalance"] = func() ChannelSource {
 		return new(LoadBalancePrototype)
 	}
 }
 
-func RegProvider4ChannelFactoryPrototype(n string, p Provider4ChannelFactoryPrototype) {
-	regProviders[n] = p
+func RegChannelDriver(n string, p ChannelDriver) {
+	regDrivers[n] = p
 }
 
-func CreateChannelFactoryPrototype(kind string) ChannelFactoryPrototype {
-	p, _ := regProviders[kind]
+func ListChannelDriver() []string {
+	r := []string{}
+	for k, _ := range regDrivers {
+		r = append(r, k)
+	}
+	return r
+}
+
+// Global ChannelSource Util
+func CreateChannelSource(kind string) ChannelSource {
+	p, _ := regDrivers[kind]
 	if p != nil {
 		return p()
 	}
 	return nil
 }
 
-func BuildChannelFactoryPrototype(s string) (ChannelFactoryPrototype, error) {
+func BuildChannelSource(s string) (ChannelSource, error) {
 	u, err := url.Parse(s)
 	if err != nil {
 		return nil, err
 	}
-	p, _ := regProviders[u.Scheme]
+	p, _ := regDrivers[u.Scheme]
 	if p == nil {
 		return nil, fmt.Errorf("unknow scheme '%s'", u.Scheme)
 	}
@@ -81,10 +90,4 @@ func BuildChannelFactoryPrototype(s string) (ChannelFactoryPrototype, error) {
 	return cfp, nil
 }
 
-func ListChannelFactoryPrototype() []string {
-	r := []string{}
-	for k, _ := range regProviders {
-		r = append(r, k)
-	}
-	return r
-}
+// Global Channel Util
