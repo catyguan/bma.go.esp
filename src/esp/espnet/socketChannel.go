@@ -281,12 +281,12 @@ func (this *SocketChannel) doPostEvent(ev interface{}, f4send socket.SocketWrite
 	var req *socket.WriteReq
 	switch v := ev.(type) {
 	case []byte:
-		req = socket.NewWriteReqB(v, nil)
+		req = socket.NewWriteReqB(v, f4send)
 	case [][]byte:
 		data := byteutil.NewBytesBufferA(v)
-		req = socket.NewWriteReq(data, nil)
+		req = socket.NewWriteReq(data, f4send)
 	case *byteutil.BytesBuffer:
-		req = socket.NewWriteReq(v, nil)
+		req = socket.NewWriteReq(v, f4send)
 	case *socket.WriteReq:
 		req = v
 	default:

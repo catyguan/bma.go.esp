@@ -50,9 +50,12 @@ func TestPChannel(t *testing.T) {
 
 	pch.OnReady()
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 6; i++ {
 		logger.Info("TEST", "send message %d", i)
 		msg := NewMessage()
+		if i%2 == 1 {
+			CloseAfterSend(msg)
+		}
 		err := pch.SendMessage(msg)
 		if err != nil {
 			t.Error(err)
