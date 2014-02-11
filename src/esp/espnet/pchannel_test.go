@@ -19,6 +19,9 @@ func TestPChannel(t *testing.T) {
 	logger.Info("TEST", "new pchannel")
 	pch := NewPChannel("tpch")
 	defer pch.Close()
+	pch.SetCloseListener("", func() {
+		fmt.Println("$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+	})
 
 	if true {
 		cfg := new(DialPoolConfig)
@@ -54,7 +57,8 @@ func TestPChannel(t *testing.T) {
 		logger.Info("TEST", "send message %d", i)
 		msg := NewMessage()
 		if i%2 == 1 {
-			CloseAfterSend(msg)
+			// CloseForce(pch)
+			// CloseAfterSend(msg)
 		}
 		err := pch.SendMessage(msg)
 		if err != nil {

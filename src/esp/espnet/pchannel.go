@@ -18,12 +18,12 @@ type PChannel struct {
 	id   uint32
 	name string
 
-	lock       sync.RWMutex
-	roundRobin uint32
-	items      []*pchItem
-	lis        MessageListener
-	lgroup     CloseListenerGroup
-	closed     bool
+	lock    sync.RWMutex
+	current *pchItem
+	items   []*pchItem
+	lis     MessageListener
+	lgroup  CloseListenerGroup
+	closed  bool
 }
 
 func NewPChannel(n string) *PChannel {
@@ -44,6 +44,9 @@ func (this *PChannel) AddAll(cflist []ChannelFactory) {
 		item.pos = len(this.items)
 		item.cf = cf
 		this.items = append(this.items, item)
+		if this.current == nil {
+			this.current = item
+		}
 	}
 }
 
@@ -51,12 +54,6 @@ func (this *PChannel) OnReady() {
 	for _, item := range this.items {
 		this.reconnect(item)
 	}
-}
-
-func (this *PChannel) Version() uint32 {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	return this.roundRobin
 }
 
 func (this *PChannel) IsBreak() *bool {
@@ -73,21 +70,20 @@ func (this *PChannel) toChannel() Channel {
 }
 
 func (this *PChannel) cur() *pchItem {
-	l := len(this.items)
-	if l < 1 {
-		return nil
-	}
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	v := this.roundRobin
-	ppos := v % uint32(l)
-	return this.items[ppos]
+	return this.current
 }
 
 func (this *PChannel) next() {
+	l := len(this.items)
+	if l == 0 {
+		return
+	}
 	this.lock.Lock()
-	this.roundRobin++
-	this.lock.Unlock()
+	defer this.lock.Unlock()
+	pos := (this.current.pos + 1) % l
+	this.current = this.items[pos]
 }
 
 func (this *PChannel) channel() Channel {
@@ -126,7 +122,7 @@ func (this *PChannel) Name() string {
 }
 
 func (this *PChannel) String() string {
-	return fmt.Sprintf("PChannel[%s]", this.name)
+	return fmt.Sprintf("PChannel[%s,%d]", this.name, len(this.items))
 }
 
 func (this *PChannel) AskClose() {
@@ -169,6 +165,7 @@ func (this *PChannel) SendMessage(ev *Message) error {
 			return nil
 		}
 		logger.Debug(tag, "%s send fail - %s", ch, err)
+		CloseForce(ch)
 	}
 	return fmt.Errorf("breaked channel")
 }
@@ -187,7 +184,7 @@ func (this *PChannel) recover(item *pchItem) {
 			item.ch = nil
 		}
 	}()
-	time.AfterFunc(1*time.Millisecond, func() {
+	time.AfterFunc(5*time.Millisecond, func() {
 		this.reconnect(item)
 	})
 }
@@ -230,6 +227,15 @@ func (this *PChannel) reconnect(item *pchItem) {
 	item.ch = c
 	c.SetMessageListner(this.myMessageListener)
 	c.SetCloseListener("pchannel", func() {
+		iscur := false
+		this.lock.RLock()
+		if this.current == item {
+			iscur = true
+		}
+		this.lock.RUnlock()
+		if iscur {
+			this.lgroup.OnClose()
+		}
 		this.recover(item)
 	})
 	this.lock.Unlock()

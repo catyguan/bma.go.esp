@@ -362,3 +362,9 @@ func (this *SocketChannel) SetCloseListener(name string, lis func()) error {
 	this.lisGroup.Set(name, lis)
 	return nil
 }
+
+func (this *SocketChannel) IsBreak() *bool {
+	s := this.socket
+	v := s == nil || s.IsClosing()
+	return &v
+}
