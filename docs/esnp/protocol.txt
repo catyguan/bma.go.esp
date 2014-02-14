@@ -1,0 +1,135 @@
+【帧结构】
+头:4个字节
+  [1:帧类型][3:体大小]
+体:变长数据，由头的体大小数据决定
+
+【消息结构】
+[帧][帧][帧][帧][结束帧]
+
+结束帧 = 帧类型为0
+  [0][0][0][0]
+  
+除了结束帧必须在消息的最后，其他帧无顺序要求（业务有特别要求除外）
+
+【基础数据编码说明】
+Bool : 布尔值，1字节
+	0 false
+	非0 true
+Int,Int8,Int16,Int32,Int64 : 变长的有符号整型数据
+	编码：
+	uv := uint64(v) << 1
+	if v < 0 {
+		uv = ^uv
+	}
+	return UintXEncoder(uv)
+	解码：
+	ux, n := UintXDecoder(buf)
+	x := int64(ux >> 1)
+	if ux&1 != 0 {
+		x = ^x
+	}
+	return x, n
+Uint,Uint16,Uint32,Uint64 : 变长的无符号整型数据
+	编码：
+	i := 0
+	for v >= 0x80 {
+		buf[i] = byte(v) | 0x80
+		v >>= 7
+		i++
+	}
+	buf[i] = byte(v)
+	return i + 1
+	解码：
+	var x uint64
+	var s uint
+	for i, b := range buf {
+		if b < 0x80 {
+			if i > 9 || i == 9 && b > 1 {
+				return 0, -(i + 1) // overflow
+			}
+			return x | uint64(b)<<s, i + 1
+		}
+		x |= uint64(b&0x7f) << s
+		s += 7
+	}
+	return 0, 0
+Uint8 or Byte : 一个字节的数据
+FixInt16, FixInt32, FixInt64, FixUint16, FixUint32, FixUint64 : 定长的数据
+	编码顺序 BigEndian
+	16为2个字节
+	32为4个字节
+	64为8个字节
+Float32 : 定长的4字节浮点数据
+	根据IEEE 754格式转换为uint32然后编码
+Float64 : 
+	根据IEEE 754格式转换为uint64然后编码
+Bytes : 二进制数据，不定长
+String : UTF8编码字符串，不定长
+LenBytes : 具有长度的二进制数据
+	[字节长度:Int][Bytes]
+LenString : 具有长度的字符串
+	[字节长度:Int][String]
+Var : 类型长度都不定的数据
+	[数据类型:1个字节][数据体]
+	数据类型编号
+	0 - Null
+	1 - Bool
+	2 - Int
+	3 - Int8
+	4 - Int16
+	5 - Int32
+	6 - Int64
+	7 - Uint
+	8 - Uint8
+	9 - Uint16
+	10 - Uint32
+	11 - Uint64
+	13 - Float32
+	14 - Float64
+	17 - LenBytes
+	21 - Map<String, Var>
+		[Map数量:Int][[Key:LenString][Value:Var]] ...
+	23 - List<Var>
+		[List数量:Int][Value:Var]...
+	24 - LenString
+ 
+【帧类型说明】
+MT_END : 0x00
+	结束帧，无帧数据，恒为 [0][0][0][0]
+	
+MT_CLOSE_CHANNEL : 0x09
+	关闭该本通道
+	本地数据帧，不进行具体编码，不应该发送到远端
+	
+MT_SESSION_INFO : 0x10
+	会话数据，当响应该消息的时候，需要复制该帧数据到响应消息里
+	数据体：[名称:LenString][值:Var]
+	
+MT_MESSAGE_ID : 0x11
+	消息的编号，同一通信通道，该编号需要唯一
+	数据体：[FixUint64]
+	
+MT_MESSAGE_KIND : 0x12
+	消息的类型
+		MK_UNKNOW   = 0 无
+		MK_REQUEST  = 1 请求
+		MK_RESPONSE = 2 响应
+		MK_INFO     = 3 消息
+		MK_EVENT    = 4 事件
+	数据体：[Uint8]
+	
+MT_HEADER : 0x13
+	消息头
+	数据体：[名称:LenString][值:Var]
+	
+MT_DATA : 0x14
+MT_PAYLOAD : 0x15
+MT_ADDRESS : 0x16
+MT_SOURCE_ADDRESS : 0x17
+MT_SOURCE_MESSAGE_ID : 0x18
+MT_TRACE : 0x19
+MT_TRACE_RESP : 0x1A
+MT_SEQ_NO : 0x1B
+MT_XDATA : 0x1C
+
+

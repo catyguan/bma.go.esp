@@ -36,17 +36,12 @@ func (this *struct_message_value) Value(dec protpack.Decoder) (interface{}, erro
 
 func (O mvCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
 	if mv, ok := v.(*struct_message_value); ok {
-		var c protpack.Encoder
-		c = Coders.Varinat
-		err := c.Encode(w, mv.name)
-		if err != nil {
-			return err
-		}
-		c = mv.encoder
+		Coders.LenString.DoEncode(w, mv.name)
+		c := mv.encoder
 		if c == nil {
 			c = Coders.Varinat
 		}
-		err = c.Encode(w, mv.value)
+		err := c.Encode(w, mv.value)
 		if err != nil {
 			return err
 		}
@@ -56,14 +51,9 @@ func (O mvCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
 }
 
 func (O mvCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
-	c := Coders.Varinat
-	v1, err := c.Decode(r)
+	s1, err := Coders.LenString.DoDecode(r, 0)
 	if err != nil {
 		return nil, err
-	}
-	s1, ok := v1.(string)
-	if !ok {
-		return nil, errors.New("not messageValue.key:string")
 	}
 	return &struct_message_value{s1, nil, r, nil}, nil
 }

@@ -1,0 +1,11 @@
+{
+	"global" : {
+		"Debug" : true,
+		"GOMAXPROCS" : 3
+	},
+	"application" : {
+		"Remote" : [
+			"127.0.0.1:1080", "127.0.0.1:1081"
+		]
+	}
+}

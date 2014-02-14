@@ -18,7 +18,7 @@ func TestPChannel(t *testing.T) {
 
 	logger.Info("TEST", "new pchannel")
 	pch := NewPChannel("tpch")
-	defer pch.Close()
+	defer pch.Stop()
 	pch.SetCloseListener("", func() {
 		fmt.Println("$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 	})

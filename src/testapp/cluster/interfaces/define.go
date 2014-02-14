@@ -2,7 +2,10 @@ package interfaces
 
 import (
 	"bmautil/byteutil"
+	"bmautil/coder"
 	"fmt"
+
+	"code.google.com/p/goprotobuf/proto"
 )
 
 type Account interface {
@@ -11,56 +14,58 @@ type Account interface {
 	Modify(v int64) (int64, error)
 }
 
-// Account::Get
-type AccountGetReq struct {
-}
-
-func (this AccountGetReq) CodeType() string {
-	return "AccountGetReq"
-}
-func (this AccountGetReq) Encode(w *byteutil.BytesBufferWriter) error {
-	return nil
-}
-func (this AccountGetReq) Decode(r *byteutil.BytesBufferReader) error {
-	return nil
-}
-
-type Resp4AccountResult struct {
-	Value int64
-}
-
-// Account:Modify
-type Req4AccountModify struct {
-}
-type Resp4AccountModify struct {
-	Value int64
-}
-
 // Coder
 type OpCoder4Account int
 
 func (this OpCoder4Account) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
-	Int.DoEncode(w, len(bs))
-	if bs != nil {
-		w.Write(bs)
+	n := ""
+	switch v.(type) {
+	case *Req4AccountGet:
+		n = "rg"
+	case *Req4AccountModify:
+		n = "rm"
+	case *Resp4AccountGet:
+		n = "pg"
+	case *Resp4AccountModify:
+		n = "pm"
+	default:
+		return fmt.Errorf("unknow type '%T'", v)
 	}
+	b, err := proto.Marshal(v.(proto.Message))
+	if err != nil {
+		return err
+	}
+	coder.LenString.DoEncode(w, n)
+	coder.LenBytes.DoEncode(w, b)
 	return nil
 }
 
 func (this OpCoder4Account) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
-	l, err := Int.DoDecode(r)
+	n, err := coder.LenString.DoDecode(r, 1024)
 	if err != nil {
 		return nil, err
 	}
-	if maxlen > 0 && l > maxlen {
-		return nil, fmt.Errorf("too large bytes block - %d/%d", l, maxlen)
+	bs, err2 := coder.LenBytes.DoDecode(r, 0)
+	if err2 != nil {
+		return nil, err2
 	}
-	p := make([]byte, l)
-	if l > 0 {
-		_, err = r.Read(p)
-		if err != nil {
-			return nil, err
-		}
+	var pb proto.Message
+	switch n {
+	case "rg":
+		pb = new(Req4AccountGet)
+	case "pg":
+		pb = new(Resp4AccountGet)
+	case "rm":
+		pb = new(Req4AccountModify)
+	case "pm":
+		pb = new(Resp4AccountModify)
 	}
-	return p, nil
+	if pb == nil {
+		return nil, fmt.Errorf("unknow type '%s'", n)
+	}
+	err3 := proto.Unmarshal(bs, pb)
+	if err3 != nil {
+		return nil, err3
+	}
+	return pb, nil
 }

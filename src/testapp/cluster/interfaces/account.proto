@@ -1,0 +1,18 @@
+package interfaces;
+
+message Req4AccountGet {
+  required string name = 1;
+}
+
+message Resp4AccountGet {
+  required int64 result = 1;
+}
+
+message Req4AccountModify {
+  required string name = 1;
+  required int64 value = 2;
+}
+
+message Resp4AccountModify {
+  required int64 result = 1;
+}

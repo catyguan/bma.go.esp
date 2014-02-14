@@ -63,7 +63,16 @@ func (this *ChannelClient) Close() {
 }
 
 func (this *ChannelClient) IsOpen() bool {
-	return this.C != nil
+	if this.C == nil {
+		return false
+	}
+	if cb, ok := this.C.(BreakSupport); ok {
+		bv := cb.IsBreak()
+		if bv != nil && *bv {
+			return false
+		}
+	}
+	return true
 }
 
 func (this *ChannelClient) SetMessageListner(rec MessageListener) {

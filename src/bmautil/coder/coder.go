@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"reflect"
 )
 
@@ -109,7 +110,7 @@ func (this stringCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, erro
 	return s, nil
 }
 
-// string
+// bool
 type boolCoder bool
 
 func (this boolCoder) DoEncode(w *byteutil.BytesBufferWriter, v bool) {
@@ -211,7 +212,7 @@ func (O uintCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
 	return nil
 }
 func (O uint8Coder) DoEncode(w *byteutil.BytesBufferWriter, v uint8) {
-	w.Write([]byte{v})
+	w.WriteByte(v)
 }
 func (O uint8Coder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
 	O.DoEncode(w, v.(uint8))
@@ -391,6 +392,54 @@ func (O fixUint64Coder) Decode(r *byteutil.BytesBufferReader) (interface{}, erro
 	return O.DoDecode(r)
 }
 
+// Float32 Float64 Coder
+type float32Coder int
+type float64Coder int
+
+func (O float32Coder) DoEncode(w *byteutil.BytesBufferWriter, v float32) {
+	iv := math.Float32bits(v)
+	FixUint32.DoEncode(w, iv)
+}
+func (O float32Coder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
+	O.DoEncode(w, v.(float32))
+	return nil
+}
+func (O float64Coder) DoEncode(w *byteutil.BytesBufferWriter, v float64) {
+	iv := math.Float64bits(v)
+	FixUint64.DoEncode(w, iv)
+}
+func (O float64Coder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
+	O.DoEncode(w, v.(float64))
+	return nil
+}
+
+func (O float32Coder) DoDecode(r io.Reader) (float32, error) {
+	bs := [4]byte{}
+	b := bs[:]
+	_, err := r.Read(b)
+	if err != nil {
+		return 0, err
+	}
+	iv := binary.BigEndian.Uint32(b)
+	return math.Float32frombits(iv), nil
+}
+func (O float32Coder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
+	return O.DoDecode(r)
+}
+func (O float64Coder) DoDecode(r io.Reader) (float64, error) {
+	bs := [8]byte{}
+	b := bs[:]
+	_, err := r.Read(b)
+	if err != nil {
+		return 0, err
+	}
+	iv := binary.BigEndian.Uint64(b)
+	return math.Float64frombits(iv), nil
+}
+func (O float64Coder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
+	return O.DoDecode(r)
+}
+
 // varCoder
 type varCoder int
 
@@ -404,23 +453,20 @@ func (this varCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error 
 
 	if rb, ok := v.([]byte); ok {
 		w.WriteByte(byte(reflect.Array))
-		sz := len(rb)
-		l := binary.PutUvarint(bs, uint64(sz))
-		w.Write(bs[:l])
-		w.Write(rb)
+		LenBytes.DoEncode(w, rb)
 		return nil
 	}
 
 	tv := reflect.ValueOf(v)
-	w.WriteByte(byte(tv.Kind()))
+	tvk := byte(tv.Kind())
+	if tv.Kind() == reflect.Struct {
+		tvk = byte(reflect.Map)
+	}
+	w.WriteByte(tvk)
 	switch tv.Kind() {
 	case reflect.Bool:
 		rv := tv.Bool()
-		if rv {
-			w.WriteByte(1)
-		} else {
-			w.WriteByte(0)
-		}
+		Bool.DoEncode(w, rv)
 		return nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int64:
 		rv := tv.Int()
@@ -432,16 +478,14 @@ func (this varCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error 
 		l := binary.PutUvarint(bs, rv)
 		w.Write(b[:l])
 		return nil
-	case reflect.Float32, reflect.Float64:
-		rv := tv.Float()
-		binary.Write(w, binary.BigEndian, rv)
+	case reflect.Float32:
+		Float32.DoEncode(w, float32(tv.Float()))
+		return nil
+	case reflect.Float64:
+		Float64.DoEncode(w, tv.Float())
 		return nil
 	case reflect.String:
-		rv := tv.String()
-		sb := []byte(rv)
-		l := binary.PutUvarint(bs, uint64(len(sb)))
-		w.Write(bs[:l])
-		w.Write(sb)
+		LenString.DoEncode(w, tv.String())
 		return nil
 	case reflect.Map:
 		if tv.Type().Key().Kind() != reflect.String {
@@ -453,10 +497,7 @@ func (this varCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error 
 		mkeys := tv.MapKeys()
 		for _, k := range mkeys {
 			sval := tv.MapIndex(k)
-			errk := this.Encode(w, k.Interface())
-			if errk != nil {
-				return errk
-			}
+			LenString.DoEncode(w, k.String())
 			err := this.Encode(w, sval.Interface())
 			if err != nil {
 				return err
@@ -485,10 +526,7 @@ func (this varCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error 
 		for i := 0; i < sz; i++ {
 			tfield := vt.Field(i)
 			sval := tv.Field(i)
-			errk := this.Encode(w, tfield.Name)
-			if errk != nil {
-				return errk
-			}
+			LenString.DoEncode(w, tfield.Name)
 			err := this.Encode(w, sval.Interface())
 			if err != nil {
 				return err
@@ -513,26 +551,9 @@ func (this varCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) 
 	case reflect.Invalid:
 		return nil, nil
 	case reflect.Array:
-		l, err := binary.ReadUvarint(r)
-		if err != nil {
-			return nil, err
-		}
-		rv := make([]byte, l)
-		_, err = r.Read(rv)
-		if err != nil {
-			return nil, err
-		}
-		return rv, nil
+		return LenBytes.DoDecode(r, 0)
 	case reflect.Bool:
-		rv, err := r.ReadByte()
-		if err != nil {
-			return nil, err
-		}
-		if rv > 0 {
-			return true, nil
-		} else {
-			return false, nil
-		}
+		return Bool.DoDecode(r)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int64:
 		rv, err := binary.ReadVarint(r)
 		if err != nil {
@@ -565,27 +586,12 @@ func (this varCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) 
 			return uint32(rv), nil
 		}
 		return rv, nil
-	case reflect.Float32, reflect.Float64:
-		var rv float64
-		err := binary.Read(r, binary.BigEndian, &rv)
-		if err != nil {
-			return nil, err
-		}
-		if k == reflect.Float32 {
-			return float32(rv), nil
-		}
-		return rv, nil
+	case reflect.Float32:
+		return Float32.Decode(r)
+	case reflect.Float64:
+		return Float64.Decode(r)
 	case reflect.String:
-		l, err := binary.ReadUvarint(r)
-		if err != nil {
-			return nil, err
-		}
-		rv := make([]byte, l)
-		_, err = r.Read(rv)
-		if err != nil {
-			return nil, err
-		}
-		return string(rv), nil
+		return LenString.Decode(r)
 	case reflect.Map, reflect.Struct:
 		l, err := binary.ReadUvarint(r)
 		if err != nil {
@@ -597,7 +603,7 @@ func (this varCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) 
 
 		rv := make(map[string]interface{})
 		for i := 0; i < int(l); i++ {
-			kv, err2 := this.Decode(r)
+			kv, err2 := LenString.DoDecode(r, 0)
 			if err2 != nil {
 				return nil, err2
 			}
@@ -605,8 +611,7 @@ func (this varCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) 
 			if err3 != nil {
 				return nil, err3
 			}
-			key := kv.(string)
-			rv[key] = fv
+			rv[kv] = fv
 		}
 		return rv, nil
 	case reflect.Slice:
@@ -650,6 +655,8 @@ var (
 	FixUint16 fixUint16Coder
 	FixUint32 fixUint32Coder
 	FixUint64 fixUint64Coder
+	Float32   float32Coder
+	Float64   float64Coder
 	Varinat   varCoder
 	NullValue NULL
 )

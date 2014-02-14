@@ -50,6 +50,11 @@ func (this *PChannel) AddAll(cflist []ChannelFactory) {
 	}
 }
 
+func (this *PChannel) Run() bool {
+	this.OnReady()
+	return true
+}
+
 func (this *PChannel) OnReady() {
 	for _, item := range this.items {
 		this.reconnect(item)
@@ -256,7 +261,7 @@ func (this *PChannel) SetCloseListener(name string, lis func()) error {
 	return nil
 }
 
-func (this *PChannel) Close() bool {
+func (this *PChannel) Stop() bool {
 	this.lock.Lock()
 	this.closed = true
 	tmp := this.items
