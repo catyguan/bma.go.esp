@@ -1,13 +1,15 @@
 【帧结构】
 头:4个字节
-  [1:帧类型][3:体大小]
+	[1:帧类型][3:体大小]
+	例子：帧类型为1，长度为1000
+	[1][0][3][232]
 体:变长数据，由头的体大小数据决定
 
 【消息结构】
 [帧][帧][帧][帧][结束帧]
 
 结束帧 = 帧类型为0
-  [0][0][0][0]
+	[0][0][0][0]
   
 除了结束帧必须在消息的最后，其他帧无顺序要求（业务有特别要求除外）
 
@@ -15,7 +17,7 @@
 Bool : 布尔值，1字节
 	0 false
 	非0 true
-Int,Int8,Int16,Int32,Int64 : 变长的有符号整型数据
+Int,Int8,Int16,Int32,Int64 : 变长的有符号整型数据（需讨论）
 	编码：
 	uv := uint64(v) << 1
 	if v < 0 {
@@ -29,7 +31,7 @@ Int,Int8,Int16,Int32,Int64 : 变长的有符号整型数据
 		x = ^x
 	}
 	return x, n
-Uint,Uint16,Uint32,Uint64 : 变长的无符号整型数据
+Uint,Uint16,Uint32,Uint64 : 变长的无符号整型数据（需讨论）
 	编码：
 	i := 0
 	for v >= 0x80 {
@@ -97,19 +99,23 @@ Var : 类型长度都不定的数据
 MT_END : 0x00
 	结束帧，无帧数据，恒为 [0][0][0][0]
 	
-MT_CLOSE_CHANNEL : 0x09
-	关闭该本通道
-	本地数据帧，不进行具体编码，不应该发送到远端
+MT_RESERVERD ： 0x01 - 0x0F
+	保留范围
 	
 MT_SESSION_INFO : 0x10
 	会话数据，当响应该消息的时候，需要复制该帧数据到响应消息里
+	可有多个
 	数据体：[名称:LenString][值:Var]
 	
 MT_MESSAGE_ID : 0x11
 	消息的编号，同一通信通道，该编号需要唯一
 	数据体：[FixUint64]
+
+MT_SOURCE_MESSAGE_ID : 0x12
+	源消息的编号，可以通过该帧获取响应消息对应的源消息
+	数据体：[FixUint64]	
 	
-MT_MESSAGE_KIND : 0x12
+MT_MESSAGE_KIND : 0x13
 	消息的类型
 		MK_UNKNOW   = 0 无
 		MK_REQUEST  = 1 请求
@@ -118,18 +124,56 @@ MT_MESSAGE_KIND : 0x12
 		MK_EVENT    = 4 事件
 	数据体：[Uint8]
 	
-MT_HEADER : 0x13
-	消息头
+MT_HEADER : 0x14
+	通用消息头，Key：Value模型
+	可有多个
 	数据体：[名称:LenString][值:Var]
 	
-MT_DATA : 0x14
-MT_PAYLOAD : 0x15
-MT_ADDRESS : 0x16
-MT_SOURCE_ADDRESS : 0x17
-MT_SOURCE_MESSAGE_ID : 0x18
+MT_DATA : 0x15
+	通用消息数据，Key：Value模型
+	可有多个
+	数据体：[名称:LenString][值:Var]
+	
+MT_PAYLOAD : 0x16
+	消息有效数据，数据格式由业务解析
+	可有多个
+	数据体：[Bytes]
+	
+MT_ADDRESS : 0x17
+	消息目标地址
+	可有多个
+	数据体：[地址类型:Int][值:LenString]	
+	地址类型
+		ADDRESS_GROUP   = 50 服务组
+		ADDRESS_HOST    = 40 主机(节点)
+		ADDRESS_SERVICE = 30 服务
+		ADDRESS_OP      = 20 操作
+		ADDRESS_OBJECT  = 10 操作关联对象
+	
+MT_SOURCE_ADDRESS : 0x18
+	消息源地址
+	和MT_ADDRESS一样
+	
 MT_TRACE : 0x19
+	TRACE标志，表示该消息需要中间件反馈事件，用于调试用途
+	该标志作用需要考虑是否通用
+	数据体：无
+
 MT_TRACE_RESP : 0x1A
+	TRACE响应标志，表示该消息是TRACE的对应响应消息
+	数据体：无
+	
 MT_SEQ_NO : 0x1B
+	消息序号，当一个业务逻辑需要多个消息才能完成的时候，通过该帧标志消息的序列编号
+	数据体：[当前序号:Int][最大序号:Int]
+		编号从1开始
+		最大序号可以为0，表示未知
+		当前序号 = 最大序号 表示已全部发送（该业务逻辑的最后一个消息）
+	
 MT_XDATA : 0x1C
+	定制消息数据，Id:Value
+	可有多个
+	数据体：[Id:Int][值:业务解析]
 
-
+MT_APP_DEFINE ： 0x80 - 0xFF
+	应用可使用的定制范围

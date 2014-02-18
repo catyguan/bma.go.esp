@@ -19,16 +19,16 @@ type FHeader struct {
 
 func (this *FHeader) Write(buf []byte, pos int) int {
 	buf[pos+0] = byte(this.MessageType)
-	buf[pos+1] = byte(this.Size)
+	buf[pos+1] = byte(this.Size >> 16)
 	buf[pos+2] = byte(this.Size >> 8)
-	buf[pos+3] = byte(this.Size >> 16)
+	buf[pos+3] = byte(this.Size)
 
 	return pos + size_FHEADER
 }
 
 func (this *FHeader) Read(b []byte, pos int) int {
 	this.MessageType = byte(b[pos+0])
-	this.Size = uint32(b[pos+1]) | uint32(b[pos+2])<<8 | uint32(b[pos+3])<<16
+	this.Size = uint32(b[pos+3]) | uint32(b[pos+2])<<8 | uint32(b[pos+1])<<16
 	return pos + size_FHEADER
 }
 
