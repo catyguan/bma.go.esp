@@ -1,7 +1,7 @@
-package espnet
+package socket
 
 import (
-	"bmautil/socket"
+	"boot"
 	"logger"
 	"testing"
 	"time"
@@ -59,7 +59,28 @@ func TestDialRetry(t *testing.T) {
 	logger.Info("TEST", "after  close - %s", pool)
 }
 
-func socketInitor(s *socket.Socket) error {
+func TestSocketServer4Dial(t *testing.T) {
+
+	cfg := new(DialPoolConfig)
+	cfg.Dial.Address = "127.0.0.1:1080"
+	cfg.MaxSize = 1
+	cfg.InitSize = 1
+	pool := NewDialPool("Pool", cfg, socketInitor)
+
+	boot.RuntimeStartRun(pool)
+	// time.Sleep(time.Duration(1) * time.Second)
+
+	ss := NewSocketServer4Dial(pool, 1000)
+	ss.SetAcceptor(func(s *Socket) error {
+		logger.Info("TEST", "accept - %s", s)
+		return nil
+	})
+	time.Sleep(time.Duration(5) * time.Second)
+
+	boot.RuntimeStopCloseClean(pool, false)
+}
+
+func socketInitor(s *Socket) error {
 	s.Trace = 128
 	return nil
 }

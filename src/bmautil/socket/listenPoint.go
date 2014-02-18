@@ -1,8 +1,7 @@
-package espnet
+package socket
 
 import (
 	"bmautil/netutil"
-	"bmautil/socket"
 	"bmautil/syncutil"
 	"config"
 	"logger"
@@ -51,7 +50,7 @@ func (this *ListenConfig) GetBlackList() []string {
 type ListenPoint struct {
 	name       string
 	config     *ListenConfig
-	socketInit socket.SocketInit
+	socketInit SocketInit
 
 	listener   net.Listener
 	closeState syncutil.CloseState
@@ -59,9 +58,11 @@ type ListenPoint struct {
 	// config
 	whiteList []string
 	blackList []string
+
+	acceptor SocketAcceptor
 }
 
-func NewListenPoint(name string, cfg *ListenConfig, sinit socket.SocketInit) *ListenPoint {
+func NewListenPoint(name string, cfg *ListenConfig, sinit SocketInit) *ListenPoint {
 	this := new(ListenPoint)
 	this.name = name
 	this.socketInit = sinit
@@ -137,11 +138,17 @@ func (this *ListenPoint) Run() bool {
 					c.Close()
 					continue
 				}
-				sock := socket.NewSocket(c, 32, 0)
-				err := sock.Start(this.socketInit)
-				if err != nil {
+				sock := NewSocket(c, 32, 0)
+				if err := sock.Start(this.socketInit); err != nil {
 					logger.Debug(tag, "Socket[%s] start fail", sock)
 					return
+				}
+				if this.acceptor != nil {
+					if err := this.acceptor(sock); err != nil {
+						logger.Debug(tag, "Socket[%s] acceptor fail - %s", sock, err)
+						sock.Close()
+						return
+					}
 				}
 			} else {
 				if this.IsClosing() {
@@ -181,4 +188,9 @@ func (this *ListenPoint) IsClosing() bool {
 
 func (this *ListenPoint) WaitClose() {
 	this.closeState.WaitClosed()
+}
+
+// socketServer
+func (this *ListenPoint) SetAcceptor(sa SocketAcceptor) {
+	this.acceptor = sa
 }
