@@ -20,7 +20,7 @@ func Dial(name string, cfg *DialConfig, sinit SocketInit) (*Socket, error) {
 		conn, err = net.DialTimeout(cfg.Net, cfg.Address, time.Duration(cfg.TimeoutMS)*time.Millisecond)
 	}
 	if err != nil {
-		logger.Debug(tag, "dial (%s %s)fail - %s", cfg.Net, cfg.Address, err.Error())
+		logger.Debug(tag, "dial (%s %s) fail - %s", cfg.Net, cfg.Address, err.Error())
 		return nil, err
 	}
 	sock := NewSocket(conn, 32, 0)
