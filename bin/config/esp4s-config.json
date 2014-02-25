@@ -1,0 +1,9 @@
+{
+	"global" : {
+		"Debug" : true,
+		"GOMAXPROCS" : 5
+	},
+	"servicePoint" : {
+		"Port" : "1080"
+	}
+}
