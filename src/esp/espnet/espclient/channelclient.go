@@ -2,6 +2,7 @@ package espclient
 
 import (
 	"bmautil/socket"
+	"bmautil/syncutil"
 	"errors"
 	"esp/espnet/esnp"
 	"esp/espnet/espchannel"
@@ -86,6 +87,35 @@ func (this *ChannelClient) SendMessage(ev *esnp.Message) error {
 		return this.C.SendMessage(ev)
 	}
 	return errors.New("not open")
+}
+
+func (this *ChannelClient) FutureCall(msg *esnp.Message) *syncutil.Future {
+	f, fe := syncutil.NewFuture()
+
+	mid := msg.SureId()
+	this.lock.Lock()
+	if this.waiting == nil {
+		this.waiting = make(map[uint64]ResponseListener)
+	}
+	this.waiting[mid] = func(msg *esnp.Message, err error) error {
+		rmsg := msg
+		rerr := err
+		if msg != nil {
+			merr := msg.ToError()
+			if merr != nil {
+				rerr = merr
+			}
+		}
+		fe(rmsg, rerr)
+		return nil
+	}
+	this.lock.Unlock()
+	err := this.SendMessage(msg)
+	if err != nil {
+		fe(nil, err)
+		return f
+	}
+	return f
 }
 
 func (this *ChannelClient) Call(msg *esnp.Message, to *time.Timer) (*esnp.Message, error) {

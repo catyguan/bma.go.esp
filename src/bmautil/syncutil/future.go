@@ -26,6 +26,7 @@ func NewFuture() (*Future, FutureEnd) {
 
 func (this *Future) Cancel() {
 	atomic.StoreUint32(&this.canceled, 1)
+	this.event.Done()
 }
 
 func (this *Future) Get() (bool, interface{}, error) {
@@ -44,6 +45,64 @@ func (this *Future) IsDone() bool {
 	return this.event.CheckEvent()
 }
 
+func (this *Future) WaitDone() bool {
+	return this.event.WaitEvent()
+}
+
 func (this *Future) Wait(d time.Duration) bool {
 	return this.event.WaitEventTimeout(d)
+}
+
+type FutureGroup struct {
+	c  int
+	fs []*Future
+}
+
+func NewFutureGroup() *FutureGroup {
+	r := new(FutureGroup)
+	r.fs = make([]*Future, 0)
+	return r
+}
+
+func (this *FutureGroup) Add(f *Future) {
+	this.fs = append(this.fs, f)
+}
+
+func (this *FutureGroup) WaitAll(d time.Duration) bool {
+	st := time.Now()
+	d2 := d
+	for _, f := range this.fs {
+		if d2 <= 0 {
+			if !f.IsDone() {
+				return false
+			}
+		} else {
+			if !f.Wait(d2) {
+				return false
+			}
+			d2 = d - time.Now().Sub(st)
+			// fmt.Println("new wait", d2)
+		}
+	}
+	return true
+}
+
+func (this *FutureGroup) GetDone() []*Future {
+	r := make([]*Future, 0)
+	for _, f := range this.fs {
+		if f.IsDone() {
+			r = append(r, f)
+		}
+	}
+	return r
+}
+
+func (this *FutureGroup) GetNotDone() []*Future {
+	r := make([]*Future, 0)
+	for _, f := range this.fs {
+		if !f.IsDone() {
+			r = append(r, f)
+		}
+	}
+	return r
 }
