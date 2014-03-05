@@ -21,7 +21,7 @@ func main() {
 
 	flag.Parse()
 	if flag.NArg() < 2 {
-		fmt.Println("esp4c.exe remoteAddress mode[add]")
+		fmt.Println("esp4c.exe remoteAddress mode[add|madd]")
 		return
 	}
 
