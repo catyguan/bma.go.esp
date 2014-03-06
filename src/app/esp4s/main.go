@@ -5,10 +5,11 @@ import (
 	"boot"
 	"esp/espnet/esnp"
 	"esp/espnet/espservice"
+	"logger"
 )
 
 const (
-	tag = "esp4n"
+	tag = "esp4s"
 )
 
 func main() {
@@ -37,6 +38,7 @@ func H4Add(msg *esnp.Message, rep espservice.ServiceResponser) error {
 			return err2
 		}
 		c := int(a + b)
+		logger.Error(tag, "%d + %d = %d", a, b, c)
 		rmsg := msg.ReplyMessage()
 		rmsg.Datas().Set("c", c)
 		return rep.SendMessage(rmsg)

@@ -14,7 +14,7 @@ import (
 type LenBytesCoder int
 
 func (this LenBytesCoder) DoEncode(w *byteutil.BytesBufferWriter, bs []byte) {
-	Int.DoEncode(w, len(bs))
+	Int32.DoEncode(w, int32(len(bs)))
 	if bs != nil {
 		w.Write(bs)
 	}
@@ -56,7 +56,7 @@ type LenStringCoder int
 
 func (this LenStringCoder) DoEncode(w *byteutil.BytesBufferWriter, v string) {
 	bs := []byte(v)
-	Int.DoEncode(w, len(bs))
+	Int32.DoEncode(w, int32(len(bs)))
 	w.Write(bs)
 }
 
@@ -154,21 +154,18 @@ type uint64Coder int
 func (O intCoder) DoEncode(w *byteutil.BytesBufferWriter, v int) {
 	bs := [10]byte{}
 	b := bs[:]
-	l := binary.PutVarint(b, int64(v))
+	l := binary.PutVarint(b, int64(int32(v)))
 	w.Write(b[:l])
 }
 func (O intCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
 	O.DoEncode(w, v.(int))
 	return nil
 }
-func (O int8Coder) DoEncode(w *byteutil.BytesBufferWriter, v int8) {
-	bs := [10]byte{}
-	b := bs[:]
-	l := binary.PutVarint(b, int64(v))
-	w.Write(b[:l])
+func (O int8Coder) DoEncode(w *byteutil.BytesBufferWriter, v uint8) {
+	w.WriteByte(v)
 }
 func (O int8Coder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
-	O.DoEncode(w, v.(int8))
+	O.DoEncode(w, v.(uint8))
 	return nil
 }
 func (O int16Coder) DoEncode(w *byteutil.BytesBufferWriter, v int16) {
@@ -256,9 +253,8 @@ func (O intCoder) DoDecode(r io.ByteReader) (int, error) {
 func (O intCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
 	return O.DoDecode(r)
 }
-func (O int8Coder) DoDecode(r io.ByteReader) (int8, error) {
-	rv, err := binary.ReadVarint(r)
-	return int8(rv), err
+func (O int8Coder) DoDecode(r io.ByteReader) (uint8, error) {
+	return r.ReadByte()
 }
 func (O int8Coder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
 	return O.DoDecode(r)
@@ -459,8 +455,23 @@ func (this varCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error 
 
 	tv := reflect.ValueOf(v)
 	tvk := byte(tv.Kind())
-	if tv.Kind() == reflect.Struct {
+	switch tv.Kind() {
+	case reflect.Struct:
 		tvk = byte(reflect.Map)
+	case reflect.Int:
+		rv := tv.Int()
+		if rv <= 2147483647 && rv >= -2147483648 {
+			tvk = byte(reflect.Int32)
+		} else {
+			tvk = byte(reflect.Int64)
+		}
+	case reflect.Uint:
+		rv := tv.Uint()
+		if rv <= 0xFFFFFFFF {
+			tvk = byte(reflect.Uint32)
+		} else {
+			tvk = byte(reflect.Uint64)
+		}
 	}
 	w.WriteByte(tvk)
 	switch tv.Kind() {
@@ -468,12 +479,16 @@ func (this varCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error 
 		rv := tv.Bool()
 		Bool.DoEncode(w, rv)
 		return nil
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int64:
+	case reflect.Int8, reflect.Uint8:
+		rv := byte(tv.Uint() & 0xFF)
+		w.WriteByte(rv)
+		return nil
+	case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64:
 		rv := tv.Int()
 		l := binary.PutVarint(bs, rv)
 		w.Write(b[:l])
 		return nil
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+	case reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		rv := tv.Uint()
 		l := binary.PutUvarint(bs, rv)
 		w.Write(b[:l])
@@ -554,7 +569,19 @@ func (this varCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) 
 		return LenBytes.DoDecode(r, 0)
 	case reflect.Bool:
 		return Bool.DoDecode(r)
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int64:
+	case reflect.Int8:
+		b, err := r.ReadByte()
+		if err != nil {
+			return nil, err
+		}
+		return int8(b), nil
+	case reflect.Uint8:
+		b, err := r.ReadByte()
+		if err != nil {
+			return nil, err
+		}
+		return uint8(b), nil
+	case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64:
 		rv, err := binary.ReadVarint(r)
 		if err != nil {
 			return nil, err
@@ -562,15 +589,13 @@ func (this varCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) 
 		switch k {
 		case reflect.Int:
 			return int(rv), nil
-		case reflect.Int8:
-			return int8(rv), nil
 		case reflect.Int16:
 			return int16(rv), nil
 		case reflect.Int32:
 			return int32(rv), nil
 		}
 		return rv, nil
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+	case reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		rv, err := binary.ReadUvarint(r)
 		if err != nil {
 			return nil, err
@@ -578,8 +603,6 @@ func (this varCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) 
 		switch k {
 		case reflect.Uint:
 			return uint(rv), nil
-		case reflect.Uint8:
-			return uint8(rv), nil
 		case reflect.Uint16:
 			return uint16(rv), nil
 		case reflect.Uint32:

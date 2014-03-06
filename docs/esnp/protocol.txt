@@ -17,7 +17,9 @@
 Bool : 布尔值，1字节
 	0 false
 	非0 true
-Int,Int8,Int16,Int32,Int64 : 变长的有符号整型数据（需讨论）
+Int = Int32
+Int8 or Uint8 or Byte : 一个字节的定长数据
+Int16,Int32,Int64 : 变长的有符号整型数据（需讨论）
 	编码：
 	uv := uint64(v) << 1
 	if v < 0 {
@@ -31,7 +33,8 @@ Int,Int8,Int16,Int32,Int64 : 变长的有符号整型数据（需讨论）
 		x = ^x
 	}
 	return x, n
-Uint,Uint16,Uint32,Uint64 : 变长的无符号整型数据（需讨论）
+Uint = Uint32
+Uint16,Uint32,Uint64 : 变长的无符号整型数据（需讨论）
 	编码：
 	i := 0
 	for v >= 0x80 {
@@ -55,7 +58,6 @@ Uint,Uint16,Uint32,Uint64 : 变长的无符号整型数据（需讨论）
 		s += 7
 	}
 	return 0, 0
-Uint8 or Byte : 一个字节的数据
 FixInt16, FixInt32, FixInt64, FixUint16, FixUint32, FixUint64 : 定长的数据
 	编码顺序 BigEndian
 	16为2个字节
