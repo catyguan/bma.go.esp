@@ -17,6 +17,7 @@ func main() {
 
 	mux := espservice.NewServiceMux(nil, nil)
 	mux.AddHandler("add", H4Add)
+	mux.AddHandler("reload", H4Reload)
 
 	goservice := espservice.NewGoService("service", mux.Serve)
 
@@ -43,5 +44,12 @@ func H4Add(msg *esnp.Message, rep espservice.ServiceResponser) error {
 		rmsg.Datas().Set("c", c)
 		return rep.SendMessage(rmsg)
 	}
+	return nil
+}
+
+func H4Reload(msg *esnp.Message, rep espservice.ServiceResponser) error {
+	go func() {
+		boot.Restart()
+	}()
 	return nil
 }

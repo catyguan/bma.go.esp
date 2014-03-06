@@ -49,6 +49,7 @@ func (this *ListenConfig) GetBlackList() []string {
 // ListenPoint
 type ListenPoint struct {
 	name       string
+	initConfig *ListenConfig
 	config     *ListenConfig
 	socketInit SocketInit
 
@@ -66,7 +67,7 @@ func NewListenPoint(name string, cfg *ListenConfig, sinit SocketInit) *ListenPoi
 	this := new(ListenPoint)
 	this.name = name
 	this.socketInit = sinit
-	this.config = cfg
+	this.initConfig = cfg
 	this.closeState.InitCloseState()
 	return this
 }
@@ -84,7 +85,8 @@ func (this *ListenPoint) GetListener() net.Listener {
 }
 
 func (this *ListenPoint) Init() bool {
-	if this.config != nil {
+	if this.initConfig != nil {
+		this.config = this.initConfig
 		return true
 	}
 	cfg := ListenConfig{}
@@ -126,7 +128,9 @@ func (this *ListenPoint) Run() bool {
 	go func() {
 		defer func() {
 			logger.Info(tag, "%s stop (%s %s)", this, this.config.Net, this.config.Address)
-			this.closeState.DoneClose()
+			if this.closeState.IsClosing() {
+				this.closeState.DoneClose()
+			}
 		}()
 		logger.Info(tag, "%s run (%s %s)", this, this.config.Net, this.config.Address)
 		for {
@@ -151,10 +155,7 @@ func (this *ListenPoint) Run() bool {
 					}
 				}
 			} else {
-				if this.IsClosing() {
-					return
-				}
-				logger.Debug(tag, "%s accept fail - ", this, err)
+				return
 			}
 		}
 	}()
@@ -168,6 +169,14 @@ func (this *ListenPoint) Stop() bool {
 
 func (this *ListenPoint) Cleanup() bool {
 	this.WaitClose()
+	return true
+}
+
+func (this *ListenPoint) GraceStop() bool {
+	if this.listener != nil {
+		this.listener.Close()
+		this.listener = nil
+	}
 	return true
 }
 

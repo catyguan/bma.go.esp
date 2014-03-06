@@ -1,5 +1,9 @@
 package boot
 
+type SupportCheckConfig interface {
+	CheckConfig() bool
+}
+
 type SupportInit interface {
 	Init() bool
 }
@@ -14,6 +18,10 @@ type SupportRun interface {
 
 type SupportStop interface {
 	Stop() bool
+}
+
+type SupportGraceStop interface {
+	GraceStop() bool
 }
 
 type SupportClose interface {

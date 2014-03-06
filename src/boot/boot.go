@@ -20,9 +20,11 @@ type Phase uint
 
 const (
 	PREPARE Phase = iota
+	CHECKCONFIG
 	INIT
 	START
 	RUN
+	GRACESTOP
 	STOP
 	CLOSE
 	CLEANUP
@@ -52,12 +54,13 @@ func (ms phaseActionList) Swap(i, j int) {
 }
 
 var (
-	configFile   string
-	maxp         int
-	Chan4Stop    chan bool = make(chan bool, 2)
-	callShutdown sync.Once
-	phaseActions map[Phase]phaseActionList = make(map[Phase]phaseActionList)
-	objects      map[string]interface{}    = make(map[string]interface{})
+	configFile        string
+	currentConfigFile string
+	maxp              int
+	Chan4Stop         chan bool = make(chan bool, 3)
+	callShutdown      sync.Once
+	phaseActions      map[Phase]phaseActionList = make(map[Phase]phaseActionList)
+	objects           map[string]interface{}    = make(map[string]interface{})
 )
 
 func sname(name string, action PhaseAction) string {
@@ -132,6 +135,9 @@ func QuickDefine(o interface{}, name string, install bool) {
 	if name == "" {
 		name = fmt.Sprintf("OBJ_%p", o)
 	}
+	if f, ok := o.(SupportCheckConfig); ok {
+		Define(CHECKCONFIG, name, f.CheckConfig)
+	}
 	if f, ok := o.(SupportInit); ok {
 		Define(INIT, name, f.Init)
 	}
@@ -140,6 +146,9 @@ func QuickDefine(o interface{}, name string, install bool) {
 	}
 	if f, ok := o.(SupportRun); ok {
 		Define(RUN, name, f.Run)
+	}
+	if f, ok := o.(SupportGraceStop); ok {
+		Define(GRACESTOP, name, f.GraceStop)
 	}
 	if f, ok := o.(SupportStop); ok {
 		Define(STOP, name, f.Stop)
@@ -167,6 +176,15 @@ func RuntimeStartRun(o interface{}) bool {
 		}
 	}
 	return true
+}
+
+func RuntimeGrace(o interface{}) {
+	call := func() {
+		if f, ok := o.(SupportGraceStop); ok {
+			f.GraceStop()
+		}
+	}
+	call()
 }
 
 func RuntimeStopCloseClean(o interface{}, wait bool) {
@@ -275,8 +293,15 @@ func Prepare() bool {
 }
 
 func InitAndStart(cfg string) bool {
+	if !loadConfig(cfg) {
+		return false
+	}
+	fmt.Println("boot checking config")
+	if !CheckConfig() {
+		return false
+	}
 	fmt.Println("boot initing")
-	if Init(cfg) {
+	if Init() {
 		fmt.Println("boot starting")
 		if Start() {
 			return true
@@ -288,18 +313,63 @@ func InitAndStart(cfg string) bool {
 	return false
 }
 
-func Init(cfg string) bool {
+func doRestart() bool {
+	fmt.Println("restart initing")
+	if !doActions(INIT, false) {
+		fmt.Println("ERROR: restart init fail")
+		return false
+	}
+	fmt.Println("restart starting")
+	if !Start() {
+		fmt.Println("ERROR: restart start fail")
+		return false
+	}
+	fmt.Println("restart running")
+	if !doActions(RUN, true) {
+		fmt.Println("ERROR: restart run fail")
+		return false
+	}
+	return true
+}
+
+func Restart() bool {
+	tmp := config.ConfigData
+	loadConfig(currentConfigFile)
+	fmt.Println("restart checking config")
+	if !CheckConfig() {
+		fmt.Println("ERROR: restart check config fail, skip!")
+		config.ConfigData = tmp
+		return false
+	}
+	fmt.Println("restart gracestoping")
+	doActions(GRACESTOP, true)
+	if !doRestart() {
+		fmt.Println("ERROR: doRestart fail, stop!")
+		Chan4Stop <- true
+	}
+	return true
+}
+
+func loadConfig(cfg string) bool {
 	if !flag.Parsed() {
 		flag.Parse()
 	}
 	if configFile != "" {
 		cfg = configFile
 	}
+	currentConfigFile = cfg
 	err := config.InitConfig(cfg)
 	if err != nil {
 		return false
 	}
+	return true
+}
 
+func CheckConfig() bool {
+	return doActions(CHECKCONFIG, false)
+}
+
+func Init() bool {
 	// GOMAXPROCS
 	maxpv := maxp
 	if maxpv <= 0 {
@@ -339,8 +409,10 @@ func Run() bool {
 	go func() {
 		s := <-sigc
 		if s == syscall.SIGHUP {
-			// skip HUP
-			fmt.Println("receive SIG =>", s, "SKIP")
+			fmt.Println("receive SIG =>", s, "RESTART")
+			go func() {
+				Restart()
+			}()
 			return
 		}
 		fmt.Println("receive SIG =>", s, "STOP")
