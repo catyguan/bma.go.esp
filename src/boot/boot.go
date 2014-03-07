@@ -12,6 +12,7 @@ import (
 	"runtime/debug"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 )
@@ -57,8 +58,8 @@ var (
 	configFile        string
 	currentConfigFile string
 	maxp              int
-	Chan4Stop         chan bool = make(chan bool, 3)
-	callShutdown      sync.Once
+	stopState         uint32
+	chan4Stop         chan bool                 = make(chan bool, 3)
 	phaseActions      map[Phase]phaseActionList = make(map[Phase]phaseActionList)
 	objects           map[string]interface{}    = make(map[string]interface{})
 )
@@ -77,7 +78,7 @@ func Define(ph Phase, name string, action PhaseAction) {
 		order = 0
 	} else {
 		order = len(plist)
-		if ph >= STOP {
+		if ph >= GRACESTOP {
 			order = -order
 		}
 	}
@@ -285,25 +286,25 @@ func doActions(phase Phase, doAll bool) (r bool) {
 	return
 }
 
-func Prepare() bool {
+func doPrepare() bool {
 	flag.StringVar(&configFile, "config", "", "config file name")
 	flag.IntVar(&maxp, "maxp", 0, "GOMAXPROCS")
 	fmt.Println("boot preparing")
 	return doActions(PREPARE, false)
 }
 
-func InitAndStart(cfg string) bool {
+func doInitAndStart(cfg string) bool {
 	if !loadConfig(cfg) {
 		return false
 	}
 	fmt.Println("boot checking config")
-	if !CheckConfig() {
+	if !doCheckConfig() {
 		return false
 	}
 	fmt.Println("boot initing")
-	if Init() {
+	if doInit() {
 		fmt.Println("boot starting")
-		if Start() {
+		if doStart() {
 			return true
 		}
 		fmt.Println("ERROR: boot start fail")
@@ -313,14 +314,22 @@ func InitAndStart(cfg string) bool {
 	return false
 }
 
-func doRestart() bool {
+func Restart() bool {
+	if atomic.CompareAndSwapUint32(&stopState, 0, 2) {
+		chan4Stop <- true
+		return true
+	}
+	return false
+}
+
+func doRestartInitStartRun() bool {
 	fmt.Println("restart initing")
 	if !doActions(INIT, false) {
 		fmt.Println("ERROR: restart init fail")
 		return false
 	}
 	fmt.Println("restart starting")
-	if !Start() {
+	if !doStart() {
 		fmt.Println("ERROR: restart start fail")
 		return false
 	}
@@ -332,22 +341,22 @@ func doRestart() bool {
 	return true
 }
 
-func Restart() bool {
+func doRestart() bool {
 	tmp := config.ConfigData
 	loadConfig(currentConfigFile)
 	fmt.Println("restart checking config")
-	if !CheckConfig() {
+	if !doCheckConfig() {
 		fmt.Println("ERROR: restart check config fail, skip!")
 		config.ConfigData = tmp
-		return false
+		return true
 	}
 	fmt.Println("restart gracestoping")
 	doActions(GRACESTOP, true)
-	if !doRestart() {
-		fmt.Println("ERROR: doRestart fail, stop!")
-		Chan4Stop <- true
+	if doRestartInitStartRun() {
+		return true
 	}
-	return true
+	fmt.Println("ERROR: doRestart fail, stop!")
+	return false
 }
 
 func loadConfig(cfg string) bool {
@@ -365,11 +374,11 @@ func loadConfig(cfg string) bool {
 	return true
 }
 
-func CheckConfig() bool {
+func doCheckConfig() bool {
 	return doActions(CHECKCONFIG, false)
 }
 
-func Init() bool {
+func doInit() bool {
 	// GOMAXPROCS
 	maxpv := maxp
 	if maxpv <= 0 {
@@ -386,20 +395,31 @@ func Init() bool {
 	return doActions(INIT, false)
 }
 
-func Start() bool {
+func doStart() bool {
 	return doActions(START, false)
 }
 
-func RunAndWait() {
+func doRunAndWait() {
 	fmt.Println("boot running")
-	if !Run() {
+	if !doRun() {
 		fmt.Println("ERROR: boot run fail")
 		return
 	}
-	<-Chan4Stop
+	for {
+		<-chan4Stop
+		st := atomic.LoadUint32(&stopState)
+		if st == 1 {
+			return
+		}
+		if st == 2 {
+			if !doRestart() {
+				return
+			}
+		}
+	}
 }
 
-func Run() bool {
+func doRun() bool {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc,
 		syscall.SIGHUP,
@@ -416,48 +436,48 @@ func Run() bool {
 			return
 		}
 		fmt.Println("receive SIG =>", s, "STOP")
-		Chan4Stop <- true
+		Shutdown()
 	}()
 	return doActions(RUN, true)
 }
 
-func StopAndClean() {
+func doStopAndClean() {
 	fmt.Println("boot stoping")
-	Stop()
+	doStop()
 	fmt.Println("boot closing")
-	Close()
+	doClose()
 	fmt.Println("boot cleanuping")
-	Cleanup()
+	doCleanup()
 	fmt.Println("boot end")
 	time.Sleep(1 * time.Millisecond)
 }
 
-func Stop() {
+func doStop() {
 	doActions(STOP, true)
 }
 
-func Close() {
+func doClose() {
 	doActions(CLOSE, true)
 }
 
-func Cleanup() {
+func doCleanup() {
 	doActions(CLEANUP, true)
 	logger.Close()
 }
 
 func TestGo(cfgFile string, endWaitSec int, funl []func()) {
 	defer func() {
-		StopAndClean()
+		doStopAndClean()
 		UninstallAll()
 	}()
 
-	if !Prepare() {
+	if !doPrepare() {
 		fmt.Println("ERROR: boot prepare fail")
 		return
 	}
-	if InitAndStart(cfgFile) {
+	if doInitAndStart(cfgFile) {
 		fmt.Println("boot running")
-		if !Run() {
+		if !doRun() {
 			fmt.Println("ERROR: boot run fail")
 			return
 		}
@@ -472,24 +492,23 @@ func TestGo(cfgFile string, endWaitSec int, funl []func()) {
 
 func Go(cfgFile string) {
 	defer func() {
-		StopAndClean()
+		doStopAndClean()
 		UninstallAll()
 		os.Exit(1)
 	}()
 
-	if !Prepare() {
+	if !doPrepare() {
 		fmt.Println("ERROR: boot prepare fail")
 		return
 	}
-	if InitAndStart(cfgFile) {
-		RunAndWait()
+	if doInitAndStart(cfgFile) {
+		doRunAndWait()
 	}
 }
 
 func Shutdown() {
-	callShutdown.Do(func() {
-		Chan4Stop <- true
-	})
+	atomic.StoreUint32(&stopState, 1)
+	chan4Stop <- true
 }
 
 func Install(name string, obj interface{}) {

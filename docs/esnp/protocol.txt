@@ -23,14 +23,14 @@ Int16,Int32,Int64 : 变长的有符号整型数据（需讨论）
 	编码：
 	uv := uint64(v) << 1
 	if v < 0 {
-		uv = ^uv
+		uv = ^uv // 取反 ~uv
 	}
 	return UintXEncoder(uv)
 	解码：
 	ux, n := UintXDecoder(buf)
 	x := int64(ux >> 1)
 	if ux&1 != 0 {
-		x = ^x
+		x = ^x // 取反 ~x
 	}
 	return x, n
 Uint = Uint32
@@ -64,9 +64,9 @@ FixInt16, FixInt32, FixInt64, FixUint16, FixUint32, FixUint64 : 定长的数据
 	32为4个字节
 	64为8个字节
 Float32 : 定长的4字节浮点数据
-	根据IEEE 754格式转换为uint32然后编码
-Float64 : 
-	根据IEEE 754格式转换为uint64然后编码
+	根据IEEE 754格式转换为uint32然后FixUint32编码
+Float64 : 定长的8字节浮点数据
+	根据IEEE 754格式转换为uint64然后FixUint64编码
 Bytes : 二进制数据，不定长
 String : UTF8编码字符串，不定长
 LenBytes : 具有长度的二进制数据

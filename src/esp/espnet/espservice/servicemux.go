@@ -39,6 +39,18 @@ func (this *ServiceMux) AddHandler(op string, h ServiceHandler) {
 	this.handlers[op] = h
 }
 
+func (this *ServiceMux) AddServiceHandler(s string, op string, h ServiceHandler) {
+	if this.wlock != nil {
+		this.wlock.Lock()
+		defer this.wlock.Unlock()
+	}
+	k := s + "_" + op
+	this.handlers[k] = h
+	if _, ok := this.handlers[op]; !ok {
+		this.handlers[op] = h
+	}
+}
+
 func (this *ServiceMux) AddMatcher(m ServiceMuxMatch, h ServiceHandler) {
 	if this.wlock != nil {
 		this.wlock.Lock()
@@ -62,10 +74,19 @@ func (this *ServiceMux) Match(msg *esnp.Message) ServiceHandler {
 	}
 	a := msg.GetAddress()
 	if a != nil {
-		s := a.Get(esnp.ADDRESS_OP)
-		if h, ok := this.handlers[s]; ok {
+		s := a.Get(esnp.ADDRESS_SERVICE)
+		op := a.Get(esnp.ADDRESS_OP)
+		if s != "" {
+			if h, ok := this.handlers[s+"_"+op]; ok {
+				if logger.EnableDebug(tag) {
+					logger.Debug(tag, "%s.%s hit :-> %p", s, op, h)
+				}
+				return h
+			}
+		}
+		if h, ok := this.handlers[op]; ok {
 			if logger.EnableDebug(tag) {
-				logger.Debug(tag, "%s hit :-> %p", s, h)
+				logger.Debug(tag, "%s hit :-> %p", op, h)
 			}
 			return h
 		}
