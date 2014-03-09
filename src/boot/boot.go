@@ -274,6 +274,9 @@ func doRestartInitStartRun(ctx *BootContext) bool {
 }
 
 func doRestart() bool {
+	defer func() {
+		atomic.CompareAndSwapUint32(&stopState, 2, 0)
+	}()
 	lcok, co := loadConfig(currentConfigFile)
 	if !lcok {
 		return true
@@ -290,7 +293,6 @@ func doRestart() bool {
 	fmt.Println("restart gracestoping")
 	doActions(GRACESTOP, ctx)
 	if doRestartInitStartRun(ctx) {
-		atomic.CompareAndSwapUint32(&stopState, 2, 0)
 		return true
 	}
 	fmt.Println("ERROR: doRestart fail, stop!")
