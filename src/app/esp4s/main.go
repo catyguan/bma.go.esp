@@ -22,7 +22,7 @@ func main() {
 	goservice := espservice.NewGoService("service", mux.Serve)
 
 	lisPoint := socket.NewListenPoint("servicePoint", nil, goservice.AcceptESP)
-	boot.QuickDefine(lisPoint, "", true)
+	boot.Add(lisPoint, "", true)
 
 	boot.Go(cfile)
 }

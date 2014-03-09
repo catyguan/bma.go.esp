@@ -3,7 +3,8 @@ package socket
 import (
 	"bmautil/netutil"
 	"bmautil/syncutil"
-	"config"
+	"boot"
+	"fmt"
 	"logger"
 	"net"
 	"strings"
@@ -18,12 +19,12 @@ type ListenConfig struct {
 	BlackIp string
 }
 
-func (this *ListenConfig) Valid(name string) error {
+func (this *ListenConfig) Valid() error {
 	if this.Address == "" {
 		if this.Port > 0 {
 			this.Address = logger.Sprintf(":%d", this.Port)
 		} else {
-			return logger.Warn(tag, "ListenConfig '%s' port invalid", name)
+			return fmt.Errorf("ListenConfig port invalid")
 		}
 	}
 	if this.Net == "" {
@@ -44,6 +45,19 @@ func (this *ListenConfig) GetBlackList() []string {
 		return strings.Split(this.BlackIp, ",")
 	}
 	return nil
+}
+
+func (this *ListenConfig) Compare(old *ListenConfig) int {
+	if old == nil {
+		return boot.CCR_NEED_START
+	}
+	if this.Net != old.Net || this.Address != old.Address {
+		return boot.CCR_NEED_START
+	}
+	if this.WhiteIp != old.WhiteIp || this.BlackIp != old.BlackIp {
+		return boot.CCR_CHANGE
+	}
+	return boot.CCR_NONE
 }
 
 // ListenPoint
@@ -84,26 +98,47 @@ func (this *ListenPoint) GetListener() net.Listener {
 	return this.listener
 }
 
-func (this *ListenPoint) Init() bool {
+func (this *ListenPoint) Prepare() {
+}
+func (this *ListenPoint) CheckConfig(ctx *boot.BootContext) bool {
+	if this.initConfig != nil {
+		return true
+	}
+	co := ctx.Config
+	cfg := new(ListenConfig)
+	if !co.GetBeanConfig(this.name, cfg) {
+		logger.Error(tag, "'%s' miss config", this.name)
+		return false
+	}
+	if err := cfg.Valid(); err != nil {
+		logger.Error(tag, "'%s' config error - %s", this.name, err)
+		return false
+	}
+	ccr := boot.NewConfigCheckResult(cfg.Compare(this.config), cfg)
+	ctx.CheckFlag = ccr
+	return true
+}
+
+func (this *ListenPoint) Init(ctx *boot.BootContext) bool {
 	if this.initConfig != nil {
 		this.config = this.initConfig
 		return true
 	}
-	cfg := ListenConfig{}
-	if config.GetBeanConfig(this.name, &cfg) {
-		this.config = &cfg
+	ccr := ctx.CheckResult()
+	if ccr.Type == boot.CCR_NONE {
+		return true
 	}
+	this.config = ccr.Config.(*ListenConfig)
 	return true
 }
 
-func (this *ListenPoint) Start() bool {
-	cfg := this.config
-	err := cfg.Valid(this.name)
-	if err != nil {
-		logger.Warn(tag, "%s config invalid %s", this, err)
-		return false
+func (this *ListenPoint) Start(ctx *boot.BootContext) bool {
+	ccr := ctx.CheckResult()
+	if ccr.Type == boot.CCR_NONE {
+		return true
 	}
 
+	cfg := this.config
 	if this.IsClosing() {
 		return false
 	}
@@ -123,7 +158,12 @@ func (this *ListenPoint) Start() bool {
 	return true
 }
 
-func (this *ListenPoint) Run() bool {
+func (this *ListenPoint) Run(ctx *boot.BootContext) bool {
+	ccr := ctx.CheckResult()
+	if ccr.Type == boot.CCR_NONE {
+		return true
+	}
+
 	lis := this.listener
 	go func() {
 		defer func() {
@@ -162,21 +202,30 @@ func (this *ListenPoint) Run() bool {
 	return true
 }
 
+func (this *ListenPoint) GraceStop(ctx *boot.BootContext) bool {
+	ccr := ctx.CheckResult()
+	if ccr.Type == boot.CCR_NONE {
+		return true
+	}
+
+	if this.listener != nil {
+		this.listener.Close()
+		this.listener = nil
+	}
+	return true
+}
+
 func (this *ListenPoint) Stop() bool {
 	this.AskClose()
 	return true
 }
 
-func (this *ListenPoint) Cleanup() bool {
-	this.WaitClose()
+func (this *ListenPoint) Close() bool {
 	return true
 }
 
-func (this *ListenPoint) GraceStop() bool {
-	if this.listener != nil {
-		this.listener.Close()
-		this.listener = nil
-	}
+func (this *ListenPoint) Cleanup() bool {
+	this.WaitClose()
 	return true
 }
 

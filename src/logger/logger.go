@@ -322,7 +322,7 @@ type beanLogger struct {
 
 func (lc *LoggerConfig) InitLogger() {
 	var beanLogger beanLogger
-	if config.GetBeanConfig("logger", &beanLogger) {
+	if config.Global.GetBeanConfig("logger", &beanLogger) {
 		wlist := beanLogger.Writer
 		if wlist != nil {
 			for _, wobj := range wlist {

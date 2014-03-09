@@ -13,8 +13,10 @@ import (
 
 type ConfigVar func(name string) (string, bool)
 
+type ConfigObject map[string]interface{}
+
 var (
-	ConfigData   map[string]interface{}
+	Global       ConfigObject
 	AppConfigVar ConfigVar
 )
 
@@ -149,11 +151,11 @@ func loadAndParse(ctx context) (map[string]interface{}, error) {
 	return r.(map[string]interface{}), err
 }
 
-func InitConfig(fileName string) error {
+func InitConfig(fileName string) (ConfigObject, error) {
 	return InitAndParseConfig(fileName, AppConfigVar)
 }
 
-func InitAndParseConfig(fileName string, cvar ConfigVar) error {
+func InitAndParseConfig(fileName string, cvar ConfigVar) (ConfigObject, error) {
 	if fileName == "" {
 		fileName = "esp-config.json"
 	}
@@ -162,66 +164,75 @@ func InitAndParseConfig(fileName string, cvar ConfigVar) error {
 	ctx := context{fileName, cvar, make(map[string]string)}
 	temp, err := loadAndParse(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	ConfigData = temp
-	return nil
+	return ConfigObject(temp), nil
 }
 
-func GetBoolConfig(name string, defv bool) bool {
-	if v, f := GetConfig(name); f {
+func (this ConfigObject) GetBoolConfig(name string, defv bool) bool {
+	if v, f := this.GetConfig(name); f {
 		return valutil.ToBool(v, defv)
 	}
 	return defv
 }
 
-func GetIntConfig(name string, defv int) int {
-	if v, f := GetConfig(name); f {
+func (this ConfigObject) GetIntConfig(name string, defv int) int {
+	if v, f := this.GetConfig(name); f {
 		return valutil.ToInt(v, defv)
 	}
 	return defv
 }
 
-func GetFloatConfig(name string, defv float64) float64 {
-	if v, f := GetConfig(name); f {
+func (this ConfigObject) GetFloatConfig(name string, defv float64) float64 {
+	if v, f := this.GetConfig(name); f {
 		return valutil.ToFloat64(v, defv)
 	}
 	return defv
 }
 
-func GetArrayConfig(name string) []interface{} {
-	if v, f := GetConfig(name); f {
+func (this ConfigObject) GetArrayConfig(name string) []interface{} {
+	if v, f := this.GetConfig(name); f {
 		return valutil.ToArray(v)
 	}
 	return nil
 }
 
-func GetMapConfig(name string) map[string]interface{} {
-	if v, f := GetConfig(name); f {
+func (this ConfigObject) GetMapConfig(name string) map[string]interface{} {
+	if v, f := this.GetConfig(name); f {
 		return valutil.ToStringMap(v)
 	}
 	return nil
 }
 
-func GetStringConfig(name string, defv string) string {
-	if v, f := GetConfig(name); f {
+func (this ConfigObject) SubConfig(name string) ConfigObject {
+	if v, f := this.GetConfig(name); f {
+		o := valutil.ToStringMap(v)
+		if o != nil {
+			return ConfigObject(o)
+		}
+	}
+	return nil
+}
+
+func (this ConfigObject) GetStringConfig(name string, defv string) string {
+	if v, f := this.GetConfig(name); f {
 		return valutil.ToString(v, defv)
 	}
 	return defv
 }
 
-func GetBeanConfig(name string, bean interface{}) bool {
-	m := GetMapConfig(name)
+func (this ConfigObject) GetBeanConfig(name string, bean interface{}) bool {
+	m := this.GetMapConfig(name)
 	if m == nil {
 		return false
 	}
 	return valutil.ToBean(m, bean)
 }
 
-func GetConfig(name string) (interface{}, bool) {
+func (this ConfigObject) GetConfig(name string) (interface{}, bool) {
 	nlist := strings.Split(name, ".")
 	var thisv interface{}
-	thisv = ConfigData
+	thisv = map[string]interface{}(this)
 	for _, key := range nlist {
 		switch thisv.(type) {
 		case map[string]interface{}:

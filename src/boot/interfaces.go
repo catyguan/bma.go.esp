@@ -1,37 +1,49 @@
 package boot
 
-type SupportCheckConfig interface {
-	CheckConfig() bool
+import "config"
+
+type BootContext struct {
+	IsRestart bool
+	Config    config.ConfigObject
+	CheckFlag interface{}
 }
 
-type SupportInit interface {
-	Init() bool
+func (this *BootContext) CheckResult() *ConfigCheckResult {
+	return this.CheckFlag.(*ConfigCheckResult)
 }
 
-type SupportStart interface {
-	Start() bool
-}
+type BootObject interface {
+	Prepare()
 
-type SupportRun interface {
-	Run() bool
-}
+	CheckConfig(ctx *BootContext) bool
 
-type SupportStop interface {
+	Init(ctx *BootContext) bool
+	Start(ctx *BootContext) bool
+	Run(ctx *BootContext) bool
+	GraceStop(ctx *BootContext) bool
 	Stop() bool
-}
-
-type SupportGraceStop interface {
-	GraceStop() bool
-}
-
-type SupportClose interface {
 	Close() bool
-}
-
-type SupportCleanup interface {
 	Cleanup() bool
 }
 
 type SupportName interface {
 	Name() string
+}
+
+type ConfigCheckResult struct {
+	Type   int
+	Config interface{}
+}
+
+const (
+	CCR_NEED_START = 0
+	CCR_CHANGE     = 1
+	CCR_NONE       = 2
+)
+
+func NewConfigCheckResult(t int, v interface{}) *ConfigCheckResult {
+	r := new(ConfigCheckResult)
+	r.Type = t
+	r.Config = v
+	return r
 }

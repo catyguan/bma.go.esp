@@ -2,7 +2,6 @@ package boot
 
 import (
 	"config"
-	"errors"
 	"flag"
 	"fmt"
 	"logger"
@@ -10,7 +9,6 @@ import (
 	"os/signal"
 	"runtime"
 	"runtime/debug"
-	"sort"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -31,27 +29,10 @@ const (
 	CLEANUP
 )
 
-type PhaseAction func() bool
-
 type phaseActionInfo struct {
-	phase  Phase
 	name   string
-	action PhaseAction
-	order  int
-}
-
-type phaseActionList []phaseActionInfo
-
-func (ms phaseActionList) Len() int {
-	return len(ms)
-}
-
-func (ms phaseActionList) Less(i, j int) bool {
-	return ms[i].order < ms[j].order
-}
-
-func (ms phaseActionList) Swap(i, j int) {
-	ms[i], ms[j] = ms[j], ms[i]
+	object BootObject
+	flag   interface{}
 }
 
 var (
@@ -59,75 +40,19 @@ var (
 	currentConfigFile string
 	maxp              int
 	stopState         uint32
-	chan4Stop         chan bool                 = make(chan bool, 3)
-	phaseActions      map[Phase]phaseActionList = make(map[Phase]phaseActionList)
-	objects           map[string]interface{}    = make(map[string]interface{})
+	chan4Stop         chan bool              = make(chan bool, 3)
+	phaseActions      []*phaseActionInfo     = make([]*phaseActionInfo, 0)
+	objects           map[string]interface{} = make(map[string]interface{})
 )
 
-func sname(name string, action PhaseAction) string {
+func sname(name string, o interface{}) string {
 	if name == "" {
-		return fmt.Sprintf("%p", action)
+		return fmt.Sprintf("%p", o)
 	}
 	return name
 }
 
-func Define(ph Phase, name string, action PhaseAction) {
-	plist := phaseActions[ph]
-	var order int
-	if plist == nil {
-		order = 0
-	} else {
-		order = len(plist)
-		if ph >= GRACESTOP {
-			order = -order
-		}
-	}
-	DefineOrder(ph, name, action, order)
-}
-
-func find(plist []phaseActionInfo, name string) (int, int) {
-	if plist != nil {
-		for i, info := range plist {
-			if info.name == name {
-				return i, info.order
-			}
-		}
-	}
-	return -1, 0
-}
-
-func DefineAfter(posName string, ph Phase, name string, action PhaseAction) {
-	i, order := find(phaseActions[ph], posName)
-	if i == -1 {
-		panic(errors.New("boot '" + posName + "'' not found"))
-	}
-	order++
-	DefineOrder(ph, name, action, order)
-}
-
-func DefineBefore(posName string, ph Phase, name string, action PhaseAction) {
-	i, order := find(phaseActions[ph], posName)
-	if i == -1 {
-		panic(errors.New("boot '" + posName + "'' not found"))
-	}
-	order--
-	DefineOrder(ph, name, action, order)
-}
-
-func DefineOrder(ph Phase, name string, action PhaseAction, order int) {
-	name = sname(name, action)
-	plist := phaseActions[ph]
-	info := phaseActionInfo{ph, name, action, order}
-	if plist == nil {
-		plist = phaseActionList{info}
-	} else {
-		plist = append(plist, info)
-	}
-	sort.Sort(plist)
-	phaseActions[ph] = plist
-}
-
-func QuickDefine(o interface{}, name string, install bool) {
+func Add(o BootObject, name string, install bool) {
 	if name == "" {
 		if n, ok := o.(SupportName); ok {
 			name = n.Name()
@@ -136,69 +61,36 @@ func QuickDefine(o interface{}, name string, install bool) {
 	if name == "" {
 		name = fmt.Sprintf("OBJ_%p", o)
 	}
-	if f, ok := o.(SupportCheckConfig); ok {
-		Define(CHECKCONFIG, name, f.CheckConfig)
-	}
-	if f, ok := o.(SupportInit); ok {
-		Define(INIT, name, f.Init)
-	}
-	if f, ok := o.(SupportStart); ok {
-		Define(START, name, f.Start)
-	}
-	if f, ok := o.(SupportRun); ok {
-		Define(RUN, name, f.Run)
-	}
-	if f, ok := o.(SupportGraceStop); ok {
-		Define(GRACESTOP, name, f.GraceStop)
-	}
-	if f, ok := o.(SupportStop); ok {
-		Define(STOP, name, f.Stop)
-	}
-	if f, ok := o.(SupportClose); ok {
-		Define(CLOSE, name, f.Close)
-	}
-	if f, ok := o.(SupportCleanup); ok {
-		Define(CLEANUP, name, f.Cleanup)
-	}
+	pa := &phaseActionInfo{name, o, nil}
+	phaseActions = append(phaseActions, pa)
+
 	if install {
 		Install(name, o)
 	}
 }
 
-func RuntimeStartRun(o interface{}) bool {
-	if f, ok := o.(SupportStart); ok {
-		if !f.Start() {
-			return false
-		}
+func RuntimeStartRun(o BootObject) bool {
+	ctx := new(BootContext)
+	ctx.IsRestart = false
+	ctx.Config = config.Global
+	if !o.Start(ctx) {
+		return false
 	}
-	if f, ok := o.(SupportRun); ok {
-		if !f.Run() {
-			return false
-		}
+	if !o.Run(ctx) {
+		return false
 	}
 	return true
 }
 
-func RuntimeGrace(o interface{}) {
-	call := func() {
-		if f, ok := o.(SupportGraceStop); ok {
-			f.GraceStop()
-		}
-	}
-	call()
+func RuntimeGrace(o BootObject) {
+	o.GraceStop(nil)
 }
 
-func RuntimeStopCloseClean(o interface{}, wait bool) {
+func RuntimeStopCloseClean(o BootObject, wait bool) {
 	call := func() {
-		if f, ok := o.(SupportStop); ok {
-			f.Stop()
-		}
-		if f, ok := o.(SupportClose); ok {
-			f.Close()
-		}
-		if f, ok := o.(SupportCleanup); ok {
-			f.Cleanup()
-		}
+		o.Stop()
+		o.Close()
+		o.Cleanup()
 	}
 	if wait {
 		call()
@@ -252,12 +144,12 @@ func Alive() {
 	nrChecker.alive()
 }
 
-func doAction(phase Phase, action PhaseAction) (r bool) {
+func doAction(phase Phase, o BootObject, ctx *BootContext) (r bool) {
 	defer func() {
 		nrChecker.stop()
 		err := recover()
 		if err != nil {
-			fmt.Sprintf("ERROR: boot fail%\n%s\n", err, debug.Stack())
+			fmt.Sprintf("ERROR: doAction fail%\n%s\n", err, debug.Stack())
 			r = false
 		}
 	}()
@@ -265,22 +157,55 @@ func doAction(phase Phase, action PhaseAction) (r bool) {
 	case STOP, CLOSE, CLEANUP:
 		nrChecker.start()
 	}
-	r = action()
+	switch phase {
+	case PREPARE:
+		o.Prepare()
+		r = true
+	case CHECKCONFIG:
+		r = o.CheckConfig(ctx)
+	case INIT:
+		r = o.Init(ctx)
+	case START:
+		r = o.Start(ctx)
+	case RUN:
+		r = o.Run(ctx)
+	case GRACESTOP:
+		r = o.GraceStop(ctx)
+	case STOP:
+		r = o.Stop()
+	case CLOSE:
+		r = o.Close()
+	case CLEANUP:
+		r = o.Cleanup()
+	}
 	return
 }
 
-func doActions(phase Phase, doAll bool) (r bool) {
+func doActions(phase Phase, ctx *BootContext) (r bool) {
 	r = true
-	if alist, ok := phaseActions[phase]; ok {
-		for _, ainfo := range alist {
-			nrChecker.name = ainfo.name
-			if !doAction(phase, ainfo.action) {
+	switch phase {
+	case GRACESTOP, STOP, CLOSE, CLEANUP:
+		nrChecker.start()
+		c := len(phaseActions)
+		for i := c - 1; i >= 0; i-- {
+			ainfo := phaseActions[i]
+			ctx.CheckFlag = ainfo.flag
+			ar := doAction(phase, ainfo.object, ctx)
+			if !ar {
 				r = false
-				if !doAll {
-					fmt.Printf("'%s' return false\n", ainfo.name)
-					return
-				}
 			}
+		}
+	default:
+		for _, ainfo := range phaseActions {
+			nrChecker.name = ainfo.name
+			ctx.CheckFlag = ainfo.flag
+			ar := doAction(phase, ainfo.object, ctx)
+			if !ar {
+				r = false
+				fmt.Printf("'%s' return false\n", ainfo.name)
+				return
+			}
+			ainfo.flag = ctx.CheckFlag
 		}
 	}
 	return
@@ -290,28 +215,34 @@ func doPrepare() bool {
 	flag.StringVar(&configFile, "config", "", "config file name")
 	flag.IntVar(&maxp, "maxp", 0, "GOMAXPROCS")
 	fmt.Println("boot preparing")
-	return doActions(PREPARE, false)
+	ctx := new(BootContext)
+	return doActions(PREPARE, ctx)
 }
 
-func doInitAndStart(cfg string) bool {
-	if !loadConfig(cfg) {
-		return false
+func doInitAndStart(cfg string) (bool, *BootContext) {
+	lcok, co := loadConfig(cfg)
+	if !lcok {
+		return false, nil
 	}
+	config.Global = co
+	ctx := new(BootContext)
+	ctx.Config = co
+
 	fmt.Println("boot checking config")
-	if !doCheckConfig() {
-		return false
+	if !doActions(CHECKCONFIG, ctx) {
+		return false, ctx
 	}
 	fmt.Println("boot initing")
-	if doInit() {
+	if doInit(ctx) {
 		fmt.Println("boot starting")
-		if doStart() {
-			return true
+		if doActions(START, ctx) {
+			return true, ctx
 		}
 		fmt.Println("ERROR: boot start fail")
 	} else {
 		fmt.Println("ERROR: boot init fail")
 	}
-	return false
+	return false, ctx
 }
 
 func Restart() bool {
@@ -322,19 +253,20 @@ func Restart() bool {
 	return false
 }
 
-func doRestartInitStartRun() bool {
+func doRestartInitStartRun(ctx *BootContext) bool {
+	ctx.IsRestart = true
 	fmt.Println("restart initing")
-	if !doActions(INIT, false) {
+	if !doActions(INIT, ctx) {
 		fmt.Println("ERROR: restart init fail")
 		return false
 	}
 	fmt.Println("restart starting")
-	if !doStart() {
+	if !doActions(START, ctx) {
 		fmt.Println("ERROR: restart start fail")
 		return false
 	}
 	fmt.Println("restart running")
-	if !doActions(RUN, true) {
+	if !doActions(RUN, ctx) {
 		fmt.Println("ERROR: restart run fail")
 		return false
 	}
@@ -342,24 +274,30 @@ func doRestartInitStartRun() bool {
 }
 
 func doRestart() bool {
-	tmp := config.ConfigData
-	loadConfig(currentConfigFile)
-	fmt.Println("restart checking config")
-	if !doCheckConfig() {
-		fmt.Println("ERROR: restart check config fail, skip!")
-		config.ConfigData = tmp
+	lcok, co := loadConfig(currentConfigFile)
+	if !lcok {
 		return true
 	}
+	ctx := new(BootContext)
+	ctx.IsRestart = true
+	ctx.Config = co
+	fmt.Println("restart checking config")
+	if !doActions(CHECKCONFIG, ctx) {
+		fmt.Println("ERROR: restart check config fail, skip!")
+		return true
+	}
+	config.Global = co
 	fmt.Println("restart gracestoping")
-	doActions(GRACESTOP, true)
-	if doRestartInitStartRun() {
+	doActions(GRACESTOP, ctx)
+	if doRestartInitStartRun(ctx) {
+		atomic.CompareAndSwapUint32(&stopState, 2, 0)
 		return true
 	}
 	fmt.Println("ERROR: doRestart fail, stop!")
 	return false
 }
 
-func loadConfig(cfg string) bool {
+func loadConfig(cfg string) (bool, config.ConfigObject) {
 	if !flag.Parsed() {
 		flag.Parse()
 	}
@@ -367,41 +305,35 @@ func loadConfig(cfg string) bool {
 		cfg = configFile
 	}
 	currentConfigFile = cfg
-	err := config.InitConfig(cfg)
+	co, err := config.InitConfig(cfg)
 	if err != nil {
-		return false
+		return false, nil
 	}
-	return true
+	return true, co
 }
 
-func doCheckConfig() bool {
-	return doActions(CHECKCONFIG, false)
-}
-
-func doInit() bool {
+func doInit(ctx *BootContext) bool {
 	// GOMAXPROCS
 	maxpv := maxp
 	if maxpv <= 0 {
-		maxpv = config.GetIntConfig("global.GOMAXPROCS", 0)
+		maxpv = config.Global.GetIntConfig("global.GOMAXPROCS", 0)
 	}
 	if maxpv > 0 {
 		fmt.Printf("GOMAXPROCS => %d\n", maxpv)
 		runtime.GOMAXPROCS(maxpv)
 	}
 
-	lcfg := logger.Config()
-	lcfg.InitLogger()
+	if !ctx.IsRestart {
+		lcfg := logger.Config()
+		lcfg.InitLogger()
+	}
 
-	return doActions(INIT, false)
+	return doActions(INIT, ctx)
 }
 
-func doStart() bool {
-	return doActions(START, false)
-}
-
-func doRunAndWait() {
+func doRunAndWait(ctx *BootContext) {
 	fmt.Println("boot running")
-	if !doRun() {
+	if !doRun(ctx) {
 		fmt.Println("ERROR: boot run fail")
 		return
 	}
@@ -419,7 +351,7 @@ func doRunAndWait() {
 	}
 }
 
-func doRun() bool {
+func doRun(ctx *BootContext) bool {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc,
 		syscall.SIGHUP,
@@ -438,36 +370,37 @@ func doRun() bool {
 		fmt.Println("receive SIG =>", s, "STOP")
 		Shutdown()
 	}()
-	return doActions(RUN, true)
+	return doActions(RUN, ctx)
 }
 
-func doStopAndClean() {
+func doStopAndClean(ctx *BootContext) {
 	fmt.Println("boot stoping")
-	doStop()
+	doStop(ctx)
 	fmt.Println("boot closing")
-	doClose()
+	doClose(ctx)
 	fmt.Println("boot cleanuping")
-	doCleanup()
+	doCleanup(ctx)
 	fmt.Println("boot end")
 	time.Sleep(1 * time.Millisecond)
 }
 
-func doStop() {
-	doActions(STOP, true)
+func doStop(ctx *BootContext) {
+	doActions(STOP, ctx)
 }
 
-func doClose() {
-	doActions(CLOSE, true)
+func doClose(ctx *BootContext) {
+	doActions(CLOSE, ctx)
 }
 
-func doCleanup() {
-	doActions(CLEANUP, true)
+func doCleanup(ctx *BootContext) {
+	doActions(CLEANUP, ctx)
 	logger.Close()
 }
 
 func TestGo(cfgFile string, endWaitSec int, funl []func()) {
+	var ctx *BootContext
 	defer func() {
-		doStopAndClean()
+		doStopAndClean(ctx)
 		UninstallAll()
 	}()
 
@@ -475,9 +408,11 @@ func TestGo(cfgFile string, endWaitSec int, funl []func()) {
 		fmt.Println("ERROR: boot prepare fail")
 		return
 	}
-	if doInitAndStart(cfgFile) {
+	ok := false
+	ok, ctx = doInitAndStart(cfgFile)
+	if ok {
 		fmt.Println("boot running")
-		if !doRun() {
+		if !doRun(ctx) {
 			fmt.Println("ERROR: boot run fail")
 			return
 		}
@@ -491,8 +426,9 @@ func TestGo(cfgFile string, endWaitSec int, funl []func()) {
 }
 
 func Go(cfgFile string) {
+	var ctx *BootContext
 	defer func() {
-		doStopAndClean()
+		doStopAndClean(ctx)
 		UninstallAll()
 		os.Exit(1)
 	}()
@@ -501,8 +437,10 @@ func Go(cfgFile string) {
 		fmt.Println("ERROR: boot prepare fail")
 		return
 	}
-	if doInitAndStart(cfgFile) {
-		doRunAndWait()
+	ok := false
+	ok, ctx = doInitAndStart(cfgFile)
+	if ok {
+		doRunAndWait(ctx)
 	}
 }
 
