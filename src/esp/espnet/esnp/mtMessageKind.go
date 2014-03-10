@@ -57,3 +57,13 @@ func (O mt_message_kind) Set(p *Package, val MessageKind) {
 	f := NewFrameV(MT_MESSAGE_KIND, val, O)
 	p.PushFront(f)
 }
+
+func (O mt_message_kind) Sure(p *Package, val MessageKind) {
+	for e := p.Front(); e != nil; e = e.Next() {
+		if e.MessageType() == MT_MESSAGE_KIND {
+			return
+		}
+	}
+	f := NewFrameV(MT_MESSAGE_KIND, val, O)
+	p.PushFront(f)
+}

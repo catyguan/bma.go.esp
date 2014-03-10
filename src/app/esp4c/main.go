@@ -21,7 +21,8 @@ func main() {
 	if flag.NArg() < 2 {
 		fmt.Println("esp4c.exe remoteAddress mode")
 		fmt.Println("\tadd,madd")
-		fmt.Println("\rreload")
+		fmt.Println("\treload")
+		fmt.Println("sample: esp4c.exe 127.0.0.1:1080 add")
 		return
 	}
 

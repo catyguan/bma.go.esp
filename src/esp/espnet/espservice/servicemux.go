@@ -9,12 +9,14 @@ import (
 // ServiceMuxMatch
 type ServiceMuxMatch func(msg *esnp.Message) bool
 
+type opHandlers map[string]ServiceHandler
+
 // ServiceMux
 type ServiceMux struct {
 	wlock    sync.Locker
 	rlock    sync.Locker
 	matchers []muxMatcher
-	handlers map[string]ServiceHandler
+	handlers map[string]opHandlers
 }
 
 type muxMatcher struct {
@@ -27,28 +29,23 @@ func NewServiceMux(wlock sync.Locker, rlock sync.Locker) *ServiceMux {
 	this.wlock = wlock
 	this.rlock = rlock
 	this.matchers = make([]muxMatcher, 0)
-	this.handlers = make(map[string]ServiceHandler)
+	this.handlers = make(map[string]opHandlers)
 	return this
 }
 
-func (this *ServiceMux) AddHandler(op string, h ServiceHandler) {
+func (this *ServiceMux) AddHandler(s string, op string, h ServiceHandler) {
 	if this.wlock != nil {
 		this.wlock.Lock()
 		defer this.wlock.Unlock()
 	}
-	this.handlers[op] = h
-}
-
-func (this *ServiceMux) AddServiceHandler(s string, op string, h ServiceHandler) {
-	if this.wlock != nil {
-		this.wlock.Lock()
-		defer this.wlock.Unlock()
+	var sh opHandlers
+	ok := false
+	sh, ok = this.handlers[s]
+	if !ok {
+		sh = make(opHandlers)
+		this.handlers[s] = sh
 	}
-	k := s + "_" + op
-	this.handlers[k] = h
-	if _, ok := this.handlers[op]; !ok {
-		this.handlers[op] = h
-	}
+	sh[op] = h
 }
 
 func (this *ServiceMux) AddMatcher(m ServiceMuxMatch, h ServiceHandler) {
@@ -76,19 +73,15 @@ func (this *ServiceMux) Match(msg *esnp.Message) ServiceHandler {
 	if a != nil {
 		s := a.Get(esnp.ADDRESS_SERVICE)
 		op := a.Get(esnp.ADDRESS_OP)
-		if s != "" {
-			if h, ok := this.handlers[s+"_"+op]; ok {
-				if logger.EnableDebug(tag) {
-					logger.Debug(tag, "%s.%s hit :-> %p", s, op, h)
+		if s != "" && op != "" {
+			if sh, ok := this.handlers[s]; ok {
+				if h, ok2 := sh[op]; ok2 {
+					if logger.EnableDebug(tag) {
+						logger.Debug(tag, "%s.%s hit :-> %p", s, op, h)
+					}
+					return h
 				}
-				return h
 			}
-		}
-		if h, ok := this.handlers[op]; ok {
-			if logger.EnableDebug(tag) {
-				logger.Debug(tag, "%s hit :-> %p", op, h)
-			}
-			return h
 		}
 	}
 	return nil

@@ -218,8 +218,12 @@ func (this *Message) GetKind() MessageKind {
 	return FrameCoders.MessageKind.Get(this.pack)
 }
 
-func (this *Message) SetKind(mt MessageKind) {
-	FrameCoders.MessageKind.Set(this.pack, mt)
+func (this *Message) SetKind(mk MessageKind) {
+	FrameCoders.MessageKind.Set(this.pack, mk)
+}
+
+func (this *Message) SureKind(mk MessageKind) {
+	FrameCoders.MessageKind.Sure(this.pack, mk)
 }
 
 func (this *Message) Headers() *MessageValues {

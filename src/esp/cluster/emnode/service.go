@@ -2,65 +2,30 @@ package emnode
 
 import (
 	"boot"
-	"esp/cluster/nodeid"
-	"esp/sqlite"
+	"esp/cluster/nodeinfo"
 	"fmt"
 	"logger"
 	"sync"
 )
 
 type Service struct {
-	name       string
-	database   *sqlite.SqliteServer
-	nidService *nodeid.Service
-	nodeId     nodeid.NodeId
+	name            string
+	nodeInfoService *nodeinfo.Service
 
 	lock  sync.RWMutex
 	nodes map[string]*ExecuteManageNode
 }
 
-func NewService(name string, db *sqlite.SqliteServer, nid *nodeid.Service) *Service {
+func NewService(name string, nis *nodeinfo.Service) *Service {
 	this := new(Service)
 	this.name = name
-	this.database = db
-	this.nidService = nid
-	this.groups = make(map[string]*NodeGroup)
+	this.nodeInfoService = nis
+	this.nodes = make(map[string]*ExecuteManageNode)
 	return this
 }
 
 func (this *Service) Name() string {
 	return this.name
-}
-
-type configInfo struct {
-	NodeId uint64
-}
-
-func (this *Service) onNodeIdChange(nodeId nodeid.NodeId) {
-	// TODO
-}
-
-func (this *Service) Start() bool {
-	this.nodeId = this.nidService.GetAndListen("nodegroup_servie_"+this.name, this.onNodeIdChange)
-	return true
-}
-
-func (this *Service) Close() bool {
-	nl := make([]string, 0)
-	this.lock.RLock()
-	for n, _ := range this.groups {
-		nl = append(nl, n)
-	}
-	this.lock.RUnlock()
-
-	for _, n := range nl {
-		this.CloseGroup(n, false)
-	}
-	return true
-}
-
-func (this *Service) GetNodeId() nodeid.NodeId {
-	return this.nodeId
 }
 
 func (this *Service) GetGroup(n string) *NodeGroup {

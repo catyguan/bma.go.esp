@@ -2,7 +2,7 @@ package election
 
 import (
 	"bytes"
-	"esp/cluster/nodeid"
+	"esp/cluster/nodeinfo"
 	"fmt"
 	"logger"
 	"math"
@@ -13,7 +13,7 @@ const (
 )
 
 type waitInfo struct {
-	id    nodeid.NodeId
+	id    nodeinfo.NodeId
 	epoch EpochId
 	vote  bool
 }
@@ -23,24 +23,28 @@ type Candidate struct {
 	state CandidateState
 
 	// voting
-	partners map[nodeid.NodeId]*CandidateState
-	votes    map[nodeid.NodeId]nodeid.NodeId
+	partners map[nodeinfo.NodeId]*CandidateState
+	votes    map[nodeinfo.NodeId]nodeinfo.NodeId
 	waiting  []*waitInfo
 }
 
-func NewCandidate(id nodeid.NodeId, m ISuperior) *Candidate {
+func NewCandidate(id nodeinfo.NodeId, m ISuperior) *Candidate {
 	this := new(Candidate)
 	this.super = m
 	this.state.Id = id
-	this.partners = make(map[nodeid.NodeId]*CandidateState)
+	this.partners = make(map[nodeinfo.NodeId]*CandidateState)
 	this.partners[id] = &this.state
-	this.votes = make(map[nodeid.NodeId]nodeid.NodeId)
+	this.votes = make(map[nodeinfo.NodeId]nodeinfo.NodeId)
 	this.waiting = make([]*waitInfo, 0)
 	return this
 }
 
 func (this *Candidate) String() string {
 	return fmt.Sprintf("%s(%s)", this.super.Name(), &this.state)
+}
+
+func (this *Candidate) GetState() CandidateState {
+	return this.state
 }
 
 func (this *Candidate) changeStatus(st Status) {
@@ -56,7 +60,7 @@ func (this *Candidate) JoinPartner(cs *CandidateState) {
 	_, ok := this.partners[cs.Id]
 	this.partners[cs.Id] = cs
 	if !ok && logger.EnableDebug(tag) {
-		ids := make([]nodeid.NodeId, 0)
+		ids := make([]nodeinfo.NodeId, 0)
 		for nid, _ := range this.partners {
 			ids = append(ids, nid)
 		}
@@ -87,7 +91,7 @@ func (this *Candidate) UpdatePartnerState(st *CandidateState) {
 	}
 }
 
-func (this *Candidate) LeavePartner(id nodeid.NodeId) {
+func (this *Candidate) LeavePartner(id nodeinfo.NodeId) {
 	logger.Debug(tag, "%s leavePartner(%d)", this, id)
 	delete(this.partners, id)
 	delete(this.votes, id)
@@ -107,7 +111,7 @@ func (this *Candidate) LeavePartner(id nodeid.NodeId) {
 			// leader leave
 			this.super.DoStopFollow()
 			this.changeStatus(STATUS_IDLE)
-			this.state.Leader = nodeid.INVALID
+			this.state.Leader = nodeinfo.INVALID
 			this.NewLooking(false)
 		}
 	}
@@ -132,7 +136,7 @@ func (this *Candidate) startLooking(epoch EpochId, renew bool) {
 	for i, _ := range this.waiting {
 		this.waiting[i] = nil
 	}
-	lid := nodeid.INVALID
+	lid := nodeinfo.INVALID
 	if !renew {
 		for _, c := range this.partners {
 			if c.Leader > lid {
@@ -150,37 +154,41 @@ func (this *Candidate) startLooking(epoch EpochId, renew bool) {
 	this.doVote(lid, renew)
 }
 
-func (this *Candidate) doVote(lid nodeid.NodeId, renew bool) {
+func (this *Candidate) doVote(lid nodeinfo.NodeId, renew bool) {
 	logger.Debug(tag, "%s doVote(%d, %v)", this, lid, renew)
-	vreq := new(VoteReq)
-	vreq.CandidateState = this.state
-	vreq.Proposal = lid
-	vreq.Renew = renew
+
+	cs := this.state.Clone()
 
 	this.votes[this.state.Id] = lid
 	if this.checkVotes() {
 		return
 	}
+
+	vreq := new(VoteReq)
+	vreq.State = cs
+	vreq.Proposal = lid
+	vreq.Renew = renew
+
 	for k, _ := range this.partners {
 		if this.state.Id != k {
-			this.newWait(k, vreq.Epoch, true)
+			this.newWait(k, cs.Epoch, true)
 			this.super.AsyncPostVote(k, vreq)
 		}
 	}
 }
 
 func (this *Candidate) OnVoteReq(req *VoteReq) error {
-	logger.Debug(tag, "%s OnVoteReq(id:%d, ep:%d, pr:%d)", this, req.Id, req.Epoch, req.Proposal)
-	this.UpdatePartnerState(&req.CandidateState)
-	if req.Epoch < this.state.Epoch {
-		logger.Debug(tag, "%s reject outdate vote %d", this, req.Epoch)
-		this.super.AsyncRespVote(req.Id, RejectVote(req, &this.state))
+	logger.Debug(tag, "%s OnVoteReq(%v)", this, req)
+	this.UpdatePartnerState(req.State)
+	if req.State.Epoch < this.state.Epoch {
+		logger.Debug(tag, "%s reject outdate vote %d", this, req.State.Epoch)
+		this.super.AsyncRespVote(req.State.Id, RejectVote(req, &this.state))
 		return nil
 	}
-	if req.Epoch > this.state.Epoch || this.state.Status == STATUS_IDLE {
-		this.super.AsyncRespVote(req.Id, AcceptVote(this.state.Id, req))
-		this.keepUp(&req.CandidateState, "voteReq")
-		if this.state.Status == STATUS_LOOKING && this.state.Epoch == req.Epoch {
+	if req.State.Epoch > this.state.Epoch || this.state.Status == STATUS_IDLE {
+		this.super.AsyncRespVote(req.State.Id, AcceptVote(this.state.Id, req))
+		this.keepUp(req.State, "voteReq")
+		if this.state.Status == STATUS_LOOKING && this.state.Epoch == req.State.Epoch {
 			this.putVote(req)
 		}
 		return nil
@@ -189,16 +197,16 @@ func (this *Candidate) OnVoteReq(req *VoteReq) error {
 	// same epoch
 	switch this.state.Status {
 	case STATUS_LOOKING:
-		this.super.AsyncRespVote(req.Id, AcceptVote(this.state.Id, req))
+		this.super.AsyncRespVote(req.State.Id, AcceptVote(this.state.Id, req))
 		this.putVote(req)
 		return nil
 	default:
 		if this.state.Leader == req.Proposal {
-			this.super.AsyncRespVote(req.Id, AcceptVote(this.state.Id, req))
+			this.super.AsyncRespVote(req.State.Id, AcceptVote(this.state.Id, req))
 			return nil
 		} else {
-			logger.Debug(tag, "%s reject finish vote %d", this, req.Epoch)
-			this.super.AsyncRespVote(req.Id, RejectVote(req, &this.state))
+			logger.Debug(tag, "%s reject finish vote %d", this, req.State.Epoch)
+			this.super.AsyncRespVote(req.State.Id, RejectVote(req, &this.state))
 			return nil
 		}
 	}
@@ -231,7 +239,7 @@ func (this *Candidate) OnVoteResp(resp *VoteResp, err error) {
 	}
 	// handle reject
 	this.UpdatePartnerState(resp.State)
-	if this.state.Epoch > resp.State.Epoch {
+	if resp.State != nil && this.state.Epoch > resp.State.Epoch {
 		return
 	}
 	if this.state.Status == STATUS_LOOKING {
@@ -251,22 +259,22 @@ func (this *Candidate) keepUp(st *CandidateState, why string) {
 }
 
 func (this *Candidate) putVote(req *VoteReq) bool {
-	if _, ok := this.partners[req.Id]; !ok {
-		logger.Warn(tag, "%d not partner", req.Id)
+	sid := req.State.Id
+	if _, ok := this.partners[sid]; !ok {
+		logger.Warn(tag, "%d not partner", sid)
 		return false
 	}
-	cs := new(CandidateState)
-	*cs = req.CandidateState
-	this.partners[req.Id] = cs
-	this.votes[req.Id] = req.Proposal
+	cs := req.State.Clone()
+	this.partners[sid] = cs
+	this.votes[sid] = req.Proposal
 	return this.checkVotes()
 }
 
 func (this *Candidate) checkVotes() bool {
 	pn := int(math.Ceil(float64(len(this.partners)) / 2))
-	cts := make(map[nodeid.NodeId]int)
+	cts := make(map[nodeinfo.NodeId]int)
 	total := 0
-	lid := nodeid.INVALID
+	lid := nodeinfo.INVALID
 	for _, vid := range this.votes {
 		v, _ := cts[vid]
 		v = v + 1
@@ -277,7 +285,7 @@ func (this *Candidate) checkVotes() bool {
 		cts[vid] = v
 		total++
 	}
-	if lid != nodeid.INVALID {
+	if lid != nodeinfo.INVALID {
 		this.Announce(lid)
 		return true
 	}
@@ -298,7 +306,7 @@ func (this *Candidate) checkVotes() bool {
 	return false
 }
 
-func (this *Candidate) Announce(lid nodeid.NodeId) {
+func (this *Candidate) Announce(lid nodeinfo.NodeId) {
 	logger.Debug(tag, "%s Annouce(%d)", this, lid)
 	old := this.state.Leader
 	this.state.Leader = lid
@@ -317,40 +325,40 @@ func (this *Candidate) Announce(lid nodeid.NodeId) {
 	for k, _ := range this.partners {
 		if this.state.Id != k {
 			areq := new(AnnounceReq)
-			areq.CandidateState = this.state
-			this.newWait(k, areq.Epoch, false)
+			areq.State = this.state.Clone()
+			this.newWait(k, areq.State.Epoch, false)
 			this.super.AsyncPostAnnounce(k, areq)
 		}
 	}
 }
 
 func (this *Candidate) OnAnnounceReq(req *AnnounceReq) error {
-	logger.Debug(tag, "%s OnAnnounceReq(id:%d, ep:%d, le:%d)", this, req.Id, req.Epoch, req.Leader)
-	this.UpdatePartnerState(&req.CandidateState)
-	if req.Epoch < this.state.Epoch {
-		logger.Debug(tag, "%s reject outdate announce %d", this, req.Epoch)
-		this.super.AsyncRespAnnounce(req.Id, RejectAnnounce(req, &this.state))
+	logger.Debug(tag, "%s OnAnnounceReq(%v)", this, req)
+	this.UpdatePartnerState(req.State)
+	if req.State.Epoch < this.state.Epoch {
+		logger.Debug(tag, "%s reject outdate announce %d", this, req.State.Epoch)
+		this.super.AsyncRespAnnounce(req.State.Id, RejectAnnounce(req, &this.state))
 		return nil
 	}
-	if req.Epoch > this.state.Epoch || this.state.Status == STATUS_IDLE {
-		this.super.AsyncRespAnnounce(req.Id, AcceptAnnounce(this.state.Id, req))
-		this.keepUp(&req.CandidateState, "AnnounceReq")
+	if req.State.Epoch > this.state.Epoch || this.state.Status == STATUS_IDLE {
+		this.super.AsyncRespAnnounce(req.State.Id, AcceptAnnounce(this.state.Id, req))
+		this.keepUp(req.State, "AnnounceReq")
 		return nil
 	}
 
 	// same epoch
 	switch this.state.Status {
 	case STATUS_LOOKING:
-		this.super.AsyncRespAnnounce(req.Id, AcceptAnnounce(this.state.Id, req))
-		this.Announce(req.Leader)
+		this.super.AsyncRespAnnounce(req.State.Id, AcceptAnnounce(this.state.Id, req))
+		this.Announce(req.State.Leader)
 		return nil
 	default:
-		if this.state.Leader == req.Leader {
-			this.super.AsyncRespAnnounce(req.Id, AcceptAnnounce(this.state.Id, req))
+		if this.state.Leader == req.State.Leader {
+			this.super.AsyncRespAnnounce(req.State.Id, AcceptAnnounce(this.state.Id, req))
 			return nil
 		} else {
-			logger.Debug(tag, "%s reject diff announce vote %d:%d", this, req.Epoch, req.Leader)
-			this.super.AsyncRespAnnounce(req.Id, RejectAnnounce(req, &this.state))
+			logger.Debug(tag, "%s reject diff announce vote %d:%d", this, req.State.Epoch, req.State.Leader)
+			this.super.AsyncRespAnnounce(req.State.Id, RejectAnnounce(req, &this.state))
 			this.NewLooking(true)
 			return nil
 		}
@@ -376,13 +384,13 @@ func (this *Candidate) OnAnnounceResp(resp *AnnounceResp, err error) {
 	}
 	// handle reject
 	this.UpdatePartnerState(resp.State)
-	if this.state.Epoch >= resp.State.Epoch {
+	if resp.State != nil && this.state.Epoch >= resp.State.Epoch {
 		return
 	}
 	this.keepUp(resp.State, "AnnounceResp")
 }
 
-func (this *Candidate) newWait(id nodeid.NodeId, epoch EpochId, vote bool) {
+func (this *Candidate) newWait(id nodeinfo.NodeId, epoch EpochId, vote bool) {
 	for i, w := range this.waiting {
 		if w == nil {
 			this.waiting[i] = &waitInfo{id, epoch, vote}
@@ -392,7 +400,7 @@ func (this *Candidate) newWait(id nodeid.NodeId, epoch EpochId, vote bool) {
 	this.waiting = append(this.waiting, &waitInfo{id, epoch, vote})
 }
 
-func (this *Candidate) OnReqTimeout(id nodeid.NodeId, epoch EpochId, vote bool) {
+func (this *Candidate) OnReqTimeout(id nodeinfo.NodeId, epoch EpochId, vote bool) {
 	for _, w := range this.waiting {
 		if w == nil {
 			continue

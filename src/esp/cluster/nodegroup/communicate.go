@@ -2,14 +2,14 @@ package nodegroup
 
 import (
 	"esp/cluster/election"
-	"esp/cluster/nodeid"
-	"esp/espnet"
+	"esp/cluster/nodeinfo"
+	"esp/espnet/esnp"
 	"fmt"
 	"logger"
 )
 
 // impl interface
-func (this *NodeGroup) asyncPostVote(who nodeid.NodeId, req *election.VoteReq) {
+func (this *NodeGroup) asyncPostVote(who nodeinfo.NodeId, req *election.VoteReq) {
 	ch, ok := this.channels[who]
 	if !ok {
 		err := fmt.Errorf("Node[%d] no channel")
@@ -19,11 +19,12 @@ func (this *NodeGroup) asyncPostVote(who nodeid.NodeId, req *election.VoteReq) {
 		})
 		return
 	}
-	msg := espnet.NewMessage()
+	msg := esnp.NewMessage()
 	addr := msg.GetAddress()
-	addr.Set(espnet.ADDRESS_SERVICE, this.config.ServiceName)
-	addr.Set(espnet.ADDRESS_OBJECT, this.name)
+	addr.SetService(this.config.ServiceName)
+	addr.SetObject(this.name)
 	req.Write(msg)
+	msg.SetKind(esnp.MK_EVENT)
 	err := ch.SendMessage(msg)
 	if err != nil {
 		this.executor.DoNow("err", func() error {
@@ -32,21 +33,22 @@ func (this *NodeGroup) asyncPostVote(who nodeid.NodeId, req *election.VoteReq) {
 		})
 		return
 	}
-	this.doWaitTimeout(who, req.Epoch, true)
+	this.doWaitTimeout(who, req.State.Epoch, true)
 }
 
-func (this *NodeGroup) asyncRespVote(who nodeid.NodeId, resp *election.VoteResp) {
+func (this *NodeGroup) asyncRespVote(who nodeinfo.NodeId, resp *election.VoteResp) {
 	ch, ok := this.channels[who]
 	if !ok {
 		logger.Warn(tag, "%s respVote fail - Node[%d] no channel", this, who)
 		this.candidate.LeavePartner(who)
 		return
 	}
-	msg := espnet.NewMessage()
+	msg := esnp.NewMessage()
 	addr := msg.GetAddress()
-	addr.Set(espnet.ADDRESS_SERVICE, this.config.ServiceName)
-	addr.Set(espnet.ADDRESS_OBJECT, this.name)
+	addr.SetService(this.config.ServiceName)
+	addr.SetObject(this.name)
 	resp.Write(msg)
+	msg.SetKind(esnp.MK_EVENT)
 	err := ch.SendMessage(msg)
 	if err != nil {
 		logger.Warn(tag, "%s respVote fail - %s", this, err)
@@ -55,7 +57,7 @@ func (this *NodeGroup) asyncRespVote(who nodeid.NodeId, resp *election.VoteResp)
 	}
 }
 
-func (this *NodeGroup) asyncPostAnnounce(who nodeid.NodeId, req *election.AnnounceReq) {
+func (this *NodeGroup) asyncPostAnnounce(who nodeinfo.NodeId, req *election.AnnounceReq) {
 	ch, ok := this.channels[who]
 	if !ok {
 		err := fmt.Errorf("Node[%d] no channel")
@@ -65,11 +67,12 @@ func (this *NodeGroup) asyncPostAnnounce(who nodeid.NodeId, req *election.Announ
 		})
 		return
 	}
-	msg := espnet.NewMessage()
+	msg := esnp.NewMessage()
 	addr := msg.GetAddress()
-	addr.Set(espnet.ADDRESS_SERVICE, this.config.ServiceName)
-	addr.Set(espnet.ADDRESS_OBJECT, this.name)
+	addr.SetService(this.config.ServiceName)
+	addr.SetObject(this.name)
 	req.Write(msg)
+	msg.SetKind(esnp.MK_EVENT)
 	err := ch.SendMessage(msg)
 	if err != nil {
 		this.executor.DoNow("err", func() error {
@@ -80,7 +83,7 @@ func (this *NodeGroup) asyncPostAnnounce(who nodeid.NodeId, req *election.Announ
 	this.doWaitTimeout(who, req.Epoch, false)
 }
 
-func (this *NodeGroup) asyncRespAnnounce(who nodeid.NodeId, resp *election.AnnounceResp) {
+func (this *NodeGroup) asyncRespAnnounce(who nodeinfo.NodeId, resp *election.AnnounceResp) {
 	ch, ok := this.channels[who]
 	if !ok {
 		logger.Warn(tag, "%s respAnnounce fail - Node[%d] no channel", this, who)
@@ -88,11 +91,12 @@ func (this *NodeGroup) asyncRespAnnounce(who nodeid.NodeId, resp *election.Annou
 		return
 	}
 
-	msg := espnet.NewMessage()
+	msg := esnp.NewMessage()
 	addr := msg.GetAddress()
-	addr.Set(espnet.ADDRESS_SERVICE, this.config.ServiceName)
-	addr.Set(espnet.ADDRESS_OBJECT, this.name)
+	addr.SetService(this.config.ServiceName)
+	addr.SetObject(this.name)
 	resp.Write(msg)
+	msg.SetKind(esnp.MK_EVENT)
 	err := ch.SendMessage(msg)
 	if err != nil {
 		logger.Warn(tag, "%s respAnnounce fail - %s", this, err)

@@ -15,11 +15,11 @@ func doAdd(address string) {
 	defer c.Close()
 
 	msg := esnp.NewMessage()
-	msg.GetAddress().Set(esnp.ADDRESS_OP, "add")
+	msg.GetAddress().SetCall("test", "add")
 	ds := msg.Datas()
 	ds.Set("a", 1)
 	ds.Set("b", 2)
-	rmsg, err := c.Call(msg, nil)
+	rmsg, err := c.Call(msg, time.NewTimer(3*time.Second))
 	if err != nil {
 		logger.Warn(tag, "call 'add' fail - %s", err)
 		return
@@ -44,7 +44,7 @@ func doMAdd(address string) {
 	var f2 *syncutil.Future
 	if true {
 		msg := esnp.NewMessage()
-		msg.GetAddress().Set(esnp.ADDRESS_OP, "add")
+		msg.GetAddress().SetCall("test", "add")
 		ds := msg.Datas()
 		ds.Set("a", 1)
 		ds.Set("b", 2)
@@ -52,7 +52,7 @@ func doMAdd(address string) {
 	}
 	if true {
 		msg := esnp.NewMessage()
-		msg.GetAddress().Set(esnp.ADDRESS_OP, "add")
+		msg.GetAddress().SetCall("test", "add")
 		ds := msg.Datas()
 		ds.Set("a", 3)
 		ds.Set("b", 4)
@@ -63,7 +63,7 @@ func doMAdd(address string) {
 	fg.Add(f1)
 	fg.Add(f2)
 
-	if !fg.WaitAll(1 * time.Second) {
+	if !fg.WaitAll(3 * time.Second) {
 		logger.Error(tag, "call 'add' fail timeout")
 		return
 	}

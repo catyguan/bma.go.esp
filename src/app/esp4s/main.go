@@ -16,8 +16,8 @@ func main() {
 	cfile := "config/esp4s-config.json"
 
 	mux := espservice.NewServiceMux(nil, nil)
-	mux.AddHandler("add", H4Add)
-	mux.AddHandler("reload", H4Reload)
+	mux.AddHandler("test", "add", H4Add)
+	mux.AddHandler("sys", "reload", H4Reload)
 
 	goservice := espservice.NewGoService("service", mux.Serve)
 

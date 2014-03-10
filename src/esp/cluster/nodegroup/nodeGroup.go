@@ -4,8 +4,8 @@ import (
 	"bmautil/qexec"
 	"esp/cluster/clusterbase"
 	"esp/cluster/election"
-	"esp/cluster/nodeid"
-	"esp/espnet"
+	"esp/cluster/nodeinfo"
+	"esp/espnet/espchannel"
 	"time"
 )
 
@@ -26,27 +26,27 @@ func (this *ngSuperior) Name() string {
 	return this.ng.Name()
 }
 
-func (this *ngSuperior) AsyncPostVote(who nodeid.NodeId, vote *election.VoteReq) {
+func (this *ngSuperior) AsyncPostVote(who nodeinfo.NodeId, vote *election.VoteReq) {
 	this.ng.asyncPostVote(who, vote)
 }
 
-func (this *ngSuperior) AsyncRespVote(who nodeid.NodeId, resp *election.VoteResp) {
+func (this *ngSuperior) AsyncRespVote(who nodeinfo.NodeId, resp *election.VoteResp) {
 	this.ng.asyncRespVote(who, resp)
 }
 
-func (this *ngSuperior) AsyncPostAnnounce(who nodeid.NodeId, ann *election.AnnounceReq) {
+func (this *ngSuperior) AsyncPostAnnounce(who nodeinfo.NodeId, ann *election.AnnounceReq) {
 	this.ng.asyncPostAnnounce(who, ann)
 }
 
-func (this *ngSuperior) AsyncRespAnnounce(who nodeid.NodeId, resp *election.AnnounceResp) {
+func (this *ngSuperior) AsyncRespAnnounce(who nodeinfo.NodeId, resp *election.AnnounceResp) {
 	this.ng.asyncRespAnnounce(who, resp)
 }
 
-func (this *ngSuperior) DoStartLead(old nodeid.NodeId) error {
+func (this *ngSuperior) DoStartLead(old nodeinfo.NodeId) error {
 	return this.ng.doStartLead(old)
 }
 
-func (this *ngSuperior) DoStartFollow(lid nodeid.NodeId) error {
+func (this *ngSuperior) DoStartFollow(lid nodeinfo.NodeId) error {
 	return this.ng.doStartFollow(lid)
 }
 
@@ -54,34 +54,32 @@ func (this *ngSuperior) DoStopFollow() error {
 	return this.ng.doStopFollow()
 }
 
-func (this *ngSuperior) OnCandidateInvalid(id nodeid.NodeId) {
+func (this *ngSuperior) OnCandidateInvalid(id nodeinfo.NodeId) {
 	this.ng.onCandidateInvalid(id)
 }
 
 // NodeGroup
 type NodeGroup struct {
-	name    string
-	service *Service
-	config  *NodeGroupConfig
+	name   string
+	config *NodeGroupConfig
 
 	candidate *election.Candidate
 	executor  *qexec.QueueExecutor
-	channels  map[nodeid.NodeId]espnet.Channel
+	channels  map[nodeinfo.NodeId]espchannel.Channel
 
 	role clusterbase.RoleType
 }
 
-func newNodeGroup(name string, s *Service, cfg *NodeGroupConfig) *NodeGroup {
+func NewNodeGroup(name string, nodeid nodeinfo.NodeId, cfg *NodeGroupConfig) *NodeGroup {
 	this := new(NodeGroup)
 	this.name = name
-	this.service = s
 	this.config = cfg
 	sp := new(ngSuperior)
 	sp.ng = this
-	this.candidate = election.NewCandidate(s.GetNodeId(), sp)
+	this.candidate = election.NewCandidate(nodeid, sp)
 	this.executor = qexec.NewQueueExecutor(tag, 128, this.requestHandler)
 	this.executor.StopHandler = this.stopHandler
-	this.channels = make(map[nodeid.NodeId]espnet.Channel)
+	this.channels = make(map[nodeinfo.NodeId]espchannel.Channel)
 	this.role = clusterbase.ROLE_NONE
 	return this
 }
@@ -107,11 +105,6 @@ func (this *NodeGroup) Start() bool {
 func (this *NodeGroup) Stop() bool {
 	this.executor.Stop()
 	return false
-}
-
-func (this *NodeGroup) Cleanup() bool {
-	this.executor.WaitStop()
-	return true
 }
 
 func (this *NodeGroup) WaitStop() {
@@ -151,7 +144,7 @@ func (this *NodeGroup) doStartIdleCheck() {
 	})
 }
 
-func (this *NodeGroup) doWaitTimeout(id nodeid.NodeId, epoch election.EpochId, vote bool) {
+func (this *NodeGroup) doWaitTimeout(id nodeinfo.NodeId, epoch election.EpochId, vote bool) {
 	if this.executor.IsClosing() {
 		return
 	}
@@ -168,7 +161,7 @@ func (this *NodeGroup) doStopAll() {
 }
 
 // interface impl
-func (this *NodeGroup) doStartFollow(lid nodeid.NodeId) error {
+func (this *NodeGroup) doStartFollow(lid nodeinfo.NodeId) error {
 	return nil
 }
 
@@ -177,6 +170,6 @@ func (this *NodeGroup) doStopFollow() error {
 	return nil
 }
 
-func (this *NodeGroup) onCandidateInvalid(id nodeid.NodeId) {
+func (this *NodeGroup) onCandidateInvalid(id nodeinfo.NodeId) {
 	this.doCloseNode(id, false)
 }

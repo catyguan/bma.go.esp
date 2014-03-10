@@ -13,7 +13,7 @@ func doReload(address string) {
 	defer c.Close()
 
 	msg := esnp.NewMessage()
-	msg.GetAddress().Set(esnp.ADDRESS_OP, "reload")
+	msg.GetAddress().SetCall("sys", "reload")
 	err := c.SendMessage(msg)
 	if err != nil {
 		logger.Warn(tag, "call 'reload' fail - %s", err)

@@ -73,6 +73,51 @@ func (this *Address) Set(ann int, val string) {
 	}
 }
 
+func (this *Address) SetGroup(val string) {
+	this.Set(ADDRESS_GROUP, val)
+}
+
+func (this *Address) GetGroup() string {
+	return this.Get(ADDRESS_GROUP)
+}
+
+func (this *Address) SetHost(val string) {
+	this.Set(ADDRESS_HOST, val)
+}
+
+func (this *Address) GetHost() string {
+	return this.Get(ADDRESS_HOST)
+}
+
+func (this *Address) SetService(val string) {
+	this.Set(ADDRESS_SERVICE, val)
+}
+
+func (this *Address) GetService() string {
+	return this.Get(ADDRESS_SERVICE)
+}
+
+func (this *Address) SetOp(val string) {
+	this.Set(ADDRESS_OP, val)
+}
+
+func (this *Address) GetOp() string {
+	return this.Get(ADDRESS_OP)
+}
+
+func (this *Address) SetObject(val string) {
+	this.Set(ADDRESS_OBJECT, val)
+}
+
+func (this *Address) GetObject() string {
+	return this.Get(ADDRESS_OBJECT)
+}
+
+func (this *Address) SetCall(s string, op string) {
+	this.SetService(s)
+	this.SetOp(op)
+}
+
 func (this *Address) Remove(ann int) {
 	if this.pack != nil {
 		this.coder.Remove(this.pack, ann)

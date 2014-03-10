@@ -143,15 +143,17 @@ func (this *ListenPoint) Start(ctx *boot.BootContext) bool {
 		return false
 	}
 
-	logger.Debug(tag, "%s start listen (%s %s)", this, cfg.Net, cfg.Address)
-	lis, err := net.Listen(cfg.Net, cfg.Address)
-	if err != nil {
-		logger.Warn(tag, "%s listen at (%s %s) fail - %s", this, cfg.Net, cfg.Address, err)
-		return false
+	if ccr.Type == boot.CCR_NEED_START {
+		logger.Debug(tag, "%s start listen (%s %s)", this, cfg.Net, cfg.Address)
+		lis, err := net.Listen(cfg.Net, cfg.Address)
+		if err != nil {
+			logger.Warn(tag, "%s listen at (%s %s) fail - %s", this, cfg.Net, cfg.Address, err)
+			return false
+		}
+		this.listener = lis
+		logger.Info(tag, "%s listen at (%s %s)", this, cfg.Net, cfg.Address)
 	}
-	logger.Info(tag, "%s listen at (%s %s)", this, cfg.Net, cfg.Address)
 
-	this.listener = lis
 	this.blackList = cfg.GetBlackList()
 	this.whiteList = cfg.GetWhiteList()
 
@@ -160,7 +162,7 @@ func (this *ListenPoint) Start(ctx *boot.BootContext) bool {
 
 func (this *ListenPoint) Run(ctx *boot.BootContext) bool {
 	ccr := ctx.CheckResult()
-	if ccr.Type == boot.CCR_NONE {
+	if ccr.Type != boot.CCR_NEED_START {
 		return true
 	}
 
@@ -204,7 +206,7 @@ func (this *ListenPoint) Run(ctx *boot.BootContext) bool {
 
 func (this *ListenPoint) GraceStop(ctx *boot.BootContext) bool {
 	ccr := ctx.CheckResult()
-	if ccr.Type == boot.CCR_NONE {
+	if ccr.Type != boot.CCR_NEED_START {
 		return true
 	}
 

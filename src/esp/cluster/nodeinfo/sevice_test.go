@@ -1,4 +1,4 @@
-package nodeid
+package nodeinfo
 
 import (
 	"boot"
@@ -8,8 +8,8 @@ import (
 func TestNodeId(t *testing.T) {
 	cfile := "../../../../bin/config/xmem-config.json"
 
-	nodeId := NewService("espnode")
-	boot.QuickDefine(nodeId, "", true)
+	nodeInfo := NewService("espnode")
+	boot.Add(nodeInfo, "", true)
 
 	f1 := func() {
 

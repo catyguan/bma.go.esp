@@ -1,12 +1,15 @@
 package nodegroup
 
 import (
-
 	// NodeGroup
 	"esp/cluster/election"
-	"esp/cluster/nodeid"
-	"esp/espnet"
+	"esp/cluster/nodeinfo"
+	"esp/espnet/espchannel"
 	"logger"
+)
+
+const (
+	tag = "nodeGroup"
 )
 
 // IdleMessage
@@ -32,13 +35,13 @@ func (this *NodeGroupConfig) Valid() error {
 }
 
 // NodeGroup
-func (this *NodeGroup) Join(ch espnet.Channel, cs *election.CandidateState) error {
+func (this *NodeGroup) Join(ch espchannel.Channel, cs *election.CandidateState) error {
 	return this.executor.DoSync("join", func() error {
 		return this.doJoin(ch, cs)
 	})
 }
 
-func (this *NodeGroup) doJoin(ch espnet.Channel, cs *election.CandidateState) error {
+func (this *NodeGroup) doJoin(ch espchannel.Channel, cs *election.CandidateState) error {
 	id := cs.Id
 	_, ok := this.channels[id]
 	if ok {
@@ -53,14 +56,14 @@ func (this *NodeGroup) doJoin(ch espnet.Channel, cs *election.CandidateState) er
 	return nil
 }
 
-func (this *NodeGroup) CloseNode(id nodeid.NodeId) {
+func (this *NodeGroup) CloseNode(id nodeinfo.NodeId) {
 	this.executor.DoNow("onCloseNode", func() error {
 		this.doCloseNode(id, true)
 		return nil
 	})
 }
 
-func (this *NodeGroup) doCloseNode(id nodeid.NodeId, leave bool) {
+func (this *NodeGroup) doCloseNode(id nodeinfo.NodeId, leave bool) {
 	ch, ok := this.channels[id]
 	if !ok {
 		return

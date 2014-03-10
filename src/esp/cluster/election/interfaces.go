@@ -1,7 +1,7 @@
 package election
 
 import (
-	"esp/cluster/nodeid"
+	"esp/cluster/nodeinfo"
 	"fmt"
 )
 
@@ -35,33 +35,39 @@ const (
 )
 
 type CandidateState struct {
-	Id     nodeid.NodeId
+	Id     nodeinfo.NodeId
 	Epoch  EpochId
 	Status Status
-	Leader nodeid.NodeId
+	Leader nodeinfo.NodeId
 }
 
 func (this *CandidateState) String() string {
 	return fmt.Sprintf("%d,%s,%d:%d", this.Id, this.Status, this.Epoch, this.Leader)
 }
 
+func (this *CandidateState) Clone() *CandidateState {
+	r := new(CandidateState)
+	*r = *this
+	return r
+}
+
 type VoteReq struct {
-	CandidateState
-	Proposal nodeid.NodeId
+	State    *CandidateState
+	Proposal nodeinfo.NodeId
 	Renew    bool
 }
 
 type VoteResp struct {
-	Id     nodeid.NodeId
+	Id     nodeinfo.NodeId
 	Epoch  EpochId
 	Accept bool
 	State  *CandidateState
 }
 
-func AcceptVote(id nodeid.NodeId, req *VoteReq) *VoteResp {
+func AcceptVote(id nodeinfo.NodeId, req *VoteReq) *VoteResp {
 	r := new(VoteResp)
 	r.Id = id
-	r.Epoch = req.Epoch
+	r.Epoch = req.State.Epoch
 	r.Accept = true
 	return r
 }
@@ -69,27 +75,27 @@ func AcceptVote(id nodeid.NodeId, req *VoteReq) *VoteResp {
 func RejectVote(req *VoteReq, st *CandidateState) *VoteResp {
 	r := new(VoteResp)
 	r.Id = st.Id
-	r.Epoch = req.Epoch
+	r.Epoch = req.State.Epoch
 	r.Accept = false
 	r.State = st
 	return r
 }
 
 type AnnounceReq struct {
-	CandidateState
+	State *CandidateState
 }
 
 type AnnounceResp struct {
-	Id     nodeid.NodeId
+	Id     nodeinfo.NodeId
 	Epoch  EpochId
 	Accept bool
 	State  *CandidateState
 }
 
-func AcceptAnnounce(id nodeid.NodeId, req *AnnounceReq) *AnnounceResp {
+func AcceptAnnounce(id nodeinfo.NodeId, req *AnnounceReq) *AnnounceResp {
 	r := new(AnnounceResp)
 	r.Id = id
-	r.Epoch = req.Epoch
+	r.Epoch = req.State.Epoch
 	r.Accept = true
 	return r
 }
@@ -97,7 +103,7 @@ func AcceptAnnounce(id nodeid.NodeId, req *AnnounceReq) *AnnounceResp {
 func RejectAnnounce(req *AnnounceReq, st *CandidateState) *AnnounceResp {
 	r := new(AnnounceResp)
 	r.Id = st.Id
-	r.Epoch = req.Epoch
+	r.Epoch = req.State.Epoch
 	r.Accept = false
 	r.State = st
 	return r
@@ -106,14 +112,14 @@ func RejectAnnounce(req *AnnounceReq, st *CandidateState) *AnnounceResp {
 type ISuperior interface {
 	Name() string
 
-	OnCandidateInvalid(id nodeid.NodeId)
+	OnCandidateInvalid(id nodeinfo.NodeId)
 
-	AsyncPostVote(who nodeid.NodeId, req *VoteReq)
-	AsyncRespVote(who nodeid.NodeId, resp *VoteResp)
-	AsyncPostAnnounce(who nodeid.NodeId, req *AnnounceReq)
-	AsyncRespAnnounce(who nodeid.NodeId, resp *AnnounceResp)
+	AsyncPostVote(who nodeinfo.NodeId, req *VoteReq)
+	AsyncRespVote(who nodeinfo.NodeId, resp *VoteResp)
+	AsyncPostAnnounce(who nodeinfo.NodeId, req *AnnounceReq)
+	AsyncRespAnnounce(who nodeinfo.NodeId, resp *AnnounceResp)
 
-	DoStartLead(old nodeid.NodeId) error
-	DoStartFollow(lid nodeid.NodeId) error
+	DoStartLead(old nodeinfo.NodeId) error
+	DoStartFollow(lid nodeinfo.NodeId) error
 	DoStopFollow() error
 }
