@@ -11,6 +11,7 @@ https://github.com/catyguan/bma.java.esp
 
 [错误响应]
 客户端调用服务器加法运算服务，不传递a,b参数，服务器响应相关错误信息
+Header:error=<string>
 
 [超大文件下载]
 客户端获取服务器的1G大小的文件，保存到本地硬盘

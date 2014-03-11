@@ -30,12 +30,12 @@ func (this *JoinPartnerReq) Read(msg *esnp.Message) error {
 	for ; !it.IsEnd(); it.Next() {
 		switch it.Xid() {
 		case 1:
-			v, err := it.Value(CandidateStateCoder)
+			v, err := it.Value(election.CandidateStateCoder)
 			if err != nil {
 				return err
 			}
 			if v != nil {
-				this.State = v.(*CandidateState)
+				this.State = v.(*election.CandidateState)
 			}
 		case 2:
 			v, err := it.Value(coder.Bool)
@@ -66,7 +66,25 @@ func (this *NodeGroup) Serve(msg *esnp.Message, rep espservice.ServiceResponser)
 }
 
 func (this *NodeGroup) doJoinPartner(req *JoinPartnerReq, rep espservice.ServiceResponser) error {
-	ch := rep.GetChannel()
+	// ch := rep.GetChannel()
+	if _, ok := this.channels[req.State.Id]; ok {
+		return fmt.Errorf("NodeId(%d) exists", req.State.Id)
+	}
+	if !req.Relate {
+		cs := this.candidate.GetState()
+		nreq := new(JoinPartnerReq)
+		nreq.State = &cs
+		nreq.Relate = true
+
+		msg := esnp.NewMessage()
+		addr := msg.GetAddress()
+		addr.SetService(this.config.ServiceName)
+		addr.SetObject(this.name)
+		msg.SetKind(esnp.MK_EVENT)
+		nreq.Write(msg)
+		rep.SendMessage(msg)
+	}
+	this.channels[req.State.Id] = rep.GetChannel()
 	this.candidate.JoinPartner(req.State)
 	return nil
 }

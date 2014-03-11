@@ -277,26 +277,19 @@ func (this *Message) ToPackage() *Package {
 
 // helper
 func (this *Message) ToError() error {
-	v, err := FrameCoders.Header.Get(this.pack, "error", nil)
-	if err != nil {
-		return nil
-	}
-	if v == nil {
-		return nil
-	}
-	s, ok := v.(string)
+	ok, v := FrameCoders.Error.Get(this.pack)
 	if !ok {
 		return nil
 	}
-	return errors.New(s)
+	return errors.New(v)
 }
 
 func (this *Message) BeError(err error) {
-	FrameCoders.Header.Set(this.pack, "error", err.Error(), nil)
+	FrameCoders.Error.Set(this.pack, err.Error())
 }
 
 func (this *Message) BeErrorS(err string) {
-	FrameCoders.Header.Set(this.pack, "error", err, nil)
+	FrameCoders.Error.Set(this.pack, err)
 }
 
 func (this *Message) ReplyMessage() *Message {

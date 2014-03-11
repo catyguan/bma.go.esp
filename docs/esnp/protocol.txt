@@ -176,6 +176,10 @@ MT_XDATA : 0x1C
 	定制消息数据，Id:Value
 	可有多个
 	数据体：[Id:Int][值:业务解析]
+	
+MT_ERROR : 0x1D
+	错误信息，如果是响应且有该信息，则表示是请求出现错误了
+	数据体: [string]
 
 MT_APP_DEFINE ： 0x80 - 0xFF
 	应用可使用的定制范围

@@ -64,6 +64,6 @@ func (O mt_payload) Set(p *Package, val interface{}) {
 			break
 		}
 	}
-	f := NewFrameV(MT_MESSAGE_ID, val, O)
+	f := NewFrameV(MT_PAYLOAD, val, O)
 	p.PushFront(f)
 }

@@ -80,7 +80,7 @@ func (this *NodeGroup) asyncPostAnnounce(who nodeinfo.NodeId, req *election.Anno
 			return nil
 		})
 	}
-	this.doWaitTimeout(who, req.Epoch, false)
+	this.doWaitTimeout(who, req.State.Epoch, false)
 }
 
 func (this *NodeGroup) asyncRespAnnounce(who nodeinfo.NodeId, resp *election.AnnounceResp) {

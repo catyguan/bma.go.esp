@@ -18,6 +18,7 @@ const (
 	MT_TRACE_RESP        = 0x1A
 	MT_SEQ_NO            = 0x1B
 	MT_XDATA             = 0x1C
+	MT_ERROR             = 0x1D
 )
 
 const (
