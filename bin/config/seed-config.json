@@ -6,7 +6,12 @@
 	"servicePoint" : {
 		"Port" : 1080
 	},
-	"auth" : {
-		"User" : "test:test,test2:test2,test3:"
+	"n2n" : {
+		"URL" : "esnp://127.0.0.1:1081/1/2",
+		"Remote" : {
+			"node1" : {
+				"URL" : "esnp://127.0.0.1:1080/1/2"
+			}
+		}
 	}
 }

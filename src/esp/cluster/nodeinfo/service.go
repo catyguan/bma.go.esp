@@ -36,8 +36,9 @@ func (O nodeIdCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) 
 }
 
 type Service struct {
-	name   string
-	nodeId NodeId
+	name     string
+	nodeId   NodeId
+	nodeName string
 }
 
 func NewService(name string) *Service {
@@ -48,4 +49,8 @@ func NewService(name string) *Service {
 
 func (this *Service) GetId() NodeId {
 	return this.nodeId
+}
+
+func (this *Service) GetNodeName() string {
+	return this.nodeName
 }

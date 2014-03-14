@@ -120,7 +120,7 @@ func (this *Service) InvokeESNP(w http.ResponseWriter, req *http.Request) {
 	ds := msg.Datas()
 	for k, v := range form {
 		var rv interface{}
-		rv = v
+		rv = form.Get(k)
 		ks := strings.SplitN(k, "-", 2)
 		if len(ks) == 2 {
 			k = ks[0]

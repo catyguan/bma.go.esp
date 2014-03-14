@@ -39,6 +39,7 @@ const (
 	CCR_NEED_START = 0
 	CCR_CHANGE     = 1
 	CCR_NONE       = 2
+	CCR_EXT        = 100
 )
 
 func NewConfigCheckResult(t int, v interface{}) *ConfigCheckResult {

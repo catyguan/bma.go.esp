@@ -153,6 +153,14 @@ MT_ADDRESS : 0x17
 		ADDRESS_SERVICE = 30 服务
 		ADDRESS_OP      = 20 操作
 		ADDRESS_OBJECT  = 10 操作关联对象
+	地址的URL表示方式
+		esnp://HOST/SERVICE/OP?o=OBJECT&g=GROUP&....
+		HOST,SERVICE,OP=unknow 表示对应数据项为无效
+		范例：			
+			esnp://127.0.0.1:1080/test/add
+			esnp://127.0.0.1:1080/test/unknow
+		已知参数:
+			to=1234 超时时间 MS
 	
 MT_SOURCE_ADDRESS : 0x18
 	消息源地址
