@@ -15,7 +15,7 @@ func doAdd(address string) {
 	defer c.Close()
 
 	msg := esnp.NewMessage()
-	msg.GetAddress().SetCall("test", "add")
+	msg.GetAddress().SetCall("test", "add2")
 	ds := msg.Datas()
 	ds.Set("a", 1)
 	ds.Set("b", 2)

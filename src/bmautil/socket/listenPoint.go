@@ -24,7 +24,7 @@ func (this *ListenConfig) Valid() error {
 		if this.Port > 0 {
 			this.Address = logger.Sprintf(":%d", this.Port)
 		} else {
-			return fmt.Errorf("ListenConfig port invalid")
+			return fmt.Errorf("port invalid")
 		}
 	}
 	if this.Net == "" {
