@@ -9,7 +9,6 @@ type frameCoder struct {
 	SessionInfo     mvCoder
 	MessageId       mt_message_id
 	SourceMessageId mt_message_id
-	MessageKind     mt_message_kind
 	Header          mvCoder
 	Data            mvCoder
 	Payload         mt_payload
@@ -20,6 +19,8 @@ type frameCoder struct {
 	SeqNO           mt_seq_no
 	XData           mt_xdata
 	Error           mt_error
+	Flag            mt_flag
+	Version         mt_version
 }
 
 func init() {

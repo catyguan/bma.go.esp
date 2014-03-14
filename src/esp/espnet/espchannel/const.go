@@ -53,7 +53,7 @@ func NextChanneId() uint32 {
 }
 
 func TryRelyError(ch Channel, this *esnp.Message, err error) {
-	if this.GetKind() == esnp.MK_REQUEST {
+	if this.IsRequest() {
 		rmsg := this.ReplyMessage()
 		rmsg.BeError(err)
 		ch.SendMessage(rmsg)

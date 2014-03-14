@@ -93,7 +93,7 @@ func (this *ChannelClient) FutureCall(msg *esnp.Message) *syncutil.Future {
 	f, fe := syncutil.NewFuture()
 
 	mid := msg.SureId()
-	msg.SureKind(esnp.MK_REQUEST)
+	msg.SureRequest()
 	this.lock.Lock()
 	if this.waiting == nil {
 		this.waiting = make(map[uint64]ResponseListener)
@@ -125,7 +125,7 @@ func (this *ChannelClient) Call(msg *esnp.Message, to *time.Timer) (*esnp.Messag
 	c := make(chan bool, 1)
 
 	mid := msg.SureId()
-	msg.SureKind(esnp.MK_REQUEST)
+	msg.SureRequest()
 	this.lock.Lock()
 	if this.waiting == nil {
 		this.waiting = make(map[uint64]ResponseListener)

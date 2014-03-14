@@ -116,13 +116,15 @@ MT_MESSAGE_ID : 0x11
 MT_SOURCE_MESSAGE_ID : 0x12
 	源消息的编号，可以通过该帧获取响应消息对应的源消息
 	数据体：[FixUint64]	
-	
+
+// 取消，采用MT_FLAG代替
 MT_MESSAGE_KIND : 0x13
 	消息的类型
 		MK_UNKNOW   = 0 无
 		MK_REQUEST  = 1 请求
 		MK_RESPONSE = 2 响应
 		MK_INFO     = 3 消息
+		MK_INFO_RESPONSE = xxx
 		MK_EVENT    = 4 事件
 	数据体：[Uint8]
 	
@@ -156,11 +158,13 @@ MT_SOURCE_ADDRESS : 0x18
 	消息源地址
 	和MT_ADDRESS一样
 	
+// 取消，采用MT_FLAG代替
 MT_TRACE : 0x19
 	TRACE标志，表示该消息需要中间件反馈事件，用于调试用途
 	该标志作用需要考虑是否通用
 	数据体：无
 
+// 取消，采用MT_FLAG代替
 MT_TRACE_RESP : 0x1A
 	TRACE响应标志，表示该消息是TRACE的对应响应消息
 	数据体：无
@@ -180,6 +184,25 @@ MT_XDATA : 0x1C
 MT_ERROR : 0x1D
 	错误信息，如果是响应且有该信息，则表示是请求出现错误了
 	数据体: [string]
+	
+MT_FLAG : 0x1E
+	标志位
+	可有多个
+	数据体: [int32]
+	Flag类型
+		FLAG_TRACE   	= 1 需要中间件反馈事件，用于调试用途
+		FLAG_TRACE_INFO = 2 是TRACE的对应响应消息
+		FLAG_RESP		= 3 响应
+		FLAG_REQUEST 	= 4 请求
+		FLAG_INFO		= 5 消息
+		FLAG_EVENT 		= 6 事件
+		FLAG_APP_DEFINE = 128 应用定义
+	
+MT_VERSION : 0x1F
+	协议版本号,4位字节表示
+	[主版本][次版本][分支编号][变体编号]
+	数据体: [byte][byte][byte][byte]
 
 MT_APP_DEFINE ： 0x80 - 0xFF
-	应用可使用的定制范围
+	应用可使用的定制范围	
+

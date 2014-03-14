@@ -9,22 +9,6 @@ import (
 	"logger"
 )
 
-type MessageKind byte
-
-func (O MessageKind) String() string {
-	switch O {
-	case MK_RESPONSE:
-		return "RESP"
-	case MK_REQUEST:
-		return "REQS"
-	case MK_EVENT:
-		return "EVENT"
-	case MK_INFO:
-		return "INFO"
-	}
-	return "UNKN"
-}
-
 // MessageValuesObj
 var (
 	notValueErr error = errors.New("not correct value")
@@ -96,7 +80,7 @@ func NewMessage() *Message {
 
 func NewRequestMessage() *Message {
 	r := NewMessage()
-	FrameCoders.MessageKind.Set(r.pack, MK_REQUEST)
+	FrameCoders.Flag.Set(r.pack, FLAG_REQUEST)
 	return r
 }
 
@@ -105,14 +89,23 @@ func NewReplyMessage(msg *Message) *Message {
 	p1 := msg.pack
 	p2 := r.pack
 
-	p2.PushBack(NewFrameV(MT_MESSAGE_KIND, MK_RESPONSE, FrameCoders.MessageKind))
+	p2.PushFront(NewFrameV(MT_FLAG, FLAG_RESP, FrameCoders.Flag))
 	for e := p1.Front(); e != nil; e = e.Next() {
 		switch e.MessageType() {
 		case MT_SESSION_INFO:
 			p2.PushBack(e.Clone(0, false))
 		case MT_HEADER, MT_DATA, MT_PAYLOAD, MT_TRACE, MT_TRACE_RESP:
 			continue
-		case MT_MESSAGE_KIND:
+		case MT_FLAG:
+			o, err := e.Value(FrameCoders.Flag)
+			if err == nil {
+				if fo, ok := o.(MTFlag); ok {
+					switch fo {
+					case FLAG_REQUEST, FLAG_INFO:
+						p2.PushBack(e.Clone(0, false))
+					}
+				}
+			}
 			continue
 		case MT_SOURCE_ADDRESS:
 			p2.PushBack(e.Clone(MT_ADDRESS, false))
@@ -214,16 +207,23 @@ func (this *Message) SetSourceAddress(addr *Address) {
 	addr.Bind(this.pack, byte(FrameCoders.SourceAddress))
 }
 
-func (this *Message) GetKind() MessageKind {
-	return FrameCoders.MessageKind.Get(this.pack)
+func (this *Message) GetVersion() *MTVersion {
+	return FrameCoders.Version.Get(this.pack)
 }
 
-func (this *Message) SetKind(mk MessageKind) {
-	FrameCoders.MessageKind.Set(this.pack, mk)
+func (this *Message) SetVersion(val *MTVersion) {
+	FrameCoders.Version.Set(this.pack, val)
 }
 
-func (this *Message) SureKind(mk MessageKind) {
-	FrameCoders.MessageKind.Sure(this.pack, mk)
+func (this *Message) IsRequest() bool {
+	if FrameCoders.Flag.Has(this.pack, FLAG_REQUEST) {
+		return !FrameCoders.Flag.Has(this.pack, FLAG_RESP)
+	}
+	return false
+}
+
+func (this *Message) SureRequest() {
+	FrameCoders.Flag.Set(this.pack, FLAG_REQUEST)
 }
 
 func (this *Message) Headers() *MessageValues {

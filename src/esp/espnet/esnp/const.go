@@ -8,7 +8,6 @@ const (
 	MT_SESSION_INFO      = 0x10
 	MT_MESSAGE_ID        = 0x11
 	MT_SOURCE_MESSAGE_ID = 0x12
-	MT_MESSAGE_KIND      = 0x13
 	MT_HEADER            = 0x14
 	MT_DATA              = 0x15
 	MT_ADDRESS           = 0x17
@@ -19,14 +18,18 @@ const (
 	MT_SEQ_NO            = 0x1B
 	MT_XDATA             = 0x1C
 	MT_ERROR             = 0x1D
+	MT_FLAG              = 0x1E
+	MT_VERSION           = 0x1F
 )
 
 const (
-	MK_UNKNOW   = MessageKind(0)
-	MK_REQUEST  = MessageKind(1)
-	MK_RESPONSE = MessageKind(2)
-	MK_INFO     = MessageKind(3)
-	MK_EVENT    = MessageKind(4)
+	FLAG_TRACE      = MTFlag(1)
+	FLAG_TRACE_INFO = MTFlag(2)
+	FLAG_RESP       = MTFlag(3)
+	FLAG_REQUEST    = MTFlag(4)
+	FLAG_INFO       = MTFlag(5)
+	FLAG_EVENT      = MTFlag(6)
+	FLAG_APP_DEFINE = MTFlag(128)
 )
 
 var (

@@ -174,7 +174,7 @@ func (this *Frame) String() string {
 		if this.data != nil {
 			sz = this.data.DataSize()
 		}
-		buf.WriteString(fmt.Sprintf(",[%d]", sz))
+		buf.WriteString(fmt.Sprintf(",%d", sz))
 		if this.data != nil {
 			buf.WriteString(",[")
 			buf.WriteString(this.data.TraceString(16))
