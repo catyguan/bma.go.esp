@@ -5,26 +5,26 @@ import (
 	"sync/atomic"
 )
 
-type StateInfo struct {
-	Id   uint32
-	Name string
-}
+type StateCollection map[uint32]string
 
-func NewStateInfO(id uint32, name string) *StateInfo {
-	r := new(StateInfo)
-	r.Id = id
-	r.Name = name
-	return r
-}
-
-func (this *StateInfo) String() string {
-	return fmt.Sprintf("%d:%s", this.Id, this.Name)
+func (this StateCollection) ToString(id uint32) string {
+	n := ""
+	for iv, in := range this {
+		if iv == id {
+			n = in
+			break
+		}
+	}
+	if n == "" {
+		return fmt.Sprintf("%d:%d", id, id)
+	}
+	return fmt.Sprintf("%d:%s", id, n)
 }
 
 type StateMachine struct {
-	state     uint32
-	subStates map[uint32]*StateMachine
-	states    []*StateInfo
+	state  uint32
+	states StateCollection
+
 	// helper
 	canEnterF   func(o interface{}, state uint32, toState uint32) bool
 	afterLeaveF func(o interface{}, state uint32)
@@ -32,28 +32,13 @@ type StateMachine struct {
 }
 
 func (this *StateMachine) String() string {
-	var s string
-	if this.states != nil {
-		for _, si := range this.states {
-			if si.Id == this.state {
-				s = si.String()
-				break
-			}
-		}
+	if this.states == nil {
+		return fmt.Sprintf("%d", this.state)
 	}
-	if s == "" {
-		s = fmt.Sprintf("%d", this.state)
-	}
-	if this.subStates != nil {
-		ssm := this.subStates[this.state]
-		if ssm != nil {
-			s = s + "," + ssm.String()
-		}
-	}
-	return s
+	return this.states.ToString(this.state)
 }
 
-func (this *StateMachine) InitStateMachine(st uint32, sts []*StateInfo) {
+func (this *StateMachine) InitStateMachine(st uint32, sts StateCollection) {
 	this.state = st
 	this.states = sts
 }
@@ -67,38 +52,21 @@ func (this *StateMachine) SetAfterEnterF(f func(o interface{}, state uint32)) {
 	this.afterEnterF = f
 }
 
-func (this *StateMachine) HasSubState(s uint32) bool {
-	if this.subStates != nil {
-		_, ok := this.subStates[s]
-		return ok
-	}
-	return false
-}
-func (this *StateMachine) SetSubState(s uint32, sm *StateMachine) {
-	if this.subStates == nil {
-		this.subStates = make(map[uint32]*StateMachine)
-	}
-	this.subStates[s] = sm
-}
-func (this *StateMachine) GetSubState(s uint32) *StateMachine {
-	if this.subStates == nil {
-		return nil
-	}
-	return this.subStates[s]
-}
-
 func (this *StateMachine) IsState(s uint32) bool {
 	return this.GetState() == s
 }
 func (this *StateMachine) GetState() uint32 {
 	return atomic.LoadUint32(&this.state)
 }
-func (this *StateMachine) doEnter(o interface{}, s uint32, try bool) bool {
+func (this *StateMachine) doEnter(o interface{}, e uint32, s uint32, try bool) bool {
 	v := this.GetState()
 	if v == s {
 		return true
 	}
 	if try && this.canEnterF != nil {
+		if e != 0 && e != v {
+			return false
+		}
 		if !this.canEnterF(o, v, s) {
 			return false
 		}
@@ -115,8 +83,11 @@ func (this *StateMachine) doEnter(o interface{}, s uint32, try bool) bool {
 	return true
 }
 func (this *StateMachine) TryEnter(o interface{}, s uint32) bool {
-	return this.doEnter(o, s, true)
+	return this.doEnter(o, 0, s, true)
 }
 func (this *StateMachine) Enter(o interface{}, s uint32) bool {
-	return this.doEnter(o, s, false)
+	return this.doEnter(o, 0, s, false)
+}
+func (this *StateMachine) CompareAndEnter(o interface{}, expect uint32, s uint32) bool {
+	return this.doEnter(o, expect, s, true)
 }

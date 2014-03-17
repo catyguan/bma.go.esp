@@ -12,12 +12,12 @@ const (
 	STATE4 = uint32(4)
 )
 
-func buildStates() []*StateInfo {
-	return []*StateInfo{
-		NewStateInfO(STATE1, "ST-1"),
-		NewStateInfO(STATE2, "ST-2"),
-		NewStateInfO(STATE3, "ST-3"),
-		NewStateInfO(STATE4, "ST-4"),
+func buildStates() StateCollection {
+	return StateCollection{
+		STATE1: "ST-1",
+		STATE2: "ST-2",
+		STATE3: "ST-3",
+		STATE4: "ST-4",
 	}
 }
 
@@ -48,6 +48,8 @@ func TestSM(t *testing.T) {
 	sm.SetCanEnterF(canEnter4test)
 	sm.SetAfterEnterF(afterEnter4test)
 	sm.SetAfterLeaveF(afteLeave4test)
+
+	fmt.Printf("%T\n", sm)
 
 	if true {
 		ss := sm.String()

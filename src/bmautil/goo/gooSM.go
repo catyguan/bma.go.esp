@@ -2,12 +2,12 @@ package goo
 
 import "logger"
 
-var gooStates = []*StateInfo{
-	INFO_STATE_INIT,
-	INFO_STATE_START,
-	INFO_STATE_RUN,
-	INFO_STATE_STOP,
-	INFO_STATE_CLOSE,
+var gooStates = StateCollection{
+	STATE_INIT:  STR_STATE_INIT,
+	STATE_START: STR_STATE_START,
+	STATE_RUN:   STR_STATE_RUN,
+	STATE_STOP:  STR_STATE_STOP,
+	STATE_CLOSE: STR_STATE_CLOSE,
 }
 
 func canEnter4goo(o interface{}, cur uint32, st uint32) bool {
@@ -27,7 +27,7 @@ func canEnter4goo(o interface{}, cur uint32, st uint32) bool {
 func afterEnter4goo(o interface{}, st uint32) {
 	obj := o.(*Goo)
 	if obj.EDebug {
-		logger.Debug(obj.Tag, "enterState(%s)", st)
+		logger.Debug(obj.Tag, "enterState(%s)", gooStates.ToString(st))
 	}
 	switch st {
 	case STATE_STOP:
