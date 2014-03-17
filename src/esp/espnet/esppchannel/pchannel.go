@@ -1,17 +1,22 @@
-package espchannel
+package esppchannel
 
 import (
 	"esp/espnet/esnp"
+	"esp/espnet/espchannel"
 	"fmt"
 	"logger"
 	"sync"
 	"time"
 )
 
+const (
+	tag = "pchannel"
+)
+
 type pchItem struct {
 	pos  int
-	cf   ChannelFactory
-	ch   Channel
+	cf   espchannel.ChannelFactory
+	ch   espchannel.Channel
 	cing bool
 }
 
@@ -23,23 +28,23 @@ type PChannel struct {
 	current *pchItem
 	items   []*pchItem
 	lis     esnp.MessageListener
-	lgroup  CloseListenerGroup
+	lgroup  espchannel.CloseListenerGroup
 	closed  bool
 }
 
 func NewPChannel(n string) *PChannel {
 	r := new(PChannel)
 	r.name = n
-	r.id = NextChanneId()
+	r.id = espchannel.NextChanneId()
 	r.items = make([]*pchItem, 0)
 	return r
 }
 
-func (this *PChannel) Add(cf ChannelFactory) {
-	this.AddAll([]ChannelFactory{cf})
+func (this *PChannel) Add(cf espchannel.ChannelFactory) {
+	this.AddAll([]espchannel.ChannelFactory{cf})
 }
 
-func (this *PChannel) AddAll(cflist []ChannelFactory) {
+func (this *PChannel) AddAll(cflist []espchannel.ChannelFactory) {
 	for _, cf := range cflist {
 		item := new(pchItem)
 		item.pos = len(this.items)
@@ -71,7 +76,7 @@ func (this *PChannel) IsOpen() bool {
 	return this.channel() != nil
 }
 
-func (this *PChannel) toChannel() Channel {
+func (this *PChannel) toChannel() espchannel.Channel {
 	return this
 }
 
@@ -92,7 +97,7 @@ func (this *PChannel) next() {
 	this.current = this.items[pos]
 }
 
-func (this *PChannel) channel() Channel {
+func (this *PChannel) channel() espchannel.Channel {
 	l := len(this.items)
 	if l < 1 {
 		return nil
@@ -105,7 +110,7 @@ func (this *PChannel) channel() Channel {
 			continue
 		}
 		if item.ch != nil {
-			if cb, ok := item.ch.(BreakSupport); ok {
+			if cb, ok := item.ch.(espchannel.BreakSupport); ok {
 				bv := cb.IsBreak()
 				if bv != nil && *bv {
 					this.recover(item)
@@ -171,7 +176,7 @@ func (this *PChannel) SendMessage(ev *esnp.Message) error {
 			return nil
 		}
 		logger.Debug(tag, "%s send fail - %s", ch, err)
-		CloseForce(ch)
+		espchannel.CloseForce(ch)
 	}
 	return fmt.Errorf("breaked channel")
 }
@@ -205,7 +210,7 @@ func (this *PChannel) reconnect(item *pchItem) {
 
 	this.cing(item, true)
 
-	if fb, ok := item.cf.(BreakSupport); ok {
+	if fb, ok := item.cf.(espchannel.BreakSupport); ok {
 		vb := fb.IsBreak()
 		if vb != nil && *vb {
 			this.cing(item, false)

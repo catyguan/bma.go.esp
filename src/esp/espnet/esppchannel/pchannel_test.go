@@ -1,7 +1,9 @@
-package espchannel
+package esppchannel
 
 import (
-	"boot"
+	"bmautil/socket"
+	"esp/espnet/esnp"
+	"esp/espnet/espchannel"
 	"fmt"
 	"logger"
 	"os"
@@ -24,30 +26,36 @@ func TestPChannel(t *testing.T) {
 	})
 
 	if true {
-		cfg := new(DialPoolConfig)
+		cfg := new(socket.DialPoolConfig)
 		cfg.Dial.Address = "127.0.0.1:1081"
 		cfg.MaxSize = 1
 		cfg.InitSize = 1
-		pool := NewDialPool("Pool", cfg, socketInitor)
-		boot.RuntimeStartRun(pool)
-		defer boot.RuntimeStopCloseClean(pool, true)
+		pool := socket.NewDialPool("Pool", cfg, nil)
+		pool.Start()
+		pool.Run()
+		defer func() {
+			pool.AskClose()
+		}()
 		time.Sleep(100 * time.Millisecond)
 
-		cf := pool.NewChannelFactory("espnet", 1*time.Second)
+		cf := espchannel.NewDialPoolChannelFactory(pool, espchannel.SOCKET_CHANNEL_CODER_ESPNET, 1*time.Second)
 		pch.Add(cf)
 	}
 
 	if true {
-		cfg := new(DialPoolConfig)
+		cfg := new(socket.DialPoolConfig)
 		cfg.Dial.Address = "127.0.0.1:1080"
 		cfg.MaxSize = 1
 		cfg.InitSize = 1
-		pool := NewDialPool("Pool", cfg, socketInitor)
-		boot.RuntimeStartRun(pool)
-		defer boot.RuntimeStopCloseClean(pool, true)
+		pool := socket.NewDialPool("Pool", cfg, nil)
+		pool.Start()
+		pool.Run()
+		defer func() {
+			pool.AskClose()
+		}()
 		time.Sleep(100 * time.Millisecond)
 
-		cf := pool.NewChannelFactory("espnet", 1*time.Second)
+		cf := espchannel.NewDialPoolChannelFactory(pool, espchannel.SOCKET_CHANNEL_CODER_ESPNET, 1*time.Second)
 		pch.Add(cf)
 	}
 
@@ -55,7 +63,7 @@ func TestPChannel(t *testing.T) {
 
 	for i := 0; i < 6; i++ {
 		logger.Info("TEST", "send message %d", i)
-		msg := NewMessage()
+		msg := esnp.NewMessage()
 		if i%2 == 1 {
 			// CloseForce(pch)
 			// CloseAfterSend(msg)
