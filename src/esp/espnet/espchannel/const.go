@@ -32,10 +32,6 @@ const (
 )
 
 const (
-	MT_CLOSE_CHANNEL = 0x09
-)
-
-const (
 	SOCKET_CHANNEL_CODER_ESPNET = "espnet"
 )
 
@@ -56,6 +52,6 @@ func TryRelyError(ch Channel, this *esnp.Message, err error) {
 	if this.IsRequest() {
 		rmsg := this.ReplyMessage()
 		rmsg.BeError(err)
-		ch.SendMessage(rmsg)
+		ch.PostMessage(rmsg)
 	}
 }

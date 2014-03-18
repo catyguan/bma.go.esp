@@ -50,6 +50,6 @@ func (this *dialPoolChannelFactory) socketReturn(s *socket.Socket) {
 	this.service.ReturnSocket(s)
 }
 
-func (this *dialPoolChannelFactory) IsBreak() *bool {
+func (this *dialPoolChannelFactory) IsBreak() bool {
 	return this.service.IsBreak()
 }

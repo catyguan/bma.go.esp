@@ -68,8 +68,7 @@ func (this *PChannel) OnReady() {
 }
 
 func (this *PChannel) IsBreak() *bool {
-	v := this.channel() == nil
-	return &v
+	return this.channel() == nil
 }
 
 func (this *PChannel) IsOpen() bool {

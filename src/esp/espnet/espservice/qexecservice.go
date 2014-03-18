@@ -56,13 +56,13 @@ func (this *QExecService) requestHandler(req interface{}) (bool, error) {
 	case *ServiceRequestContext:
 		ctrl := esnp.FrameCoders.Trace
 		p := v.Message.ToPackage()
-		if v.Responser != nil && ctrl.Has(p) {
+		if v.Channel != nil && ctrl.Has(p) {
 			info := fmt.Sprintf("%s handle", this)
 			rmsg := ctrl.CreateReply(v.Message, info)
-			go v.Responser.SendMessage(rmsg)
+			go v.Channel.PostMessage(rmsg)
 		}
 		if this.rhandler != nil {
-			return true, this.rhandler(v.Message, v.Responser)
+			return true, this.rhandler(v.Channel, v.Message)
 		} else {
 			logger.Debug(tag, "%s miss executor", this.name)
 		}
@@ -133,8 +133,8 @@ func (this *QExecService) SetRequestReceiver(r ServiceHandler) error {
 	}
 }
 
-func (this *QExecService) PostRequest(msg *esnp.Message, rep ServiceResponser) error {
-	ctx := &ServiceRequestContext{msg, rep}
+func (this *QExecService) PostRequest(ch espchannel.Channel, msg *esnp.Message) error {
+	ctx := &ServiceRequestContext{ch, msg}
 	return this.executor.DoNow("postRequest", ctx)
 }
 
@@ -167,10 +167,8 @@ func (this *QExecService) NewChannel() (espchannel.Channel, error) {
 	r.InitVChannel(this.name)
 	r.RemoveChannel = this.channels.Remove
 
-	sch := new(ServiceResponser4S)
-	sch.S = r.ServiceResponse
 	r.Sender = func(msg *esnp.Message) error {
-		return DoServiceHandle(this.PostRequest, msg, sch)
+		return DoServiceHandle(this.PostRequest, r, msg)
 	}
 	this.channels.Add(r)
 	return r, nil

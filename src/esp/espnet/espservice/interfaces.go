@@ -13,14 +13,14 @@ type ServiceResponser interface {
 	SendMessage(replyMsg *esnp.Message) error
 }
 
-type ServiceHandler func(msg *esnp.Message, rep ServiceResponser) error
+type ServiceHandler func(ch espchannel.Channel, msg *esnp.Message) error
 
 type ServiceRequestContext struct {
-	Message   *esnp.Message
-	Responser ServiceResponser
+	Channel espchannel.Channel
+	Message *esnp.Message
 }
 
-func DoServiceHandle(h ServiceHandler, msg *esnp.Message, rep ServiceResponser) error {
+func DoServiceHandle(h ServiceHandler, ch espchannel.Channel, msg *esnp.Message) error {
 	err := func() (r error) {
 		defer func() {
 			r2 := recover()
@@ -32,12 +32,12 @@ func DoServiceHandle(h ServiceHandler, msg *esnp.Message, rep ServiceResponser) 
 				}
 			}
 		}()
-		return h(msg, rep)
+		return h(ch, msg)
 	}()
 	if err != nil {
 		rmsg := msg.ReplyMessage()
 		rmsg.BeError(err)
-		rep.SendMessage(rmsg)
+		ch.PostMessage(rmsg)
 	}
 	return nil
 }

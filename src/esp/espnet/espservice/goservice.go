@@ -45,16 +45,16 @@ func (this *GoService) Stop() bool {
 	return true
 }
 
-func (this *GoService) PostRequest(msg *esnp.Message, rep ServiceResponser) error {
+func (this *GoService) PostRequest(ch espchannel.Channel, msg *esnp.Message) error {
 	if atomic.LoadUint32(&this.closed) > 0 {
 		return errors.New("closed")
 	}
 	ctrl := esnp.FrameCoders.Trace
 	p := msg.ToPackage()
-	if rep != nil && ctrl.Has(p) {
+	if ctrl.Has(p) {
 		info := fmt.Sprintf("%s handle", this)
 		rmsg := ctrl.CreateReply(msg, info)
-		go rep.SendMessage(rmsg)
+		go ch.PostMessage(rmsg)
 	}
 	go func() {
 		defer func() {
@@ -63,7 +63,7 @@ func (this *GoService) PostRequest(msg *esnp.Message, rep ServiceResponser) erro
 				logger.Warn(tag, "execute panic - %s\n%s", err, string(debug.Stack()))
 			}
 		}()
-		err := this.handler(msg, rep)
+		err := this.handler(ch, msg)
 		if err != nil {
 			logger.Warn(tag, "execute fail - %s\n%s", err)
 		}
@@ -82,10 +82,8 @@ func (this *GoService) NewChannel() (espchannel.Channel, error) {
 	r.InitVChannel(this.name)
 	r.RemoveChannel = this.channels.Remove
 
-	sch := new(ServiceResponser4S)
-	sch.S = r.ServiceResponse
 	r.Sender = func(msg *esnp.Message) error {
-		return DoServiceHandle(this.PostRequest, msg, sch)
+		return DoServiceHandle(this.PostRequest, r, msg)
 	}
 	this.channels.Add(r)
 	return r, nil

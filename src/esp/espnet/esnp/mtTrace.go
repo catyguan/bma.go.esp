@@ -1,20 +1,9 @@
 package esnp
 
-import (
-	"bmautil/byteutil"
-)
-
 type mt_trace byte
 
-func (O mt_trace) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
-	return nil
-}
-
-func (O mt_trace) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
-	return true, nil
-}
-
 func (O mt_trace) Has(p *Package) bool {
+	return FrameCoders.Flag.Has(p, FLAG_TRACE)
 	for e := p.Front(); e != nil; e = e.Next() {
 		if e.MessageType() == byte(O) {
 			return true
@@ -24,24 +13,20 @@ func (O mt_trace) Has(p *Package) bool {
 }
 
 func (O mt_trace) Remove(p *Package) {
-	for e := p.Front(); e != nil; e = e.Next() {
-		if e.MessageType() == byte(O) {
-			p.Remove(e)
-			break
-		}
-	}
+	FrameCoders.Flag.Remove(p, FLAG_TRACE)
 }
 
 func (O mt_trace) Set(p *Package) {
-	O.Remove(p)
-	f := NewFrameV(byte(O), true, O)
-	p.PushFront(f)
+	FrameCoders.Flag.Set(p, FLAG_TRACE)
+}
+
+func (O mt_trace) IsReplyInfo(p *Package) bool {
+	return FrameCoders.Flag.Has(p, FLAG_TRACE_INFO)
 }
 
 func (O mt_trace) CreateReply(msg *Message, info string) *Message {
 	r := msg.ReplyMessage()
-	f := NewFrameV(MT_TRACE_RESP, true, O)
-	r.ToPackage().PushFront(f)
+	FrameCoders.Flag.Set(r.pack, FLAG_TRACE_INFO)
 	r.SetPayload([]byte(info))
 	return r
 }

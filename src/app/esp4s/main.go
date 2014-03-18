@@ -4,6 +4,7 @@ import (
 	"bmautil/socket"
 	"boot"
 	"esp/espnet/esnp"
+	"esp/espnet/espchannel"
 	"esp/espnet/espservice"
 	"logger"
 )
@@ -27,7 +28,7 @@ func main() {
 	boot.Go(cfile)
 }
 
-func H4Add(msg *esnp.Message, rep espservice.ServiceResponser) error {
+func H4Add(ch espchannel.Channel, msg *esnp.Message) error {
 	ds := msg.Datas()
 	if true {
 		a, err1 := ds.GetInt("a", 0)
@@ -42,12 +43,12 @@ func H4Add(msg *esnp.Message, rep espservice.ServiceResponser) error {
 		logger.Error(tag, "%d + %d = %d", a, b, c)
 		rmsg := msg.ReplyMessage()
 		rmsg.Datas().Set("c", c)
-		return rep.SendMessage(rmsg)
+		return ch.PostMessage(rmsg)
 	}
 	return nil
 }
 
-func H4Reload(msg *esnp.Message, rep espservice.ServiceResponser) error {
+func H4Reload(ch espchannel.Channel, msg *esnp.Message) error {
 	go func() {
 		boot.Restart()
 	}()

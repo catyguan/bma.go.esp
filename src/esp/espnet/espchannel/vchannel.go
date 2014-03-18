@@ -35,6 +35,10 @@ func (this *VChannel) String() string {
 	return fmt.Sprintf("VChanne[%s, %d]", this.name, this.id)
 }
 
+func (this *VChannel) ForceClose() {
+	this.AskClose()
+
+}
 func (this *VChannel) AskClose() {
 	if this.RemoveChannel != nil {
 		this.RemoveChannel(this)
@@ -55,9 +59,17 @@ func (this *VChannel) SetMessageListner(rec esnp.MessageListener) {
 	this.peer = rec
 }
 
-func (this *VChannel) SendMessage(ev *esnp.Message) error {
+func (this *VChannel) PostMessage(ev *esnp.Message) error {
+	return this.SendMessage(ev, nil)
+}
+
+func (this *VChannel) SendMessage(ev *esnp.Message, cb ChannelSendCallback) error {
 	if this.Sender != nil {
-		return this.Sender(ev)
+		err := this.Sender(ev)
+		if cb != nil {
+			go cb(err)
+		}
+		return err
 	}
 	return nil
 }

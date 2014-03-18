@@ -2,6 +2,7 @@ package espservice
 
 import (
 	"esp/espnet/esnp"
+	"esp/espnet/espchannel"
 	"logger"
 	"sync"
 )
@@ -87,15 +88,15 @@ func (this *ServiceMux) Match(msg *esnp.Message) ServiceHandler {
 	return nil
 }
 
-func (this *ServiceMux) DoServe(msg *esnp.Message, rep ServiceResponser) error {
+func (this *ServiceMux) DoServe(ch espchannel.Channel, msg *esnp.Message) error {
 	h := this.Match(msg)
 	if h != nil {
-		return h(msg, rep)
+		return h(ch, msg)
 	}
 	err := logger.Warn(tag, "%s not found ServiceHandler", msg.GetAddress())
 	return err
 }
 
-func (this *ServiceMux) Serve(msg *esnp.Message, rep ServiceResponser) error {
-	return DoServiceHandle(this.DoServe, msg, rep)
+func (this *ServiceMux) Serve(ch espchannel.Channel, msg *esnp.Message) error {
+	return DoServiceHandle(this.DoServe, ch, msg)
 }

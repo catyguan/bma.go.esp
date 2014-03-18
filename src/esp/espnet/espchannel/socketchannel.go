@@ -233,13 +233,12 @@ func (this *SocketChannel) SetProperty(name string, val interface{}) bool {
 	return true
 }
 
-func (this *SocketChannel) PostEvent(ev interface{}) error {
+func (this *SocketChannel) PostEvent(ev interface{}, cb ChannelSendCallback) error {
 	s := this.socket
 	if s == nil {
 		return fmt.Errorf("closed")
 	}
 
-	cctype := CLOSE_CHANNEL_NONE
 	if msg, ok := ev.(*esnp.Message); ok {
 		p := msg.ToPackage()
 		ctrl := esnp.FrameCoders.Trace
@@ -248,25 +247,16 @@ func (this *SocketChannel) PostEvent(ev interface{}) error {
 			rmsg := ctrl.CreateReply(msg, info)
 			go this.onReceiveEvent(rmsg)
 		}
-		var cc mt_close_channel
-		cctype = cc.Has(p)
 	}
 
-	if cctype == CLOSE_CHANNEL_NOW {
-		go func() {
-			s := this.socket
-			if s != nil && !s.IsClosing() {
-				s.Close()
-			}
-		}()
-		return nil
-	}
-
-	callf := func(ev interface{}) error {
-		var f4send socket.SocketWriteListener
-		if cctype == CLOES_CHANNEL_AFTER_SEND {
-			f4send = socket.Func4CloseAfterSend
+	var f4send socket.SocketWriteListener
+	if cb != nil {
+		f4send = func(s *socket.Socket, err error) bool {
+			go cb(err)
+			return true
 		}
+	}
+	callf := func(ev interface{}) error {
 		return this.doPostEvent(ev, f4send)
 	}
 	if this.coder != nil {
@@ -300,11 +290,7 @@ func (this *SocketChannel) doPostEvent(ev interface{}, f4send socket.SocketWrite
 	return nil
 }
 
-func (this *SocketChannel) AskClose() {
-	this.Close()
-}
-
-func (this *SocketChannel) Close() {
+func (this *SocketChannel) doClose(force bool) {
 	this.propLock.Lock()
 	s := this.socket
 	this.socket = nil
@@ -315,24 +301,33 @@ func (this *SocketChannel) Close() {
 	}
 
 	if this.socketReturn != nil {
-		s.RemoveCloseListener(this.closeId())
-		this.onSocketClose(nil)
-		this.socketReturn(s)
-	} else {
-		if !s.IsClosing() {
-			s.Close()
+		if !force {
+			s.RemoveCloseListener(this.closeId())
+			this.onSocketClose(nil)
+			this.socketReturn(s)
 		}
+		return
 	}
+	if !s.IsClosing() {
+		s.Close()
+	}
+}
+
+func (this *SocketChannel) AskClose() {
+	this.doClose(false)
+}
+
+func (this *SocketChannel) ForceClose() {
+	this.doClose(true)
 }
 
 func (this *SocketChannel) SetPipelineListner(rec func(ev interface{}) error) {
 	this.receiver = rec
 }
 
-func (this *SocketChannel) doRequestResponse(rmsg *esnp.Message) error {
-	logger.Info(tag, "HERE")
-	return this.PostEvent(rmsg)
-}
+// func (this *SocketChannel) doRequestResponse(rmsg *esnp.Message) error {
+// 	return this.PostEvent(rmsg, nil)
+// }
 
 // Channel
 func (this *SocketChannel) ToChannel() Channel {
@@ -347,8 +342,12 @@ func (this *SocketChannel) Name() string {
 	return this.String()
 }
 
-func (this *SocketChannel) SendMessage(msg *esnp.Message) error {
-	return this.PostEvent(msg)
+func (this *SocketChannel) PostMessage(msg *esnp.Message) error {
+	return this.PostEvent(msg, nil)
+}
+
+func (this *SocketChannel) SendMessage(msg *esnp.Message, cb ChannelSendCallback) error {
+	return this.PostEvent(msg, cb)
 }
 
 func (this *SocketChannel) SetMessageListner(rec esnp.MessageListener) {
@@ -365,8 +364,7 @@ func (this *SocketChannel) SetCloseListener(name string, lis func()) error {
 	return nil
 }
 
-func (this *SocketChannel) IsBreak() *bool {
+func (this *SocketChannel) IsBreak() bool {
 	s := this.socket
-	v := s == nil || s.IsClosing()
-	return &v
+	return s == nil || s.IsClosing()
 }

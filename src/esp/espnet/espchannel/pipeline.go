@@ -73,7 +73,7 @@ func (this *Connector) LeftSendMessage(msg *esnp.Message) error {
 		if this.LeftToRightHandler != nil {
 			return this.LeftToRightHandler(this.left, msg, this.right)
 		}
-		return this.right.SendMessage(msg)
+		return this.right.PostMessage(msg)
 	}
 	return errors.New("closed")
 }
@@ -83,7 +83,7 @@ func (this *Connector) RightSendMessage(msg *esnp.Message) error {
 		if this.RightToLeftHandler != nil {
 			return this.RightToLeftHandler(this.right, msg, this.left)
 		}
-		return this.left.SendMessage(msg)
+		return this.left.PostMessage(msg)
 	}
 	return errors.New("closed")
 }
@@ -159,7 +159,7 @@ func (this *Pipeline) LeftSendMessage(msg *esnp.Message) error {
 		if this.LeftToRightHandler != nil {
 			return this.LeftToRightHandler(this.left, msg, this.right)
 		}
-		return this.right.SendMessage(msg)
+		return this.right.PostMessage(msg)
 	}
 	return errors.New("closed")
 }
@@ -169,7 +169,7 @@ func (this *Pipeline) RightSendMessage(msg *esnp.Message) error {
 		if this.RightToLeftHandler != nil {
 			return this.RightToLeftHandler(this.right, msg, this.left)
 		}
-		return this.left.SendMessage(msg)
+		return this.left.PostMessage(msg)
 	}
 	return errors.New("closed")
 }

@@ -28,14 +28,12 @@ func (this *ServiceResponser4C) GetChannel() espchannel.Channel {
 }
 
 func (this *ServiceResponser4C) SendMessage(msg *esnp.Message) error {
-	return this.C.SendMessage(msg)
+	return this.C.PostMessage(msg)
 }
 
 func ConnectService(ch espchannel.Channel, sh ServiceHandler) error {
-	csh := new(ServiceResponser4C)
-	csh.C = ch
 	ch.SetMessageListner(func(msg *esnp.Message) error {
-		return DoServiceHandle(sh, msg, csh)
+		return DoServiceHandle(sh, ch, msg)
 	})
 	return nil
 }
@@ -43,7 +41,7 @@ func ConnectService(ch espchannel.Channel, sh ServiceHandler) error {
 func Connect(left espchannel.Channel, right espchannel.Channel, closeOnBreak bool) {
 	cid := fmt.Sprintf("%p_%p", left, right)
 	left.SetMessageListner(func(msg *esnp.Message) error {
-		return right.SendMessage(msg)
+		return right.PostMessage(msg)
 	})
 	left.SetCloseListener(cid, func() {
 		left.SetMessageListner(nil)
@@ -54,7 +52,7 @@ func Connect(left espchannel.Channel, right espchannel.Channel, closeOnBreak boo
 		}
 	})
 	right.SetMessageListner(func(msg *esnp.Message) error {
-		return left.SendMessage(msg)
+		return left.PostMessage(msg)
 	})
 	right.SetCloseListener(cid, func() {
 		right.SetMessageListner(nil)

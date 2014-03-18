@@ -295,17 +295,15 @@ func (this *DialPool) reconnectSocket(rs *retryst.RetryState, lastTry bool) bool
 	return true
 }
 
-func (this *DialPool) IsBreak() *bool {
-	r := false
+func (this *DialPool) IsBreak() bool {
 	c := atomic.LoadInt32(&this.count)
 	if c > 0 {
-		return &r
+		return false
 	}
 	if this.config.InitSize > 0 {
-		r = true
-		return &r
+		return true
 	}
-	return nil
+	return false
 }
 
 func (this *DialPool) Run() bool {

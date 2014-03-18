@@ -8,6 +8,7 @@ type SupportProp interface {
 }
 
 type ChannelListener func(ch Channel) error
+type ChannelSendCallback func(err error)
 
 // 通道的业务界面
 type Channel interface {
@@ -19,6 +20,7 @@ type Channel interface {
 
 	// 关闭
 	AskClose()
+	ForceClose()
 
 	// 获取属性/设置属性
 	GetProperty(name string) (interface{}, bool)
@@ -27,7 +29,8 @@ type Channel interface {
 	// 上行的接收器
 	SetMessageListner(rec esnp.MessageListener)
 
-	SendMessage(ev *esnp.Message) error
+	PostMessage(ev *esnp.Message) error
+	SendMessage(ev *esnp.Message, cb ChannelSendCallback) error
 
 	SetCloseListener(name string, lis func()) error
 }
@@ -43,5 +46,5 @@ type ChannelAcceptor interface {
 
 // ChannelBreakSupport
 type BreakSupport interface {
-	IsBreak() *bool
+	IsBreak() bool
 }

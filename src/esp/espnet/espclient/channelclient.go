@@ -71,7 +71,7 @@ func (this *ChannelClient) IsOpen() bool {
 	}
 	if cb, ok := this.C.(espchannel.BreakSupport); ok {
 		bv := cb.IsBreak()
-		if bv != nil && *bv {
+		if bv {
 			return false
 		}
 	}
@@ -84,7 +84,7 @@ func (this *ChannelClient) SetMessageListner(rec esnp.MessageListener) {
 
 func (this *ChannelClient) SendMessage(ev *esnp.Message) error {
 	if this.C != nil {
-		return this.C.SendMessage(ev)
+		return this.C.PostMessage(ev)
 	}
 	return errors.New("not open")
 }
