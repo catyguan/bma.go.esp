@@ -1,183 +1,100 @@
 package n2n
 
 import (
-	"bmautil/socket"
 	"esp/cluster/nodeinfo"
 	"esp/espnet/esnp"
 	"esp/espnet/espchannel"
 	"logger"
 	"sync"
-	"time"
 )
 
 const (
 	tag = "n2n"
 )
 
-type remoteInfo struct {
-	id      nodeinfo.NodeId
-	name    string
-	url     string
-	channel espchannel.Channel
-	pool    *socket.DialPool
-	passive bool
-}
-
 type Service struct {
 	name   string
+	ninfo  *nodeinfo.Service
 	config *configInfo
 
-	lock    sync.RWMutex
-	remotes []*remoteInfo
-	i2r     map[nodeinfo.NodeId]*remoteInfo
-	n2r     map[string]*remoteInfo
+	lock       sync.RWMutex
+	connectors map[string]*connector
+	remotes    map[nodeinfo.NodeId]*remoteInfo
 }
 
-func NewService(n string) *Service {
+func NewService(n string, ninfo *nodeinfo.Service) *Service {
 	this := new(Service)
 	this.name = n
-	this.remotes = make([]*remoteInfo, 0)
-	this.i2r = make(map[nodeinfo.NodeId]*remoteInfo)
-	this.n2r = make(map[string]*remoteInfo)
+	this.ninfo = ninfo
+	this.connectors = make(map[string]*connector)
+	this.remotes = make(map[nodeinfo.NodeId]*remoteInfo)
 	return this
 }
 
-func (this *Service) isLive(ri *remoteInfo) bool {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
-	for _, o := range this.remotes {
-		if o == ri {
-			return true
-		}
-	}
-	return false
+func (this *Service) onChannelClose(ri *remoteInfo) {
+	logger.Debug(tag, "node[%d] break", ri.nodeId)
 }
 
-func (this *Service) onChannelClose(ri *remoteInfo) {
-	if !this.isLive(ri) {
+func (this *Service) checkConnector(k string, url *esnp.URL) {
+	this.lock.Lock()
+	ctor, ok := this.connectors[k]
+	if ok {
+		this.lock.Unlock()
 		return
 	}
-	logger.Debug(tag, "'%s' break,try reconnect", ri.name)
-	ri.channel = nil
-	go func() {
-		this.reconnect(ri)
-	}()
+	ctor = new(connector)
+	this.connectors[k] = ctor
+	this.lock.Unlock()
+	ctor.InitConnector(this, k, url)
 }
 
-func (this *Service) reconnect(ri *remoteInfo) {
-	i := 0
-	for {
-		if !this.isLive(ri) {
-			logger.Debug(tag, "'%s' not live, exit reconnect", ri.name)
-			return
-		}
-		if i%30 == 0 {
-			logger.Debug(tag, "'%s' try GetSocket", ri.name)
-		}
-		i++
-		sock, err := ri.pool.GetSocket(1*time.Second, false)
-		if err == nil {
-			logger.Debug(tag, "'%s' connected", ri.name)
-			ri.channel = espchannel.NewSocketChannel(sock, espchannel.SOCKET_CHANNEL_CODER_ESPNET)
-			ri.channel.SetCloseListener(this.name, func() {
-				this.onChannelClose(ri)
-			})
-			this.onChannelConnect(ri)
-			return
-		}
-	}
-}
-
-func (this *Service) checkAndConnect(n string, url string) {
-	this.lock.RLock()
-	for _, ri := range this.remotes {
-		if ri.name == n {
-			this.lock.RUnlock()
-			logger.Debug(tag, "'%s' exists, skip connect", n)
-			return
-		}
-	}
-	this.lock.RUnlock()
-
-	logger.Debug(tag, "'%s' begin connecting", n)
-
-	ri := new(remoteInfo)
-	ri.name = n
-	ri.url = url
-	this.remotes = append(this.remotes, ri)
-
-	go func() {
-		addr, _ := esnp.ParseAddress(ri.url)
-		cfg := new(socket.DialPoolConfig)
-		cfg.Dial.Address = addr.GetHost()
-		cfg.MaxSize = 1
-		cfg.InitSize = 1
-		pool := socket.NewDialPool(this.name+"_"+n+"_pool", cfg, nil)
-		ri.pool = pool
-		pool.Start()
-		pool.Run()
-		this.reconnect(ri)
-	}()
-
-	return
-}
-
-func (this *Service) _removeAndClose(ri *remoteInfo) {
-	if ri.pool != nil {
-		ri.pool.AskClose()
-		ri.pool = nil
-	}
-	if ri.channel != nil {
-		ri.channel.SetCloseListener(this.name, nil)
-		ri.channel.AskClose()
-		ri.channel = nil
-	}
-	if ri.id > 0 {
-		delete(this.i2r, ri.id)
-	}
-	if ri.name != "" {
-		delete(this.n2r, ri.name)
-	}
-	for i, item := range this.remotes {
-		if item == ri {
-			c := len(this.remotes)
-			if c > 1 {
-				this.remotes[i], this.remotes[c-1] = this.remotes[i-1], nil
-				this.remotes = this.remotes[0 : c-1]
-			} else {
-				this.remotes = make([]*remoteInfo, 0)
-			}
-			return
-		}
-	}
-}
-
-func (this *Service) closeRemote(n string) {
+func (this *Service) closeConnector(k string) {
 	this.lock.Lock()
-	defer this.lock.Unlock()
-	for _, ri := range this.remotes {
-		if ri.name == n {
-			this._removeAndClose(ri)
-			return
-		}
+	ctor, ok := this.connectors[k]
+	delete(this.connectors, k)
+	this.lock.Unlock()
+	if ok {
+		ctor.Close()
+	}
+}
+
+func (this *Service) closeAllConnectors() {
+	this.lock.Lock()
+	tmp := this.connectors
+	this.connectors = make(map[string]*connector)
+	this.lock.Unlock()
+
+	for _, ctor := range tmp {
+		ctor.Close()
 	}
 }
 
 func (this *Service) closeAllRemote() {
 	this.lock.Lock()
-	defer this.lock.Unlock()
 	tmp := this.remotes
-	this.remotes = make([]*remoteInfo, 0)
+	this.remotes = make(map[nodeinfo.NodeId]*remoteInfo)
+	this.lock.Unlock()
+
 	for _, ri := range tmp {
-		this._removeAndClose(ri)
+		ri.Close()
 	}
 }
 
-func (this *Service) onChannelConnect(ri *remoteInfo) {
-	// send req
-
-}
-
 func (this *Service) doJoin(req *joinReq, ch espchannel.Channel) error {
+	logger.Debug(tag, "doJoin(%v)", req)
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	ri, ok := this.remotes[req.Id]
+	if !ok {
+		logger.Debug(tag, "create remoteInfo(%v)", req)
+
+		ri = new(remoteInfo)
+		err := ri.InitRemoteInfo(this, req.Id, req.Name, req.URL)
+		if err != nil {
+			return err
+		}
+		this.remotes[req.Id] = ri
+	}
+	ri.Add(ch)
 	return nil
 }

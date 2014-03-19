@@ -8,11 +8,13 @@ import (
 )
 
 type remoteConfigInfo struct {
-	URL string
+	URL  string
+	eurl *esnp.URL
 }
 
 type configInfo struct {
 	URL    string
+	eurl   *esnp.URL
 	Remote map[string]*remoteConfigInfo
 }
 
@@ -21,26 +23,30 @@ func (this *configInfo) Valid() error {
 		return fmt.Errorf("URL invalid")
 	}
 	if true {
-		addr, err := esnp.ParseAddress(this.URL)
+		v, err := esnp.ParseURL(this.URL)
 		if err != nil {
-			return err
+			return fmt.Errorf("URL invalid %s", err)
 		}
-		if addr.GetHost() == "" {
-			return fmt.Errorf("URL host invalid")
+		host := v.GetHost()
+		if host == "" {
+			return fmt.Errorf("URL address invalid")
 		}
+		this.eurl = v
 	}
 
 	for k, remote := range this.Remote {
 		if remote.URL == "" {
 			return fmt.Errorf("Remote[%s] invalid", k)
 		}
-		addr, err := esnp.ParseAddress(this.URL)
+		v, err := esnp.ParseURL(remote.URL)
 		if err != nil {
 			return fmt.Errorf("Remote[%s] URL invalid %s", k, err)
 		}
-		if addr.GetHost() == "" {
-			return fmt.Errorf("Remote[%s] URL host invalid")
+		host := v.GetHost()
+		if host == "" {
+			return fmt.Errorf("Remote[%s] URL address", k)
 		}
+		remote.eurl = v
 	}
 	return nil
 }
@@ -131,7 +137,7 @@ func (this *Service) Run(ctx *boot.BootContext) bool {
 	}
 
 	for k, ro := range this.config.Remote {
-		this.checkAndConnect(k, ro.URL)
+		this.checkConnector(k, ro.eurl)
 	}
 	return true
 }
@@ -150,12 +156,13 @@ func (this *Service) GraceStop(ctx *boot.BootContext) bool {
 				}
 			}
 		}
-		this.closeRemote(k)
+		this.closeConnector(k)
 	}
 	return true
 }
 
 func (this *Service) Stop() bool {
+	this.closeAllConnectors()
 	this.closeAllRemote()
 	return true
 }

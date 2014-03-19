@@ -48,3 +48,9 @@ type ChannelAcceptor interface {
 type BreakSupport interface {
 	IsBreak() bool
 }
+
+func CloseAfterSend(ch Channel, msg *esnp.Message) {
+	ch.SendMessage(msg, func(err error) {
+		ch.AskClose()
+	})
+}

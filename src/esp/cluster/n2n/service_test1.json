@@ -1,0 +1,21 @@
+{
+	"global" : {
+		"Debug" : true,
+		"GOMAXPROCS" : 5
+	},
+	"nodeInfo" : {
+		"NodeId": 101,
+		"NodeName": "node1"
+	},
+	"n2nService" : {
+		"URL" : "esnp://127.0.0.1:1081/n2n/",
+		"Remote":{
+			"node2" : {
+				"URL" : "esnp://127.0.0.1:1082/n2n/"
+			}
+		}
+	},
+	"servicePoint" : {
+		"Port" : "1081"
+	}
+}

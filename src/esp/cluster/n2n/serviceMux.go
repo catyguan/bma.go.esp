@@ -5,8 +5,10 @@ import (
 	"esp/cluster/nodeinfo"
 	"esp/espnet/esnp"
 	"esp/espnet/espchannel"
+	"esp/espnet/espclient"
 	"fmt"
 	"logger"
+	"time"
 )
 
 const (
@@ -20,7 +22,6 @@ type joinReq struct {
 }
 
 func (this *joinReq) Write(msg *esnp.Message) error {
-	msg.GetAddress().SetOp(OP_JOIN)
 	xd := msg.XDatas()
 	xd.Add(1, this.Id, nodeinfo.NodeIdCoder)
 	xd.Add(2, this.Name, coder.String)
@@ -57,31 +58,73 @@ func (this *joinReq) Read(msg *esnp.Message) error {
 	return nil
 }
 
-func (this *Service) serve(msg *esnp.Message, ch espchannel.Channel) {
-	err := func() error {
+func (this *Service) makeJoinReq() *joinReq {
+	req := new(joinReq)
+	req.Id = this.ninfo.GetId()
+	req.Name = this.ninfo.GetNodeName()
+	req.URL = this.config.URL
+	return req
+}
+
+func (this *Service) sendJoinReq(n string, url *esnp.URL, ch espchannel.Channel) {
+	go func() {
+		logger.Debug(tag, "send joinReq -> (%s : %s)", n, ch)
+
+		req := this.makeJoinReq()
+
+		msg := esnp.NewRequestMessage()
 		addr := msg.GetAddress()
-		op := addr.GetOp()
-		switch op {
-		case OP_JOIN:
-			req := new(joinReq)
-			err := req.Read(msg)
-			if err != nil {
-				return err
-			}
-			err2 := this.doJoin(req, ch)
-			if err2 != nil {
-				return err2
-			}
-			rmsg := msg.ReplyMessage()
-			ch.SendMessage(rmsg)
-			return nil
+		url.BindAddress(addr)
+		addr.SetOp(OP_JOIN)
+		req.Write(msg)
+		cl := espclient.NewChannelClient()
+		if err := cl.Connect(ch, false); err != nil {
+			logger.Debug(tag, "ChannelClient connect fail - %s", err)
+			return
 		}
-		return fmt.Errorf("unknow method '%s'", op)
+		tm := time.NewTimer(url.GetTimeout(3 * time.Second))
+		rmsg, err := cl.Call(msg, tm)
+		if err != nil {
+			logger.Debug(tag, "%s call fail - %s", ch, err)
+			return
+		}
+		err = this.handleJoin(ch, rmsg, false)
+		if err != nil {
+			logger.Debug(tag, "%s handle join resp fail - %s", ch, err)
+		}
 	}()
+}
+
+func (this *Service) handleJoin(ch espchannel.Channel, msg *esnp.Message, doReply bool) error {
+	req := new(joinReq)
+	err := req.Read(msg)
 	if err != nil {
-		logger.Error(tag, "'%s' serve fail - %s", ch, err)
-		rmsg := msg.ReplyMessage()
-		rmsg.BeError(err)
-		espchannel.CloseAfterSend(rmsg)
+		return err
 	}
+	err2 := this.doJoin(req, ch)
+	if err2 != nil {
+		return err2
+	}
+	if doReply {
+		logger.Debug(tag, "reply joinReq -> (%s : %s)", req.Name, ch)
+		rreq := this.makeJoinReq()
+		rmsg := msg.ReplyMessage()
+		rreq.Write(rmsg)
+		ch.PostMessage(rmsg)
+	}
+	return nil
+}
+
+func (this *Service) Serve(ch espchannel.Channel, msg *esnp.Message) error {
+	addr := msg.GetAddress()
+	op := addr.GetOp()
+	switch op {
+	case OP_JOIN:
+		err := this.handleJoin(ch, msg, true)
+		if err != nil {
+			logger.Warn(tag, "%s handle joinReq fail - %s", err)
+		}
+		return err
+	}
+	return fmt.Errorf("unknow method '%s'", op)
 }

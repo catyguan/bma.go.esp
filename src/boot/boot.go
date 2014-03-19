@@ -402,9 +402,17 @@ func doCleanup(ctx *BootContext) {
 func TestGo(cfgFile string, endWaitSec int, funl []func()) {
 	var ctx *BootContext
 	defer func() {
+		if ctx == nil {
+			ctx = new(BootContext)
+			ctx.Config = config.Global
+		}
 		doStopAndClean(ctx)
 		UninstallAll()
 	}()
+	time.AfterFunc(time.Duration(endWaitSec+5)*time.Second, func() {
+		fmt.Println("os exit!!!!")
+		os.Exit(-1)
+	})
 
 	if !doPrepare() {
 		fmt.Println("ERROR: boot prepare fail")

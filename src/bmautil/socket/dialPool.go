@@ -138,7 +138,9 @@ func (this *DialPool) GetSocket(timeout time.Duration, log bool) (*Socket, error
 		return s, nil
 	}
 	// wait it
-	logger.Debug(tag, "%s max, wait returnSocket", this)
+	if log {
+		logger.Debug(tag, "%s max, wait returnSocket", this)
+	}
 	if timeout > 0 {
 		timer := time.NewTimer(timeout)
 		select {
@@ -381,6 +383,9 @@ func (this *SocketServer4Dial) doConnect() {
 		if err == nil {
 			err2 := this.acceptor(s)
 			if err2 != nil {
+				if !s.IsClosing() {
+					this.pool.ReturnSocket(s)
+				}
 				logger.Debug(tag, "accept(%s) fail - %s", s, err2)
 			} else {
 				s.AddCloseListener(func(sock *Socket) {

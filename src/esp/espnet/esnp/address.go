@@ -1,12 +1,9 @@
 package esnp
 
 import (
-	"bmautil/valutil"
 	"bytes"
 	"fmt"
-	"net/url"
 	"sort"
-	"strings"
 )
 
 const (
@@ -153,96 +150,5 @@ func (this *Address) String() string {
 		buf.WriteString(fmt.Sprintf("%d=%s", ann, v))
 	}
 	buf.WriteString("]")
-	return buf.String()
-}
-
-func ParseAddress(s string) (*Address, error) {
-	v, err := url.Parse(s)
-	if err != nil {
-		return nil, err
-	}
-	uri := v.RequestURI()
-	slist := strings.SplitN(uri, "/", 3)
-	if len(slist) != 3 {
-		return nil, fmt.Errorf("invalid URI(%s)", uri)
-	}
-	r := new(Address)
-	if strings.ToLower(v.Host) != "unknow" {
-		r.SetHost(v.Host)
-	}
-	if strings.ToLower(slist[1]) != "unknow" {
-		r.SetService(slist[1])
-	}
-	if strings.ToLower(slist[2]) != "unknow" {
-		r.SetOp(slist[2])
-	}
-	qs := v.Query()
-	for k, _ := range qs {
-		qv := qs.Get(k)
-		if k == "o" {
-			r.SetObject(qv)
-			continue
-		}
-		if k == "g" {
-			r.SetGroup(qv)
-		}
-		if len(k) > 1 && k[0] == 'a' {
-			nk := valutil.ToInt(k[0:], 0)
-			if nk > 0 {
-				r.Set(nk, qv)
-			}
-		}
-	}
-	return r, nil
-}
-
-func (this *Address) ToURL() string {
-	buf := bytes.NewBuffer(make([]byte, 0))
-	buf.WriteString("esnp://")
-	if host := this.GetHost(); host != "" {
-		buf.WriteString(host)
-	} else {
-		buf.WriteString("unknow")
-	}
-	buf.WriteString("/")
-	if service := this.GetService(); service != "" {
-		buf.WriteString(service)
-	} else {
-		buf.WriteString("unknow")
-	}
-	buf.WriteString("/")
-	if op := this.GetOp(); op != "" {
-		buf.WriteString(op)
-	} else {
-		buf.WriteString("unknow")
-	}
-
-	b := false
-	anns := this.Annotations()
-	for _, ann := range anns {
-		switch ann {
-		case ADDRESS_HOST, ADDRESS_OP, ADDRESS_SERVICE:
-			continue
-		}
-		n := ""
-		v := this.Get(ann)
-		switch ann {
-		case ADDRESS_OBJECT:
-			n = "o"
-		case ADDRESS_GROUP:
-			n = "g"
-		default:
-			n = fmt.Sprintf("a%d", ann)
-		}
-		if !b {
-			b = true
-			buf.WriteString("?")
-		} else {
-			buf.WriteString("&")
-		}
-		buf.WriteString(n)
-		buf.WriteString("=")
-		buf.WriteString(url.QueryEscape(v))
-	}
 	return buf.String()
 }
