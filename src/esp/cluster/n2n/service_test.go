@@ -22,11 +22,11 @@ func doServiceTest(cfgFile string) {
 	ninfo := nodeinfo.NewService("nodeInfo")
 	boot.Add(ninfo, "", false)
 
-	s := NewService("n2nService", ninfo)
-	boot.Add(s, "", false)
+	n2n := NewService("n2nService", ninfo)
+	boot.Add(n2n, "", false)
 
 	mux := espservice.NewServiceMux(nil, nil)
-	mux.AddServiceHandler("n2n", s.Serve)
+	mux.AddServiceHandler("n2n", n2n.Serve)
 	goService := espservice.NewGoService("goService", mux.Serve)
 
 	lisPoint := socket.NewListenPoint("servicePoint", nil, goService.AcceptESP)

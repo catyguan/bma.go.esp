@@ -33,3 +33,5 @@ func NewDecoderFuc(f func(r *byteutil.BytesBufferReader) (interface{}, error)) D
 // Message
 type MessageListener func(msg *Message) error
 type MessageSender func(msg *Message) error
+type ResponseListener func(msg *Message, err error) error
+type MessageHandler func(msg *Message) (bool, error)

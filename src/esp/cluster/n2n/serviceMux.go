@@ -5,10 +5,8 @@ import (
 	"esp/cluster/nodeinfo"
 	"esp/espnet/esnp"
 	"esp/espnet/espchannel"
-	"esp/espnet/espclient"
 	"fmt"
 	"logger"
-	"time"
 )
 
 const (
@@ -66,35 +64,6 @@ func (this *Service) makeJoinReq() *joinReq {
 	return req
 }
 
-func (this *Service) sendJoinReq(n string, url *esnp.URL, ch espchannel.Channel) {
-	go func() {
-		logger.Debug(tag, "send joinReq -> (%s : %s)", n, ch)
-
-		req := this.makeJoinReq()
-
-		msg := esnp.NewRequestMessage()
-		addr := msg.GetAddress()
-		url.BindAddress(addr)
-		addr.SetOp(OP_JOIN)
-		req.Write(msg)
-		cl := espclient.NewChannelClient()
-		if err := cl.Connect(ch, false); err != nil {
-			logger.Debug(tag, "ChannelClient connect fail - %s", err)
-			return
-		}
-		tm := time.NewTimer(url.GetTimeout(3 * time.Second))
-		rmsg, err := cl.Call(msg, tm)
-		if err != nil {
-			logger.Debug(tag, "%s call fail - %s", ch, err)
-			return
-		}
-		err = this.handleJoin(ch, rmsg, false)
-		if err != nil {
-			logger.Debug(tag, "%s handle join resp fail - %s", ch, err)
-		}
-	}()
-}
-
 func (this *Service) handleJoin(ch espchannel.Channel, msg *esnp.Message, doReply bool) error {
 	req := new(joinReq)
 	err := req.Read(msg)
@@ -120,11 +89,13 @@ func (this *Service) Serve(ch espchannel.Channel, msg *esnp.Message) error {
 	op := addr.GetOp()
 	switch op {
 	case OP_JOIN:
-		err := this.handleJoin(ch, msg, true)
-		if err != nil {
-			logger.Warn(tag, "%s handle joinReq fail - %s", err)
-		}
-		return err
+		return this.goo.DoSync(func() error {
+			err := this.handleJoin(ch, msg, true)
+			if err != nil {
+				logger.Warn(tag, "%s handle joinReq fail - %s", err)
+			}
+			return err
+		})
 	}
 	return fmt.Errorf("unknow method '%s'", op)
 }

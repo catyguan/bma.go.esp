@@ -127,6 +127,7 @@ func (this *Service) Start(ctx *boot.BootContext) bool {
 	if ccr.Type == boot.CCR_NONE {
 		return true
 	}
+	this.goo.Run()
 	return true
 }
 
@@ -136,9 +137,11 @@ func (this *Service) Run(ctx *boot.BootContext) bool {
 		return true
 	}
 
-	for k, ro := range this.config.Remote {
-		this.checkConnector(k, ro.eurl)
-	}
+	this.goo.DoSync(func() {
+		for k, ro := range this.config.Remote {
+			this.doCheckConnector(k, ro.eurl)
+		}
+	})
 	return true
 }
 
@@ -156,14 +159,15 @@ func (this *Service) GraceStop(ctx *boot.BootContext) bool {
 				}
 			}
 		}
-		this.closeConnector(k)
+		this.goo.DoSync(func() {
+			this.doCloseConnector(k)
+		})
 	}
 	return true
 }
 
 func (this *Service) Stop() bool {
-	this.closeAllConnectors()
-	this.closeAllRemote()
+	this.goo.Stop()
 	return true
 }
 
@@ -172,5 +176,6 @@ func (this *Service) Close() bool {
 }
 
 func (this *Service) Cleanup() bool {
+	this.goo.StopAndWait()
 	return true
 }

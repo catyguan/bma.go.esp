@@ -50,6 +50,8 @@ func (this *connector) start() {
 func (this *connector) onSocketAccept(sock *socket.Socket) error {
 	this.ch = espchannel.NewSocketChannel(sock, espchannel.SOCKET_CHANNEL_CODER_ESPNET)
 	logger.Debug(tag, "%s connected", this.ch)
-	this.service.sendJoinReq(this.name, this.url, this.ch)
+	this.service.goo.DoNow(func() {
+		this.service.doChannelAccept(this.name, this.url, this.ch)
+	})
 	return nil
 }

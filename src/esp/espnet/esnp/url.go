@@ -93,10 +93,10 @@ func (this *URL) GetTimeout(d time.Duration) time.Duration {
 	return time.Duration(v) * time.Millisecond
 }
 
-func (this *URL) BindAddress(r *Address) error {
+func (this *URL) BindAddress(r *Address, bhost bool) error {
 	var v string
 	v = this.GetHost()
-	if v != "" {
+	if bhost && v != "" {
 		r.SetHost(v)
 	}
 	v = this.GetService()
@@ -127,9 +127,9 @@ func (this *URL) BindAddress(r *Address) error {
 	return nil
 }
 
-func (this *URL) BindMessage(msg *Message) error {
+func (this *URL) BindMessage(msg *Message, bhost bool) error {
 	addr := msg.GetAddress()
-	return this.BindAddress(addr)
+	return this.BindAddress(addr, bhost)
 }
 
 func (this *Address) ToURL() string {
