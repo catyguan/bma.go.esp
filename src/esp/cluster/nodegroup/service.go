@@ -1,4 +1,4 @@
-package seedservice
+package nodegroup
 
 import "esp/cluster/n2n"
 

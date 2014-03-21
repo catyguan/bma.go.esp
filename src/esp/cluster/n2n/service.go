@@ -84,6 +84,7 @@ func (this *Service) doRemoteClosed(ri *remoteInfo) {
 	if !ri.tunnel.IsBreak() {
 		return
 	}
+	logger.Debug(tag, "'%s' RemoteClosed", ri)
 	delete(this.remotes, ri.nodeId)
 	if this.listeners != nil {
 		for _, lis := range this.listeners {
@@ -177,4 +178,21 @@ func (this *Service) SetListener(n string, lis RemoteListener) error {
 			this.listeners[n] = lis
 		}
 	})
+}
+
+func (this *Service) GetChannel(nid nodeinfo.NodeId) (espchannel.Channel, *espterminal.Terminal, error) {
+	var rch espchannel.Channel
+	var rtm *espterminal.Terminal
+	err := this.goo.DoSync(func() {
+		ri, ok := this.remotes[nid]
+		if !ok {
+			return
+		}
+		rch = ri.tunnel
+		rtm = ri.tm
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	return rch, rtm, nil
 }

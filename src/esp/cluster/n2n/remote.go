@@ -6,6 +6,7 @@ import (
 	"esp/espnet/espchannel"
 	"esp/espnet/espterminal"
 	"esp/espnet/esptunnel"
+	"fmt"
 )
 
 type remoteInfo struct {
@@ -17,6 +18,10 @@ type remoteInfo struct {
 
 	tunnel *esptunnel.Tunnel
 	tm     *espterminal.Terminal
+}
+
+func (this *remoteInfo) String() string {
+	return fmt.Sprintf("%d(%s)", this.nodeId, this.nodeName)
 }
 
 func (this *remoteInfo) InitRemoteInfo(s *Service, id nodeinfo.NodeId, name string, url string) error {

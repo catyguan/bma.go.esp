@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bmautil/socket"
 	"boot"
 	"esp/cluster/n2n"
+	"esp/cluster/nodeinfo"
+	"esp/espnet/espservice"
 )
 
 const (
@@ -12,15 +15,18 @@ const (
 func main() {
 	cfile := "config/seed-config.json"
 
-	// mux := espservice.NewServiceMux(nil, nil)
-	// mux.AddHandler("test", "add", H4Add)
-	// mux.AddHandler("sys", "reload", H4Reload)
+	ninfo := nodeinfo.NewService("nodeInfo")
+	boot.Add(ninfo, "", false)
 
-	n2nService := n2n.NewService("n2n")
-	boot.Add(n2nService, "", false)
+	n2n := n2n.NewService("n2nService", ninfo)
+	boot.Add(n2n, "", false)
 
-	// n2nPoint := socket.NewListenPoint("n2nPoint", nil, goservice.AcceptESP)
-	// boot.Add(lisPoint, "", true)
+	mux := espservice.NewServiceMux(nil, nil)
+	mux.AddServiceHandler("n2n", n2n.Serve)
+	goService := espservice.NewGoService("goService", mux.Serve)
+
+	lisPoint := socket.NewListenPoint("servicePoint", nil, goService.AcceptESP)
+	boot.Add(lisPoint, "", false)
 
 	boot.Go(cfile)
 }

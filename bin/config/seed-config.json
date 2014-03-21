@@ -3,15 +3,19 @@
 		"Debug" : true,
 		"GOMAXPROCS" : 5
 	},
-	"servicePoint" : {
-		"Port" : 1080
+	"nodeInfo" : {
+		"NodeId": 1080,
+		"NodeName": "SeedNode"
 	},
-	"n2n" : {
-		"URL" : "esnp://127.0.0.1:1081/1/2",
-		"Remote" : {
-			"node1" : {
-				"URL" : "esnp://127.0.0.1:1080/1/2"
+	"n2nService" : {
+		"URL" : "esnp://127.0.0.1:1080/n2n/",
+		"Remote2":{
+			"node81" : {
+				"URL" : "esnp://127.0.0.1:1081/n2n/"
 			}
 		}
+	},
+	"servicePoint" : {
+		"Port" : "1080"
 	}
 }

@@ -10,6 +10,9 @@
 	"n2nService" : {
 		"URL" : "esnp://127.0.0.1:1081/n2n/",
 		"Remote":{
+			"seed" : {
+				"URL" : "esnp://127.0.0.1:1080/n2n/"
+			},
 			"node2" : {
 				"URL" : "esnp://127.0.0.1:1082/n2n/"
 			}
