@@ -24,6 +24,7 @@ func TestBase(t *testing.T) {
 	var L *State
 
 	L = NewState()
+	defer L.Close()
 	L.OpenLibs()
 
 	L.GetField(LUA_GLOBALSINDEX, "print")
@@ -42,6 +43,4 @@ func TestBase(t *testing.T) {
 	L.Call(0, 0)
 	L.Call(0, 0)
 	L.Call(0, 0)
-
-	L.Close()
 }

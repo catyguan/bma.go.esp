@@ -123,6 +123,10 @@ func (this *Goo) StopAndWait() {
 	}
 }
 
+func (this *Goo) GetState() uint32 {
+	return this.sm.GetState()
+}
+
 func (this *Goo) CanInvoke() bool {
 	v := this.sm.GetState()
 	return v == STATE_START || v == STATE_RUN

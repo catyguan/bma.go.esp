@@ -1,6 +1,7 @@
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
+#include <stdint.h>
 #include "_cgo_export.h"
 //metatables to register:
 //	GoLua.GoInterface
@@ -67,12 +68,12 @@ void clua_pushgofunction(lua_State* L, unsigned int fid)
 
 void clua_pushlightinteger(lua_State* L, int n)
 {
-  lua_pushlightuserdata(L, (void*)n);
+	lua_pushlightuserdata(L, (void*)(intptr_t) n);
 }
 
 int clua_tolightinteger(lua_State *L, int index)
 {
-  return (int)lua_touserdata(L, index);
+	return (int)(intptr_t)lua_touserdata(L, index);
 }
 
 void clua_setgostate(lua_State* L, GoInterface4C gi)
@@ -156,7 +157,7 @@ GoInterface4C clua_atpanic(lua_State* L, unsigned int panicf_id)
 	else
 	{
 		//TODO: technically UB, function ptr -> non function ptr
-		ri = golua_cfunctiontointerface((int*)pf);
+		ri = golua_cfunctiontointerface((intptr_t*)pf);
 	}
 	r.t = ri.t;
 	r.v = ri.v;
