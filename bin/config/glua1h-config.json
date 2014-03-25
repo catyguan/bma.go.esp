@@ -1,0 +1,17 @@
+{
+	"global" : {
+		"Debug" : true,
+		"GOMAXPROCS" : 5
+	},
+	"httpPoint" : {
+		"Port" : "1080"
+	},
+	"gluaService" : {
+		"GLua" : {
+			"g1" : {
+				"Paths" : ["${CWD}/lua"],
+				"Preloads" : ["test"]
+			}
+		}
+	}
+}

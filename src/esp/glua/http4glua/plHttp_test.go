@@ -18,10 +18,11 @@ func TestPluginHttp(t *testing.T) {
 	pw = pw
 
 	cfg := new(glua.ConfigInfo)
+	cfg.QueueSize = 16
 	cfg.Paths = []string{pw}
 	cfg.Preloads = []string{"test"}
 
-	gl := glua.NewGLua("test", 16, cfg)
+	gl := glua.NewGLua("test", cfg)
 	gl.Add(new(glua.PluginAll))
 	gl.Add(new(PluginHttp))
 

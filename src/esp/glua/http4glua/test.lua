@@ -3,7 +3,10 @@ print("module http.test init")
 function http(ctx, result)
 	print("lua.http")
 	req = {
-		URL = "http://cn.bing.com"		
+		URL = "http://cn.bing.com/search",
+		Data = {
+			q="golang http"
+		}
 	}
 	greq = glua_toMap(req)
 	err = glua_task("http",greq,"endReq")

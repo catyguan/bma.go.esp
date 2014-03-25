@@ -438,6 +438,10 @@ func TestGo(cfgFile string, endWaitSec int, funl []func()) {
 func Go(cfgFile string) {
 	var ctx *BootContext
 	defer func() {
+		if ctx == nil {
+			ctx = new(BootContext)
+			ctx.Config = config.Global
+		}
 		doStopAndClean(ctx)
 		UninstallAll()
 		os.Exit(1)

@@ -22,7 +22,7 @@ type Request struct {
 	URL       string
 	Headers   map[string]string
 	Post      bool
-	Data      map[string]string
+	Data      map[string]interface{}
 	ResultKey string
 }
 
@@ -68,15 +68,22 @@ func (this *PluginHttp) Execute(task *glua.PluginTask) error {
 func (this *PluginHttp) doExecute(task *glua.PluginTask, req *Request) error {
 	var body io.Reader
 	method := "GET"
+	qurl := req.URL
+	data := make(url.Values)
+	for k, v := range req.Data {
+		data.Add(k, valutil.ToString(v, ""))
+	}
 	if req.Post {
 		method = "POST"
-		data := make(url.Values)
-		for k, v := range req.Data {
-			data.Add(k, v)
-		}
 		body = strings.NewReader(data.Encode())
+	} else {
+		if strings.Contains(qurl, "?") {
+			qurl = qurl + "&" + data.Encode()
+		} else {
+			qurl = qurl + "?" + data.Encode()
+		}
 	}
-	hreq, err2 := http.NewRequest(method, req.URL, body)
+	hreq, err2 := http.NewRequest(method, qurl, body)
 	if err2 != nil {
 		return err2
 	}
@@ -87,15 +94,15 @@ func (this *PluginHttp) doExecute(task *glua.PluginTask, req *Request) error {
 		hreq.Header.Set(k, v)
 	}
 	client := http.DefaultClient
-	logger.Debug(tag, "[%s] http '%s' start", task.Context, req.URL)
+	logger.Debug(tag, "[%s] http '%s' start", task.Context, qurl)
 	ts := time.Now()
 	hresp, err3 := client.Do(hreq)
 	te := time.Now()
 	if err3 != nil {
-		logger.Debug(tag, "[%s] http '%s' fail '%s'", task.Context, req.URL, err3)
+		logger.Debug(tag, "[%s] http '%s' fail '%s'", task.Context, qurl, err3)
 		return err3
 	}
-	logger.Debug(tag, "[%s] http '%s' end '%d'", task.Context, req.URL, hresp.StatusCode)
+	logger.Debug(tag, "[%s] http '%s' end '%d'", task.Context, qurl, hresp.StatusCode)
 	defer hresp.Body.Close()
 	respBody, err4 := ioutil.ReadAll(hresp.Body)
 	if err4 != nil {

@@ -18,16 +18,23 @@ const (
 
 // Config
 type ConfigInfo struct {
-	Paths    []string
-	Preloads []string
+	QueueSize int
+	Paths     []string
+	Preloads  []string
 }
 
 func (this *ConfigInfo) Valid() error {
+	if this.QueueSize <= 0 {
+		this.QueueSize = 128
+	}
 	return nil
 }
 
 func (this *ConfigInfo) Compare(old *ConfigInfo) int {
 	if old == nil {
+		return boot.CCR_NEED_START
+	}
+	if this.QueueSize != old.QueueSize {
 		return boot.CCR_NEED_START
 	}
 	// compare Paths
@@ -66,11 +73,11 @@ type GLua struct {
 	context *Context
 }
 
-func NewGLua(n string, queueSize int, cfg *ConfigInfo) *GLua {
+func NewGLua(n string, cfg *ConfigInfo) *GLua {
 	r := new(GLua)
 	r.name = n
 	r.config = cfg
-	r.goo.InitGoo(tag, queueSize, r.exitHandler)
+	r.goo.InitGoo(tag, cfg.QueueSize, r.exitHandler)
 	r.plugins = make(map[string]GLuaPlugin)
 	return r
 }
@@ -300,12 +307,17 @@ func (this *GLua) TaskCallback(n string, f string, ctx *Context, cu ContextUpdat
 }
 
 func (this *GLua) ReloadScript(n string) error {
-	return this.goo.DoSync(func() {
+	return this.goo.DoSync(func() error {
+		logger.Info(tag, "'%s' reload script '%s'", this.name, n)
 		l := this.l
-		l.PushString(n)
-		l.SetGlobal("RELOAD_NAME")
-		l.Eval("package[RELOAD_NAME] = nil")
-		l.PushNil()
-		l.SetGlobal("RELOAD_NAME")
+		err1 := l.Eval(fmt.Sprintf("package[\"%s\"] = nil", n))
+		if err1 != nil {
+			return err1
+		}
+		err2 := l.Eval(fmt.Sprintf("require(\"%s\")", n))
+		if err2 != nil {
+			return err2
+		}
+		return nil
 	})
 }
