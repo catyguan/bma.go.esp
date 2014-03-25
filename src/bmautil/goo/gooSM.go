@@ -31,7 +31,7 @@ func afterEnter4goo(o interface{}, st uint32) {
 	}
 	switch st {
 	case STATE_STOP:
-		close(obj.queue)
+		obj.queue <- nil
 	case STATE_START:
 		go obj.run()
 	}

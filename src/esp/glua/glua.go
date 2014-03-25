@@ -195,7 +195,7 @@ func (this *GLua) doExecute(ctx *Context) {
 		ctx.End(err)
 	}
 	if !ctx.IsEnd() {
-		time.AfterFunc(ctx.Timeout, func() {
+		ctx.timer = time.AfterFunc(ctx.Timeout, func() {
 			this.timeout(ctx)
 		})
 	}
@@ -246,16 +246,21 @@ func (this *GLua) processExecute(f string, ctx *Context) error {
 }
 
 func (this *GLua) timeout(ctx *Context) {
+	if ctx.IsEnd() {
+		return
+	}
 	err := this.goo.DoNow(func() {
-		logger.Debug(tag, "'%s' [%s] timeout", this.name, ctx)
-		ctx.End(errors.New("timeout"))
+		if !ctx.IsEnd() {
+			logger.Debug(tag, "'%s' [%s] timeout", this.name, ctx)
+			ctx.End(errors.New("timeout"))
+		}
 	})
 	if err != nil {
 		ctx.End(err)
 	}
 }
 
-func (this *GLua) StartTask(n string, ctx *Context, req map[string]interface{}, next string, cb func(n string, cu ContextUpdater)) error {
+func (this *GLua) StartTask(n string, ctx *Context, req map[string]interface{}, next string, cb TaskCallback) error {
 	pl, ok0 := this.plugins[n]
 	if !ok0 {
 		return fmt.Errorf("task '%s' not exists", n)
@@ -276,11 +281,14 @@ func (this *GLua) StartTask(n string, ctx *Context, req map[string]interface{}, 
 	return nil
 }
 
-func (this *GLua) TaskCallback(n string, f string, ctx *Context, cu ContextUpdater) {
-	logger.Debug(tag, "'%s' [%s] task[%s] end", this.name, ctx, n)
+func (this *GLua) TaskCallback(n string, f string, ctx *Context, cu ContextUpdater, taskErr error) {
 	err := this.goo.DoNow(func() {
 		if cu != nil {
 			cu(ctx)
+		}
+		if taskErr != nil {
+			ctx.End(taskErr)
+			return
 		}
 		if f != "" {
 			this.processExecute(f, ctx)
@@ -289,4 +297,15 @@ func (this *GLua) TaskCallback(n string, f string, ctx *Context, cu ContextUpdat
 	if err != nil {
 		ctx.End(err)
 	}
+}
+
+func (this *GLua) ReloadScript(n string) error {
+	return this.goo.DoSync(func() {
+		l := this.l
+		l.PushString(n)
+		l.SetGlobal("RELOAD_NAME")
+		l.Eval("package[RELOAD_NAME] = nil")
+		l.PushNil()
+		l.SetGlobal("RELOAD_NAME")
+	})
 }

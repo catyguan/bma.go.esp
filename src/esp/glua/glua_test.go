@@ -23,7 +23,7 @@ func (this *pl4test) OnCloseLua(l *lua51.State) {
 }
 
 func (this *pl4test) Execute(task *PluginTask) error {
-	go task.Callback(this.Name(), nil)
+	go task.Callback(this.Name(), nil, nil)
 	return nil
 }
 

@@ -87,12 +87,12 @@ func (this *Goo) run() {
 	this.sm.TryEnter(this, STATE_RUN)
 	for {
 		switch this.sm.GetState() {
-		case STATE_STOP, STATE_CLOSE:
+		case STATE_CLOSE:
 			return
 		}
 		dreq := <-this.queue
 		if dreq == nil {
-			continue
+			return
 		}
 		if this.EDebug {
 			logger.Debug(this.Tag, "popup new request - %T", dreq)

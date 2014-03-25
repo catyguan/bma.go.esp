@@ -31,8 +31,18 @@ end
 
 function all(ctx, result)
 	print("lua.all")
-	req = glua_newMap()
-	err = glua_task("all",req,"endReq")
+	req = {
+		Tasks={
+			t1={
+				Name="testpl"
+			},
+			t2={
+				Name="testpl"
+			},
+		}
+	}
+	greq = glua_toMap(req)
+	err = glua_task("all",greq,"endReq")
 	if err~=nil then
 		error(err)
 	end
