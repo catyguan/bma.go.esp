@@ -1,0 +1,215 @@
+package glua
+
+import (
+	"bmautil/valutil"
+	"fmt"
+	"logger"
+	"lua51"
+)
+
+func m2v(l *lua51.State) (interface{}, bool) {
+	v, _, ok := l.ToGValue(1)
+	if !ok {
+		return nil, false
+	}
+	if v == nil {
+		return nil, false
+	}
+	m, ok2 := v.(map[string]interface{})
+	if ok2 {
+		key := l.ToString(2)
+		rv, ok3 := m[key]
+		return rv, ok3
+	}
+	a, ok3 := v.([]interface{})
+	if ok3 {
+		idx := l.ToInteger(2)
+		if idx < len(a) && idx >= 0 {
+			return a[idx], true
+		}
+	}
+	return nil, false
+}
+
+func msv(l *lua51.State, v interface{}) int {
+	gv, gid, ok := l.ToGValue(1)
+	if !ok {
+		return l.Error("not gvalue")
+	}
+	if gv == nil {
+		return l.Error("nil gvalue")
+	}
+	m, ok2 := gv.(map[string]interface{})
+	if ok2 {
+		key := l.ToString(2)
+		m[key] = v
+		return 0
+	}
+	a, ok3 := gv.([]interface{})
+	if ok3 {
+		idx := l.ToInteger(2)
+		if idx < 0 {
+			a = append(a, v)
+			l.ReplaceGValue(gid, a)
+			return 0
+		}
+		if idx < len(a) && idx >= 0 {
+			a[idx] = v
+			return 0
+		}
+		return l.Error(fmt.Sprintf("array out %d/%d", idx, len(a)))
+	}
+	return l.Error("not map or array")
+}
+
+func glua_getInt(l *lua51.State) int {
+	v, ok := m2v(l)
+	if ok {
+		rv := valutil.ToInt(v, 0)
+		l.PushInteger(rv)
+		return 1
+	}
+	l.PushNil()
+	return 1
+}
+
+func glua_getNumber(l *lua51.State) int {
+	v, ok := m2v(l)
+	if ok {
+		rv := valutil.ToFloat64(v, 0)
+		l.PushNumber(rv)
+		return 1
+	}
+	l.PushNil()
+	return 1
+}
+
+func glua_getString(l *lua51.State) int {
+	v, ok := m2v(l)
+	if ok {
+		rv := valutil.ToString(v, "")
+		l.PushString(rv)
+		return 1
+	}
+	l.PushNil()
+	return 1
+}
+
+func glua_getMap(l *lua51.State) int {
+	v, ok := m2v(l)
+	if ok {
+		if rv, ok2 := v.(map[string]interface{}); ok2 {
+			l.PushGValue(rv)
+		}
+		return 1
+	}
+	l.PushNil()
+	return 1
+}
+
+func glua_getArray(l *lua51.State) int {
+	v, ok := m2v(l)
+	if ok {
+		if rv, ok2 := v.([]interface{}); ok2 {
+			l.PushGValue(rv)
+		}
+		return 1
+	}
+	l.PushNil()
+	return 1
+}
+
+func glua_setInt(l *lua51.State) int {
+	v := l.ToInteger(3)
+	return msv(l, v)
+}
+
+func glua_setNumber(l *lua51.State) int {
+	v := l.ToNumber(3)
+	return msv(l, v)
+}
+
+func glua_setString(l *lua51.State) int {
+	v := l.ToString(3)
+	return msv(l, v)
+}
+
+func glua_setMap(l *lua51.State) int {
+	v, _, ok := l.ToGValue(3)
+	if ok {
+		m, ok2 := v.(map[string]interface{})
+		if ok2 {
+			return msv(l, m)
+		}
+	}
+	return l.Error("val not map")
+}
+
+func glua_setArray(l *lua51.State) int {
+	v, _, ok := l.ToGValue(3)
+	if ok {
+		a, ok2 := v.([]interface{})
+		if ok2 {
+			return msv(l, a)
+		}
+	}
+	return l.Error("val not array")
+}
+
+func glua_newMap(l *lua51.State) int {
+	m := make(map[string]interface{})
+	l.PushGValue(m)
+	return 1
+}
+
+func glua_newArray(l *lua51.State) int {
+	a := make([]interface{}, 0)
+	l.PushGValue(a)
+	return 1
+}
+
+func (this *GLua) doPrint(l *lua51.State) int {
+	if logger.EnableDebug(tag) {
+		s := lua51.CheckString(this.l, 1)
+		logger.Debug(tag, "'%s' print >> %s", this.name, s)
+	}
+	return 0
+}
+
+func (this *GLua) doTask(l *lua51.State) int {
+	n := l.ToString(1)
+	var req map[string]interface{}
+	v, _, ok := l.ToGValue(2)
+	if ok {
+		req, ok = v.(map[string]interface{})
+		if !ok {
+			return l.Error("task request not map")
+		}
+	}
+	err := this.StartTask(n, this.context, req, l.ToString(3), nil)
+	if err != nil {
+		return l.Error(err.Error())
+	}
+	return 0
+}
+
+func (this *GLua) initGoFunctions() {
+	l := this.l
+	l.Register("glua_print", this.doPrint)
+	l.Register("glua_task", this.doTask)
+
+	l.Register("glua_getInt", glua_getInt)
+	l.Register("glua_getNumber", glua_getNumber)
+	l.Register("glua_getString", glua_getString)
+	l.Register("glua_getMap", glua_getMap)
+	l.Register("glua_getArray", glua_getArray)
+	l.Register("glua_setInt", glua_setInt)
+	l.Register("glua_setNumber", glua_setNumber)
+	l.Register("glua_setString", glua_setString)
+	l.Register("glua_setMap", glua_setMap)
+	l.Register("glua_setArray", glua_setArray)
+	l.Register("glua_newMap", glua_newMap)
+	l.Register("glua_newArray", glua_newArray)
+
+	l.Register("glua_print", this.doPrint)
+}

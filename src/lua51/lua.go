@@ -23,11 +23,19 @@ type State struct {
 	registry []interface{}
 	//freelist for funcs indices, to allow for freeing
 	freeIndices []uint
+	values      map[int]interface{}
+	valueId     int
+	sessionId   int
 }
 
 func newState(L *C.lua_State) *State {
 	var newstatei interface{}
-	newstate := &State{L, make([]interface{}, 0, 8), make([]uint, 0, 8)}
+	newstate := new(State)
+	newstate.s = L
+	newstate.registry = make([]interface{}, 0, 8)
+	newstate.freeIndices = make([]uint, 0, 8)
+	newstate.values = make(map[int]interface{})
+
 	newstatei = newstate
 	ns1 := unsafe.Pointer(&newstatei)
 	ns2 := (*C.GoInterface4C)(ns1)
@@ -190,6 +198,10 @@ func (L *State) CheckStack(extra int) bool {
 
 func (L *State) Close() {
 	C.lua_close(L.s)
+	L.registry = make([]interface{}, 0)
+	for k, _ := range L.values {
+		delete(L.values, k)
+	}
 }
 
 func (L *State) Concat(n int) {
@@ -198,12 +210,6 @@ func (L *State) Concat(n int) {
 
 func (L *State) CreateTable(narr int, nrec int) {
 	C.lua_createtable(L.s, C.int(narr), C.int(nrec))
-}
-
-//CPcall replacement
-func (L *State) GoPCall(fun GoFunction, ud interface{}) int {
-	//TODO: need to emulate by pushing a c closure as in pushgofunction
-	return 0
 }
 
 //TODO: data be a slice?
@@ -216,7 +222,11 @@ func (L *State) Equal(index1, index2 int) bool {
 	return C.lua_equal(L.s, C.int(index1), C.int(index2)) == 1
 }
 
-func (L *State) Error() int { return int(C.lua_error(L.s)) }
+func (L *State) Error(err string) int {
+	L.PushString(err)
+	L.PushString("error")
+	return 2
+}
 
 func (L *State) GC(what, data int) int { return int(C.lua_gc(L.s, C.int(what), C.int(data))) }
 
@@ -299,13 +309,13 @@ func (L *State) NewTable() {
 	C.lua_createtable(L.s, 0, 0)
 }
 
-func (L *State) NewThread() *State {
-	//TODO: call newState with result from C.lua_newthread and return it
-	//TODO: should have same lists as parent
-	//		but may complicate gc
-	s := C.lua_newthread(L.s)
-	return &State{s, nil, nil}
-}
+// func (L *State) NewThread() *State {
+// 	//TODO: call newState with result from C.lua_newthread and return it
+// 	//TODO: should have same lists as parent
+// 	//		but may complicate gc
+// 	s := C.lua_newthread(L.s)
+// 	return &State{s, nil, nil, nil, 0}
+// }
 
 func (L *State) Next(index int) int {
 	return int(C.lua_next(L.s, C.int(index)))
