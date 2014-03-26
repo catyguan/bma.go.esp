@@ -308,9 +308,8 @@ func (this *GLua) TaskCallback(n string, f string, ctx *Context, cu ContextUpdat
 
 func (this *GLua) ReloadScript(n string) error {
 	return this.goo.DoSync(func() error {
-		logger.Info(tag, "'%s' reload script '%s'", this.name, n)
 		l := this.l
-		err1 := l.Eval(fmt.Sprintf("package[\"%s\"] = nil", n))
+		err1 := l.Eval(fmt.Sprintf("package.loaded[\"%s\"] = nil", n))
 		if err1 != nil {
 			return err1
 		}
@@ -318,6 +317,7 @@ func (this *GLua) ReloadScript(n string) error {
 		if err2 != nil {
 			return err2
 		}
+		logger.Info(tag, "'%s' reload script '%s' done", this.name, n)
 		return nil
 	})
 }
