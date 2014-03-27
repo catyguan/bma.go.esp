@@ -172,18 +172,18 @@ func glua_newMap(l *lua51.State) int {
 
 func luav(l *lua51.State, idx int) interface{} {
 	switch l.Type(idx) {
-	case 1:
+	case lua51.LUA_TBOOLEAN:
 		return l.ToBoolean(idx)
-	case 3:
+	case lua51.LUA_TNUMBER:
 		v1 := l.ToNumber(idx)
 		v2 := l.ToInteger(idx)
 		if v1 == float64(v2) {
 			return v2
 		}
 		return v1
-	case 4:
+	case lua51.LUA_TSTRING:
 		return l.ToString(idx)
-	case 5:
+	case lua51.LUA_TTABLE:
 		return luam(l, idx)
 	default:
 		return nil

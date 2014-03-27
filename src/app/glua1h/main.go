@@ -16,13 +16,15 @@ func main() {
 	cfile := "config/glua1h-config.json"
 
 	service := glua.NewService("gluaService")
-	boot.Add(service, "", true)
+	boot.Add(service, "", false)
 
 	mux := http.NewServeMux()
-	httpmux4glua.InitMux(mux, "/", service)
+	mux4gl := httpmux4glua.NewService("gluaMux", service)
+	mux4gl.InitMux(mux, "/")
+	boot.Add(mux4gl, "", false)
 
 	httpService := httpserver.NewHttpServer("httpPoint", mux)
-	boot.Add(httpService, "", true)
+	boot.Add(httpService, "", false)
 
 	boot.Go(cfile)
 }

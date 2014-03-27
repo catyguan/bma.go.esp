@@ -13,5 +13,11 @@
 				"Preloads" : ["test"]
 			}
 		}
+	},
+	"gluaMux" : {
+		"DevMode" : true,
+		"Location" : {
+			"/add" : "/g1/add"
+		}
 	}
 }
