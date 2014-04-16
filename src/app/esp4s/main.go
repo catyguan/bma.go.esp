@@ -40,7 +40,7 @@ func H4Add(ch espchannel.Channel, msg *esnp.Message) error {
 			return err2
 		}
 		c := int(a + b)
-		logger.Error(tag, "%d + %d = %d", a, b, c)
+		logger.Info(tag, "%d + %d = %d", a, b, c)
 		rmsg := msg.ReplyMessage()
 		rmsg.Datas().Set("c", c)
 		return ch.PostMessage(rmsg)
