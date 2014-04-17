@@ -46,6 +46,8 @@ func (this *configInfo) Compare(old *configInfo) int {
 type Service struct {
 	name   string
 	config *configInfo
+
+	client *espclient.ChannelClient
 }
 
 func (this *Service) Name() string {
@@ -92,6 +94,7 @@ func (this *Service) GraceStop(ctx *boot.BootContext) bool {
 }
 
 func (this *Service) Stop() bool {
+	this.closeClient()
 	return true
 }
 
@@ -101,6 +104,13 @@ func (this *Service) Close() bool {
 
 func (this *Service) Cleanup() bool {
 	return true
+}
+
+func (this *Service) closeClient() {
+	if this.client != nil {
+		this.client.Close()
+		this.client = nil
+	}
 }
 
 func (this *Service) InvokeESNP(w http.ResponseWriter, req *http.Request) {
@@ -113,18 +123,20 @@ func (this *Service) InvokeESNP(w http.ResponseWriter, req *http.Request) {
 
 	sn := ps[2]
 	op := ps[3]
+	req.ParseForm()
 	form := req.Form
 
-	msg := esnp.NewMessage()
+	msg := esnp.NewRequestMessage()
 	msg.GetAddress().SetCall(sn, op)
 	ds := msg.Datas()
-	for k, v := range form {
+	for k, _ := range form {
 		var rv interface{}
 		rv = form.Get(k)
 		ks := strings.SplitN(k, "-", 2)
 		if len(ks) == 2 {
 			k = ks[0]
 			t := strings.ToLower(ks[1])
+			v := rv
 			switch t {
 			case "b", "bool":
 				rv = valutil.ToBool(v, false)
@@ -142,21 +154,26 @@ func (this *Service) InvokeESNP(w http.ResponseWriter, req *http.Request) {
 				rv = valutil.ToFloat64(v, 0)
 			}
 		}
+		logger.Debug(tag, "data %s = %v", k, rv)
 		ds.Set(k, rv)
 	}
 
-	c := espclient.NewChannelClient()
-	cfg := new(socket.DialConfig)
-	cfg.Address = this.config.EsnpAddress
-	err := c.Dial(tag, cfg, espchannel.SOCKET_CHANNEL_CODER_ESPNET)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("connect %s fail - %s", this.config.EsnpAddress, err), http.StatusInternalServerError)
-		return
+	if this.client == nil {
+		c := espclient.NewChannelClient()
+		cfg := new(socket.DialConfig)
+		cfg.Address = this.config.EsnpAddress
+		err := c.Dial(tag, cfg, espchannel.SOCKET_CHANNEL_CODER_ESPNET)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("connect %s fail - %s", this.config.EsnpAddress, err), http.StatusInternalServerError)
+			return
+		}
+		this.client = c
 	}
-	defer c.Close()
+	c := this.client
 
 	rmsg, err := c.Call(msg, time.NewTimer(time.Duration(this.config.TimeoutMS)*time.Millisecond))
 	if err != nil {
+		this.closeClient()
 		http.Error(w, fmt.Sprintf("call %s::%s fail - %s", sn, op, err), http.StatusInternalServerError)
 		return
 	}
