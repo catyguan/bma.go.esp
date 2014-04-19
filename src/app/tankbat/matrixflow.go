@@ -13,24 +13,18 @@ func (this *Matrix) doInitMatrix() error {
 
 	ww := MATRIX_WORLD_WIDTH + MATRIX_UNIT*2
 	wh := MATRIX_WORLD_HEIGHT + MATRIX_UNIT*2
-	wox := ww / 2
-	woy := wh / 2
 	this.dmap = newDumpMap(ww, wh, MATRIX_UNIT/2, MATRIX_UNIT/2)
+	this.builder = newMapBuilder(ww, wh, MATRIX_UNIT/10, MATRIX_UNIT/10)
 
 	w := NewWorld()
 	this.world = w
-	mxf := func(x int32) int32 {
-		return (x-10)*MATRIX_UNIT/10 + MATRIX_UNIT - wox
-	}
-	myf := func(y int32) int32 {
-		return (y-10)*MATRIX_UNIT/10 + MATRIX_UNIT - woy
-	}
-	// layout
-	w.Add(newObject(mxf(0), myf(0), ww, MATRIX_UNIT, MCK_WALL))
-	w.Add(newObject(mxf(0), myf((MATRIX_MAP_HEIGHT+2-1)*10), ww, MATRIX_UNIT, MCK_WALL))
 
-	w.Add(newObject(mxf(0), myf(0), MATRIX_UNIT, wh-1*MATRIX_UNIT, MCK_WALL))
-	w.Add(newObject(mxf((MATRIX_MAP_WIDTH+2-1)*10), myf(0), MATRIX_UNIT, wh-1*MATRIX_UNIT, MCK_WALL))
+	// layout
+	w.Add(this.builder.newObject(0, 0, ww, MATRIX_UNIT, MCK_WALL))
+	w.Add(this.builder.newObject(0, (MATRIX_MAP_HEIGHT+2-1)*10, ww, MATRIX_UNIT, MCK_WALL))
+
+	w.Add(this.builder.newObject(0, 0, MATRIX_UNIT, wh-1*MATRIX_UNIT, MCK_WALL))
+	w.Add(this.builder.newObject((MATRIX_MAP_WIDTH+2-1)*10, 0, MATRIX_UNIT, wh-1*MATRIX_UNIT, MCK_WALL))
 
 	walls := []*RECT{
 		newRECT(70, 70, 10, 10),
@@ -44,7 +38,7 @@ func (this *Matrix) doInitMatrix() error {
 		newRECT(130, 70, 10, 5),
 	}
 	for _, info := range walls {
-		w.Add(newObject(mxf(info.x), myf(info.y), info.w*MATRIX_UNIT/10, info.h*MATRIX_UNIT/10, MCK_WALL))
+		w.Add(this.builder.newObject(info.x, info.y, info.w*MATRIX_UNIT/10, info.h*MATRIX_UNIT/10, MCK_WALL))
 	}
 
 	rocks := []*RECT{
@@ -57,50 +51,68 @@ func (this *Matrix) doInitMatrix() error {
 		newRECT(40, 20, 10, 35),
 		newRECT(100, 20, 10, 35),
 		newRECT(120, 20, 10, 35),
-
-		// 	newRECT(60, 30, 10, 30),
-		// 	newRECT(80, 30, 10, 30),
-
-		// 	// center begin
-		// 	newRECT(60, 70, 10, 10),
-		// 	newRECT(80, 70, 10, 10),
-		// 	// center end
-		// 	newRECT(60, 90, 10, 30),
-		// 	newRECT(80, 90, 10, 30),
-
-		// 	newRECT(20, 95, 10, 35),
-		// 	newRECT(40, 95, 10, 35),
-		// 	newRECT(100, 95, 10, 35),
-		// 	newRECT(120, 95, 10, 35),
-
-		// 	newRECT(65, 125, 20, 5),
-		// 	newRECT(65, 130, 5, 10),
-		// 	newRECT(80, 130, 5, 10),
 	}
 	for _, info := range rocks {
-		w.Add(newObject4Rock(mxf(info.x), myf(info.y), info.w*MATRIX_UNIT/10, info.h*MATRIX_UNIT/10, MATRIX_ROCK_SIZE, MATRIX_ROCK_SIZE))
+		w.Add(this.builder.newObject4Rock(info.x, info.y, info.w*MATRIX_UNIT/10, info.h*MATRIX_UNIT/10, MATRIX_ROCK_SIZE, MATRIX_ROCK_SIZE))
 	}
 
 	// w.AddBaseToMap((70-10)*4/10+2, (10-10)*4/10+2, 4, 4, 1)
-	base := newObject(mxf(70), myf(10), 10*MATRIX_UNIT/10, 10*MATRIX_UNIT/10, MCK_BASE)
+	base := this.builder.newObject(70, 10, 10*MATRIX_UNIT/10, 10*MATRIX_UNIT/10, MCK_BASE)
 	base.Flag = 1
 	w.Add(base)
 
 	// test
-	tank := newObject(mxf(10), myf(10), MATRIX_UNIT, MATRIX_UNIT, MCK_TANK)
-	tank.Flag = 1
-	w.Add(tank)
-	if tank != nil {
-		tankId = tank.Id
-		tank.TurnDir(DIR_RIGHT)
-		tank.StartMove(10)
-	}
 	w.BuildDumpMap(this.dmap)
 	fmt.Print(this.dmap.View())
 	return nil
 }
 
-func (this *Matrix) doInitPlayers(plist []*ServiceChannel) error {
+func (this *Matrix) doAddTank(pl *Player, event bool) {
+	var x, y int32
+	var dir DIR
+	switch pl.teamId {
+	case 1:
+		dir = DIR_DOWN
+		if pl.teamNum == 0 {
+			x = 10
+			y = 10
+		} else {
+			x = 10 + MATRIX_MAP_WIDTH*10
+			y = 10
+		}
+	case 2:
+		dir = DIR_UP
+		if pl.teamNum == 0 {
+			x = 10
+			y = MATRIX_MAP_HEIGHT * 10
+		} else {
+			x = 10 + MATRIX_MAP_WIDTH*10
+			y = MATRIX_MAP_HEIGHT * 10
+		}
+	}
+	tank := this.builder.newObject(x, y, MATRIX_UNIT, MATRIX_UNIT, MCK_TANK)
+	tank.Flag = pl.teamId
+	tank.TurnDir(dir)
+	this.world.Add(tank)
+	pl.tankId = tank.Id
+
+	if event {
+		m := Event.New(tank)
+		this.doSendEvent(m)
+	}
+}
+
+func (this *Matrix) doJoinPlayers(plist []*ServiceChannel, teamId int) error {
+	if plist != nil {
+		for idx, sch := range plist {
+			pl := new(Player)
+			pl.sch = sch
+			pl.teamId = teamId
+			pl.teamNum = idx
+			this.players[pl.Id()] = pl
+			this.doAddTank(pl, false)
+		}
+	}
 	return nil
 }
 
@@ -128,16 +140,81 @@ func (this *Matrix) doReadyGo() error {
 }
 
 func (this *Matrix) doGo() error {
-	this.doSendAll("INFO", "begin")
+	this.doSendAll("BEGIN", "")
 	if this.timer != nil {
 		this.timer.Stop()
 	}
+	// send all teamInfo
+	for _, pl := range this.players {
+		ts := "A"
+		if pl.teamId == 2 {
+			ts = "B"
+		}
+		str := fmt.Sprintf("%s %d %s", ts, pl.tankId, pl.sch.name)
+		this.doSendAll("TEAM", str)
+	}
+	// send snapshot
+	this.doSendSnapshot()
+	this.isBegin = true
+
 	this.ltime = 0
 	this.timer = time.AfterFunc(time.Duration(MATRIX_DURATION_MS)*time.Millisecond, this.doOneTurn)
 	return nil
 }
 
-func (this *Matrix) doFire(tankId int) error {
+func (this *Matrix) doSendSnapshot() {
+	w := this.world
+	for _, obj := range w.SObj {
+		m := Event.New(obj)
+		this.doSendEvent(m)
+	}
+	for _, obj := range w.GObj {
+		if obj.Kind == MCK_GROUP {
+			m := Event.New(obj)
+			this.doSendEvent(m)
+		}
+	}
+	for _, obj := range w.MObj {
+		m := Event.New(obj)
+		this.doSendEvent(m)
+	}
+}
+
+func (this *Matrix) doTankMove(tankId int, sp int) error {
+	w := this.world
+	obj := w.Objects[tankId]
+	if obj == nil {
+		return fmt.Errorf("tank(%d) not found", tankId)
+	}
+	if obj.Kind != MCK_TANK {
+		return fmt.Errorf("object(%d) not a tank", tankId)
+	}
+	if sp != obj.Speed {
+		obj.StartMove(sp)
+		m := Event.ChangeSpeed(obj)
+		this.doSendEvent(m)
+	}
+	return nil
+}
+
+func (this *Matrix) doTankTurn(tankId int, dir DIR) error {
+	w := this.world
+	obj := w.Objects[tankId]
+	if obj == nil {
+		return fmt.Errorf("tank(%d) not found", tankId)
+	}
+	if obj.Kind != MCK_TANK {
+		return fmt.Errorf("object(%d) not a tank", tankId)
+	}
+	if dir != obj.Dir {
+		obj.TurnDir(dir)
+		m := Event.ChangeDir(obj)
+		this.doSendEvent(m)
+	}
+	return nil
+}
+
+func (this *Matrix) doTankFire(tankId int) error {
 	w := this.world
 	obj := w.Objects[tankId]
 	if obj == nil {
@@ -158,7 +235,12 @@ func (this *Matrix) doFire(tankId int) error {
 	w.Add(bul)
 	bul.TurnDir(dir)
 	bul.StartMove(MATRIX_BULLET_SPEED)
-	bullet = bul
+	ev := Event.New(bul)
+	this.doSendEvent(ev)
+	return nil
+}
+
+func (this *Matrix) doTankKillMe(tankId int) error {
 	return nil
 }
 
@@ -166,7 +248,14 @@ func (this *Matrix) doHit(bu *Object, co *Object) {
 	logger.Debug(mtag, "%s hited %s", bu, co)
 	switch co.Kind {
 	case MCK_BASE:
-		this.doWin(bu.Flag)
+		if this.winner == 0 {
+			this.winner = bu.Flag
+		} else {
+			this.winner = -1
+		}
+		if this.events[co.Id] == nil {
+			this.events[co.Id] = Event.Remove(co)
+		}
 	case MCK_WALL:
 		return
 	case MCK_BULLET:
@@ -192,6 +281,8 @@ func (this *Matrix) doHit(bu *Object, co *Object) {
 		for ro, _ := range m2 {
 			logger.Debug(mtag, "bomb %s", ro)
 			ro.removed = true
+			ev := Event.Remove(ro)
+			this.events[ro.Id] = ev
 		}
 	case MCK_TANK:
 		this.doDestroy(co)
@@ -234,7 +325,10 @@ func (this *Matrix) doObjectMove(obj *Object) {
 				this.doHit(obj, co)
 			}
 		case MCK_TANK:
-			obj.StopMove()
+			done := obj.StopMove()
+			if done && this.events[obj.Id] == nil {
+				this.events[obj.Id] = Event.ChangeSpeed(obj)
+			}
 			for co, _ := range this.colmap {
 				this.doCrash(obj, co)
 			}
@@ -255,9 +349,8 @@ func (this *Matrix) doOneTurn() {
 		this.doEnd()
 		return
 	}
-	defer func() {
-		this.timer.Reset(time.Duration(MATRIX_DURATION_MS) * time.Millisecond)
-	}()
+	this.timer.Reset(time.Duration(MATRIX_DURATION_MS) * time.Millisecond)
+
 	// process
 	w := this.world
 	for _, obj := range this.world.MObj {
@@ -266,23 +359,32 @@ func (this *Matrix) doOneTurn() {
 	for _, obj := range this.world.MObj {
 		if obj.removed {
 			w.Remove(obj)
+			ev := Event.Remove(obj)
+			this.events[obj.Id] = ev
+		}
+	}
+	for k, ev := range this.events {
+		delete(this.events, k)
+		this.doSendEvent(ev)
+	}
+
+	if this.winner != 0 {
+		if this.winner == -1 {
+			this.doEnd()
+		} else {
+			this.doWin(this.winner)
 		}
 	}
 
 	if this.ltime%1000 == 0 {
 		w.BuildDumpMap(this.dmap)
 		logger.Debug(mtag, "\n%s", this.dmap.View())
-		logger.Debug(mtag, "%d, %v, %s", this.ltime, bullet, dmessage)
+		logger.Debug(mtag, "%d, %s", this.ltime, dmessage)
 	}
 
-	if this.ltime > 1000 && this.ltime%2000 == 100 {
-		this.doFire(tankId)
-	}
 }
 
 var (
-	bullet   *Object
-	tankId   int
 	dmessage string
 )
 
@@ -293,10 +395,16 @@ func (this *Matrix) doDestroy(tank *Object) {
 
 func (this *Matrix) doEnd() {
 	logger.Info(mtag, "%s end", this)
+	this.doSendAll("END", "")
 	go this.AskClose()
 }
 
 func (this *Matrix) doWin(flag int) {
 	logger.Info(mtag, "%s end - winner is %d", this, flag)
+	ts := "A"
+	if flag == 2 {
+		ts = "B"
+	}
+	this.doSendAll("END", ts)
 	go this.AskClose()
 }

@@ -5,5 +5,9 @@
 	},
 	"servicePoint" : {
 		"Port" : 1080
+	},
+	"service" : {
+		"GamePlayerMin" : 1,
+		"TeamPlayerMax" : 2
 	}
 }

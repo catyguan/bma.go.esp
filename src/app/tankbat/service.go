@@ -5,11 +5,25 @@ import (
 	"config"
 	"esp/espnet"
 	"logger"
+	"time"
 )
 
 type ServiceConfig struct {
 	GamePlayerMin int
-	GamePlayerMax int
+	TeamPlayerMax int
+}
+
+type WUserInfo struct {
+	channel  *ServiceChannel
+	waitTime time.Time
+}
+
+type WUserInfoList []*WUserInfo
+
+func (s WUserInfoList) Len() int      { return len(s) }
+func (s WUserInfoList) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s WUserInfoList) Less(i, j int) bool {
+	return s[i].waitTime.Before(s[j].waitTime)
 }
 
 type Service struct {
@@ -18,14 +32,22 @@ type Service struct {
 	executor qexec.QueueExecutor
 	channels map[uint32]*ServiceChannel
 	matrix   *Matrix
+
+	waitingRoom map[uint32]*WUserInfo
 }
 
 func NewService(n string) *Service {
 	this := new(Service)
+	this.name = n
 	this.executor.InitQueueExecutor(tag, 32, this.requestHandler)
 	this.executor.StopHandler = this.stopHandler
 	this.channels = make(map[uint32]*ServiceChannel)
+	this.waitingRoom = make(map[uint32]*WUserInfo)
 	return this
+}
+
+func (this *Service) Name() string {
+	return this.name
 }
 
 func (this *Service) requestHandler(ev interface{}) (bool, error) {
@@ -39,6 +61,9 @@ func (this *Service) requestHandler(ev interface{}) (bool, error) {
 func (this *Service) stopHandler() {
 	if this.matrix != nil {
 		this.matrix.AskClose()
+	}
+	for k, _ := range this.waitingRoom {
+		delete(this.waitingRoom, k)
 	}
 	for k, sch := range this.channels {
 		delete(this.channels, k)
@@ -88,6 +113,7 @@ func (this *Service) Add(ch espnet.Channel) {
 func (this *Service) doAdd(ch espnet.Channel) {
 	sch := new(ServiceChannel)
 	sch.channel = ch
+	sch.id = ch.Id()
 
 	this.channels[ch.Id()] = sch
 	ch.SetCloseListener("app.service", func() {
@@ -111,6 +137,7 @@ func (this *Service) doChannelClose(cid uint32) {
 		return
 	}
 	delete(this.channels, cid)
+	sch.Close()
 	ch := sch.channel
 	if ch != nil {
 		ch.SetMessageListner(nil)
@@ -126,9 +153,7 @@ func (this *Service) OnChannelMessage(sch *ServiceChannel, msg *espnet.Message) 
 
 func (this *Service) OnMatrixEnd(m *Matrix) {
 	this.executor.DoNow("OnMatrixEnd", func() error {
-		if this.matrix == m {
-			this.matrix = nil
-		}
+		this.doMatrixEnd(m)
 		return nil
 	})
 

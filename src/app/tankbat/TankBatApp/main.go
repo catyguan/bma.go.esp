@@ -1,7 +1,7 @@
 package main
 
 import (
-	"app/bombman"
+	"app/tankbat"
 	"bmautil/socket"
 	"boot"
 	"esp/espnet"
@@ -13,19 +13,19 @@ func main() {
 }
 
 type mainObj struct {
-	service        *bombman.Service
+	service        *tankbat.Service
 	channelHandler *espnet.ChannelCoder4Telnet
 }
 
 func (this *mainObj) run() {
 
-	cfile := "config/bombman-config.json"
+	cfile := "config/tankbat-config.json"
 
 	this.channelHandler = new(espnet.ChannelCoder4Telnet)
 	this.channelHandler.Init()
 	this.channelHandler.Error2String = this.error2String
 
-	this.service = bombman.NewService("service")
+	this.service = tankbat.NewService("service")
 	boot.QuickDefine(this.service, "", true)
 
 	pointSER := espnet.NewListenPoint("servicePoint", nil, this.socketAcceptSer)
@@ -35,6 +35,8 @@ func (this *mainObj) run() {
 }
 
 func (this *mainObj) socketAcceptSer(sock *socket.Socket) error {
+	sock.SetWriteChanSize(128)
+
 	ch := espnet.NewSocketChannelC(sock, this.channelHandler)
 	ch.SetProperty(espnet.PROP_SOCKET_TRACE, 64)
 

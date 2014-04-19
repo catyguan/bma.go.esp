@@ -11,39 +11,71 @@ const (
 )
 
 const (
-	EVENT_NONE = 0
-	EVENT_BOMB = 1
+	EVENT_NONE    = 0
+	EVENT_CHANGE  = 1
+	EVENT_NEW     = 2
+	EVENT_DELETE  = 3
+	EVENT_DESTROY = 4
 )
 
-type pMapCell struct {
-	x, y  int
-	kind  int
-	event int
-}
+type fsEvent int
 
-func (this *pMapCell) Build(m map[string]interface{}) {
-	m["x"] = this.x
-	m["y"] = this.y
-	m["kind"] = this.kind
-	if this.event != 0 {
-		m["event"] = this.event
+var (
+	Event fsEvent
+)
+
+func (O fsEvent) New(obj *Object) map[string]interface{} {
+	m := make(map[string]interface{})
+	m["ekind"] = EVENT_NEW
+	m["x"] = obj.X1()
+	m["y"] = obj.Y1()
+	m["w"] = obj.Size.w
+	m["h"] = obj.Size.h
+	m["oid"] = obj.Id
+	m["okind"] = obj.SKind()
+	if obj.Dir != DIR_NONE {
+		m["dir"] = obj.Dir
 	}
-}
-
-type pSnapshot struct {
-	sid     int
-	mapcell []*pMapCell
-}
-
-func (this *pSnapshot) Build(m map[string]interface{}) {
-	m["sid"] = this.sid
-	if this.mapcell != nil {
-		a := make([]interface{}, len(this.mapcell))
-		m["map"] = a
-		for i := 0; i < len(this.mapcell); i++ {
-			cm := make(map[string]interface{})
-			this.mapcell[i].Build(cm)
-			a[i] = cm
-		}
+	if obj.Speed > 0 {
+		m["speed"] = obj.Speed * MATRIX_SEC_COUNT
 	}
+	return m
+}
+
+func (O fsEvent) ChangeSpeed(obj *Object) map[string]interface{} {
+	m := make(map[string]interface{})
+	m["ekind"] = EVENT_CHANGE
+	m["x"] = obj.X1()
+	m["y"] = obj.Y1()
+	m["oid"] = obj.Id
+	m["okind"] = obj.Kind
+	m["speed"] = obj.Speed * MATRIX_SEC_COUNT
+	return m
+}
+
+func (O fsEvent) ChangeDir(obj *Object) map[string]interface{} {
+	m := make(map[string]interface{})
+	m["ekind"] = EVENT_CHANGE
+	m["x"] = obj.X1()
+	m["y"] = obj.Y1()
+	m["oid"] = obj.Id
+	m["okind"] = obj.Kind
+	m["dir"] = obj.Dir
+	return m
+}
+
+func (O fsEvent) Remove(obj *Object) map[string]interface{} {
+	m := make(map[string]interface{})
+	if obj.Kind != MCK_ROCK {
+		m["ekind"] = EVENT_DELETE
+	} else {
+		m["ekind"] = EVENT_DESTROY
+		m["w"] = obj.Size.w
+		m["h"] = obj.Size.h
+	}
+	m["x"] = obj.X1()
+	m["y"] = obj.Y1()
+	m["oid"] = obj.SID()
+	m["okind"] = obj.SKind()
+	return m
 }

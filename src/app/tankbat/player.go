@@ -1,7 +1,10 @@
 package tankbat
 
 type Player struct {
-	sch *ServiceChannel
+	sch     *ServiceChannel
+	teamId  int
+	teamNum int
+	tankId  int
 }
 
 func (this *Player) Id() uint32 {
