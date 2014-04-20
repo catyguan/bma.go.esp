@@ -1,14 +1,10 @@
 package esnp
 
-import (
-	"bmautil/byteutil"
-	Coders "bmautil/coder"
-	"errors"
-)
+import "errors"
 
 type mt_message_id byte
 
-func (O mt_message_id) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
+func (O mt_message_id) Encode(w EncodeWriter, v interface{}) error {
 	if o, ok := v.(uint64); ok {
 		Coders.FixUint64.DoEncode(w, o)
 		return nil
@@ -16,7 +12,7 @@ func (O mt_message_id) Encode(w *byteutil.BytesBufferWriter, v interface{}) erro
 	return errors.New("not messageId")
 }
 
-func (O mt_message_id) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
+func (O mt_message_id) Decode(r DecodeReader) (interface{}, error) {
 	return Coders.FixUint64.DoDecode(r)
 }
 

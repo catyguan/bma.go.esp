@@ -1,9 +1,6 @@
 package esnp
 
-import (
-	"bmautil/byteutil"
-	"errors"
-)
+import "errors"
 
 type MTVersion struct {
 	Major  uint8
@@ -14,7 +11,7 @@ type MTVersion struct {
 
 type mt_version int
 
-func (O mt_version) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
+func (O mt_version) Encode(w EncodeWriter, v interface{}) error {
 	if o, ok := v.(*MTVersion); ok {
 		w.WriteByte(byte(o.Major))
 		w.WriteByte(byte(o.Minor))
@@ -25,7 +22,7 @@ func (O mt_version) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
 	return errors.New("not mtVersion")
 }
 
-func (O mt_version) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
+func (O mt_version) Decode(r DecodeReader) (interface{}, error) {
 	v1, err1 := r.ReadByte()
 	if err1 != nil {
 		return nil, err1

@@ -1,10 +1,6 @@
 package esnp
 
-import (
-	"bmautil/byteutil"
-	Coders "bmautil/coder"
-	"errors"
-)
+import "errors"
 
 type struct_seq_no struct {
 	seqno  int
@@ -13,7 +9,7 @@ type struct_seq_no struct {
 
 type mt_seq_no byte
 
-func (O mt_seq_no) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
+func (O mt_seq_no) Encode(w EncodeWriter, v interface{}) error {
 	if o, ok := v.(*struct_seq_no); ok {
 		Coders.Int.DoEncode(w, o.seqno)
 		Coders.Int.DoEncode(w, o.seqmax)
@@ -22,7 +18,7 @@ func (O mt_seq_no) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
 	return errors.New("not SeqNo")
 }
 
-func (O mt_seq_no) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
+func (O mt_seq_no) Decode(r DecodeReader) (interface{}, error) {
 	v1, e1 := Coders.Int.DoDecode(r)
 	if e1 != nil {
 		return nil, e1

@@ -1,8 +1,6 @@
 package esnp
 
 import (
-	"bmautil/byteutil"
-	Coders "bmautil/coder"
 	"errors"
 )
 
@@ -14,7 +12,7 @@ type struct_address_value struct {
 	value      string
 }
 
-func (O addrCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
+func (O addrCoder) Encode(w EncodeWriter, v interface{}) error {
 	if mv, ok := v.(*struct_address_value); ok {
 		Coders.Int.DoEncode(w, mv.annotation)
 		Coders.LenString.DoEncode(w, mv.value)
@@ -23,7 +21,7 @@ func (O addrCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
 	return errors.New("not struct_address_value")
 }
 
-func (O addrCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
+func (O addrCoder) Decode(r DecodeReader) (interface{}, error) {
 	v1, err := Coders.Int.DoDecode(r)
 	if err != nil {
 		return nil, err

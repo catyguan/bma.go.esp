@@ -1,17 +1,13 @@
 package esnp
 
-import (
-	"bmautil/byteutil"
-	Coders "bmautil/coder"
-	"errors"
-)
+import "errors"
 
 type mvCoder byte
 
 type struct_message_value struct {
 	name    string
 	value   interface{}
-	reader  *byteutil.BytesBufferReader
+	remain  []byte
 	encoder Encoder
 }
 
@@ -19,21 +15,23 @@ func (this *struct_message_value) Value(dec Decoder) (interface{}, error) {
 	if this.value != nil {
 		return this.value, nil
 	}
-	if this.reader != nil {
+	if this.remain != nil {
 		var err error
 		if dec == nil {
 			dec = Coders.Varinat
 		}
-		this.value, err = dec.Decode(this.reader)
+		var bdr BytesDecodeReader
+		bdr.data = this.remain
+		this.value, err = dec.Decode(&bdr)
 		if err != nil {
 			return nil, err
 		}
-		this.reader = nil
+		this.remain = nil
 	}
 	return this.value, nil
 }
 
-func (O mvCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
+func (O mvCoder) Encode(w EncodeWriter, v interface{}) error {
 	if mv, ok := v.(*struct_message_value); ok {
 		Coders.LenString.DoEncode(w, mv.name)
 		c := mv.encoder
@@ -49,12 +47,12 @@ func (O mvCoder) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
 	return errors.New("not struct_message_value")
 }
 
-func (O mvCoder) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
+func (O mvCoder) Decode(r DecodeReader) (interface{}, error) {
 	s1, err := Coders.LenString.DoDecode(r, 0)
 	if err != nil {
 		return nil, err
 	}
-	return &struct_message_value{s1, nil, r, nil}, nil
+	return &struct_message_value{s1, nil, r.Remain(), nil}, nil
 }
 
 func (O mvCoder) MT() byte {

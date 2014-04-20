@@ -1,7 +1,6 @@
 package esnp
 
 import (
-	"bmautil/byteutil"
 	"bytes"
 	"errors"
 	"fmt"
@@ -11,41 +10,28 @@ const (
 	size_FHEADER = 4
 )
 
-// FHeader
-type FHeader struct {
-	MessageType byte
-	Size        uint32
+func headerWrite(w EncodeWriter, mt byte, sz int) error {
+	err := w.WriteByte(mt)
+	if err != nil {
+		return err
+	}
+	err = w.WriteByte(byte(sz >> 16))
+	err = w.WriteByte(byte(sz >> 8))
+	err = w.WriteByte(byte(sz))
+
+	return nil
 }
 
-func (this *FHeader) Write(buf []byte, pos int) int {
-	buf[pos+0] = byte(this.MessageType)
-	buf[pos+1] = byte(this.Size >> 16)
-	buf[pos+2] = byte(this.Size >> 8)
-	buf[pos+3] = byte(this.Size)
-
-	return pos + size_FHEADER
-}
-
-func (this *FHeader) Read(b []byte, pos int) int {
-	this.MessageType = byte(b[pos+0])
-	this.Size = uint32(b[pos+3]) | uint32(b[pos+2])<<8 | uint32(b[pos+1])<<16
-	return pos + size_FHEADER
-}
-
-func (this *FHeader) ToBytes() []byte {
-	buf := make([]byte, size_FHEADER)
-	this.Write(buf, 0)
-	return buf
-}
-
-func (this *FHeader) String() string {
-	return fmt.Sprintf("%d[%d]", this.MessageType, this.Size)
+func headerRead(b []byte, pos int) (byte, int) {
+	mt := byte(b[pos+0])
+	sz := int(b[pos+3]) | int(b[pos+2])<<8 | int(b[pos+1])<<16
+	return mt, sz
 }
 
 // Frame
 type Frame struct {
 	mtype byte
-	data  *byteutil.BytesBuffer
+	data  []byte
 	value interface{}
 
 	pack *Package
@@ -55,22 +41,10 @@ type Frame struct {
 	encoder Encoder
 }
 
-func NewFrame(mt byte, data *byteutil.BytesBuffer) *Frame {
+func NewFrame(mt byte, data []byte) *Frame {
 	r := new(Frame)
 	r.mtype = mt
 	r.data = data
-	return r
-}
-
-func NewFrameB(mt byte, data []byte) *Frame {
-	b := byteutil.NewBytesBufferB(data)
-	return NewFrame(mt, b)
-}
-
-func newFrameH(h FHeader) *Frame {
-	r := new(Frame)
-	r.mtype = h.MessageType
-	r.data = byteutil.NewBytesBuffer()
 	return r
 }
 
@@ -88,23 +62,14 @@ func NewFrameV(mt byte, v interface{}, enc Encoder) *Frame {
 	return r
 }
 
-func (this *Frame) Clone(mt byte, cloneData bool) *Frame {
+func (this *Frame) Clone(mt byte) *Frame {
 	r := new(Frame)
 	if mt != 0 {
 		r.mtype = mt
 	} else {
 		r.mtype = this.mtype
 	}
-	if cloneData {
-		if this.data != nil && this.data.DataList != nil {
-			r.data = byteutil.NewBytesBuffer()
-			for _, b := range this.data.DataList {
-				r.data.Add(b)
-			}
-		}
-	} else {
-		r.data = this.data
-	}
+	r.data = this.data
 	r.value = this.value
 	r.encoder = this.encoder
 
@@ -123,35 +88,41 @@ func (this *Frame) Prev() *Frame {
 	return this.prev
 }
 
-func (this *Frame) Data() (*byteutil.BytesBuffer, error) {
+func (this *Frame) Encode(w EncodeWriter) error {
 	if this.data == nil {
 		if this.value != nil {
-			buf := byteutil.NewBytesBuffer()
-			w := buf.NewWriter()
 			var err error
 			enc := this.encoder
 			if enc == nil {
-				return nil, errors.New(fmt.Sprintf("unknow encoder %T", this.value))
+				return errors.New(fmt.Sprintf("unknow encoder %T", this.value))
+			}
+			p, err2 := w.NewFrame()
+			if err2 != nil {
+				return err2
 			}
 			err = enc.Encode(w, this.value)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			this.data = w.End()
+			return w.EndFrame(p, this.mtype)
 		}
+		return nil
+	} else {
+		return w.WriteFrame(this.mtype, this.data)
 	}
-	return this.data, nil
 }
 
-func (this *Frame) RawData() *byteutil.BytesBuffer {
+func (this *Frame) RawData() []byte {
 	return this.data
 }
 
 func (this *Frame) Value(dec Decoder) (interface{}, error) {
 	if this.value == nil {
-		if this.data != nil && this.data.Len() > 0 {
+		if this.data != nil && len(this.data) > 0 {
+			var bdr BytesDecodeReader
+			bdr.data = this.data
 			var err error
-			this.value, err = dec.Decode(this.data.NewReader())
+			this.value, err = dec.Decode(&bdr)
 			if err != nil {
 				return nil, err
 			}
@@ -172,12 +143,17 @@ func (this *Frame) String() string {
 	} else {
 		sz := 0
 		if this.data != nil {
-			sz = this.data.DataSize()
+			sz = len(this.data)
 		}
 		buf.WriteString(fmt.Sprintf(",%d", sz))
 		if this.data != nil {
 			buf.WriteString(",[")
-			buf.WriteString(this.data.TraceString(16))
+			for i := 0; i < 16; i++ {
+				if i >= sz {
+					break
+				}
+				buf.WriteString(fmt.Sprintf("%X", this.data[i]))
+			}
 			if sz > 16 {
 				buf.WriteString("...")
 			}

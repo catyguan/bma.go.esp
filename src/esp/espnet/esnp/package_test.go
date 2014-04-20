@@ -13,16 +13,15 @@ func TestPackageBase(t *testing.T) {
 	fmt.Println(bs)
 
 	p := NewPackage()
-	p.PushBack(NewFrameB(0x01, []byte{1, 2, 3, 4, 5, 6, 7}))
+	p.PushBack(NewFrame(0x01, []byte{1, 2, 3, 4, 5, 6, 7}))
 	// p.SetId(2013)
 
 	fmt.Println(p.String())
-	b, _ := p.ToBytesBuffer()
-	fmt.Println(b.ToBytes())
+	b, _ := p.ToBytes()
+	fmt.Println(b)
 
-	h := new(FHeader)
-	h.Read(b.ToBytes(), 0)
-	fmt.Println(h)
+	mt, sz := headerRead(b, 0)
+	fmt.Println(mt, sz)
 
 }
 

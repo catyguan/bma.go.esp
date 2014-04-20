@@ -1,21 +1,18 @@
 package esnp
 
-import (
-	"bmautil/byteutil"
-	"errors"
-)
+import "errors"
 
 type mt_error int
 
-func (O mt_error) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
+func (O mt_error) Encode(w EncodeWriter, v interface{}) error {
 	if r, ok := v.(string); ok {
-		w.Append([]byte(r))
-		return nil
+		_, err := w.Write([]byte(r))
+		return err
 	}
 	return errors.New("not string")
 }
 
-func (O mt_error) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
+func (O mt_error) Decode(r DecodeReader) (interface{}, error) {
 	b := r.ReadAll()
 	return string(b), nil
 }
