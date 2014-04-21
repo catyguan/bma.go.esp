@@ -1,4 +1,4 @@
-package espchannel
+package espsocket
 
 import (
 	"esp/espnet/esnp"
@@ -6,14 +6,14 @@ import (
 )
 
 const (
-	tag = "espchannel"
+	tag = "espsocket"
 )
 
 const (
 	PROP_QEXEC_QUEUE_SIZE = "qexec.QueueSize"
 	PROP_QEXEC_DEBUG      = "qexec.Debug"
 
-	PROP_ESPNET_MAXFRAME = "espnet.maxframe"
+	PROP_ESPNET_MAXPACKAGE = "espnet.maxpackage"
 
 	PROP_SOCKET_REMOTE_ADDR       = "socket.RemoteAddr"
 	PROP_SOCKET_LOCAL_ADDR        = "socket.LocalAddr"
@@ -36,22 +36,28 @@ const (
 )
 
 var (
-	globalChanneIdSeq uint32
+	globalSocketIdSeq uint32
 )
 
-func NextChanneId() uint32 {
+func NextSocketId() uint32 {
 	for {
-		v := atomic.AddUint32(&globalChanneIdSeq, 1)
+		v := atomic.AddUint32(&globalSocketIdSeq, 1)
 		if v != 0 {
 			return v
 		}
 	}
 }
 
-func TryRelyError(ch Channel, this *esnp.Message, err error) {
+func TryRelyError(sock Socket, this *esnp.Message, err error) {
 	if this.IsRequest() {
 		rmsg := this.ReplyMessage()
 		rmsg.BeError(err)
-		ch.PostMessage(rmsg)
+		sock.PostMessage(rmsg)
 	}
+}
+
+func CloseAfterSend(sock Socket, msg *esnp.Message) {
+	sock.SendMessage(msg, func(err error) {
+		sock.AskClose()
+	})
 }

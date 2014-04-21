@@ -1,4 +1,4 @@
-package espchannel
+package espsocket
 
 import (
 	"bmautil/valutil"
@@ -7,12 +7,12 @@ import (
 )
 
 type ChannelCoder4Espnet struct {
-	maxframe int
-	reader   *esnp.PackageReader
+	maxpackage int
+	reader     *esnp.PackageReader
 }
 
 func (this *ChannelCoder4Espnet) Init() {
-	this.maxframe = 0xFFFFFF
+	this.maxpackage = 0xFFFFFF
 	this.reader = esnp.NewPackageReader()
 }
 
@@ -25,7 +25,10 @@ func (this *ChannelCoder4Espnet) EncodeMessage(ch *SocketChannel, ev interface{}
 			p, _ = ev.(*esnp.Package)
 		}
 		if p != nil {
-			b, err := p.ToBytesBuffer()
+			if logger.EnableDebug(tag) {
+				logger.Debug(tag, "wpackage -> %s", p)
+			}
+			b, err := p.ToBytes()
 			if err != nil {
 				return err
 			}
@@ -47,20 +50,19 @@ func (this *ChannelCoder4Espnet) doDecode(who interface{}, b []byte, msg bool, n
 	pr := this.reader
 	pr.Append(b)
 	for {
-		mp := this.maxframe
+		mp := this.maxpackage
 		p, err := pr.ReadPackage(mp)
 		if err != nil {
-			logger.Error(tag, "%s read package fail - %s", who, err)
+			logger.Error(tag, "rpackage -> fail, %s, %s", who, err)
 			return err
 		}
 		if p == nil {
-			// if logger.EnableDebug(tag) {
-			// 	logger.Debug(tag, "reading package ## %s", pr)
-			// }
 			return nil
 		}
 		if logger.EnableDebug(tag) {
-			logger.Debug(tag, "read package -> %s ## %s", p, pr)
+			if p != nil {
+				logger.Debug(tag, "rpackage -> %s", p)
+			}
 		}
 		if msg {
 			next(esnp.NewPackageMessage(p))
@@ -72,8 +74,8 @@ func (this *ChannelCoder4Espnet) doDecode(who interface{}, b []byte, msg bool, n
 
 func (this *ChannelCoder4Espnet) SetProperty(name string, val interface{}) bool {
 	switch name {
-	case PROP_ESPNET_MAXFRAME:
-		this.maxframe = valutil.ToInt(val, 0)
+	case PROP_ESPNET_MAXPACKAGE:
+		this.maxpackage = valutil.ToInt(val, 0)
 		return true
 	}
 	return false
@@ -81,8 +83,8 @@ func (this *ChannelCoder4Espnet) SetProperty(name string, val interface{}) bool 
 
 func (this *ChannelCoder4Espnet) GetProperty(name string) (interface{}, bool) {
 	switch name {
-	case PROP_ESPNET_MAXFRAME:
-		return this.maxframe, true
+	case PROP_ESPNET_MAXPACKAGE:
+		return this.maxpackage, true
 	}
 	return nil, false
 }

@@ -5,8 +5,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
-	"logger"
 )
 
 // MessageValuesObj
@@ -93,7 +91,7 @@ func NewReplyMessage(msg *Message) *Message {
 	for e := p1.Front(); e != nil; e = e.Next() {
 		switch e.MessageType() {
 		case MT_SESSION_INFO:
-			p2.PushBack(e.Clone(0, false))
+			p2.PushBack(e.Clone(0))
 		case MT_HEADER, MT_DATA, MT_PAYLOAD, MT_TRACE, MT_TRACE_RESP:
 			continue
 		case MT_FLAG:
@@ -102,16 +100,16 @@ func NewReplyMessage(msg *Message) *Message {
 				if fo, ok := o.(MTFlag); ok {
 					switch fo {
 					case FLAG_REQUEST, FLAG_INFO:
-						p2.PushBack(e.Clone(0, false))
+						p2.PushBack(e.Clone(0))
 					}
 				}
 			}
 			continue
 		case MT_SOURCE_ADDRESS:
-			p2.PushBack(e.Clone(MT_ADDRESS, false))
+			p2.PushBack(e.Clone(MT_ADDRESS))
 			continue
 		case MT_MESSAGE_ID:
-			p2.PushBack(e.Clone(MT_SOURCE_MESSAGE_ID, false))
+			p2.PushBack(e.Clone(MT_SOURCE_MESSAGE_ID))
 			continue
 		}
 	}
@@ -240,25 +238,13 @@ func (this *Message) XDataIterator() *XDataIterator {
 	it.moveFirst()
 	return it
 }
-func (this *Message) GetPayload() (io.Reader, int) {
-	e := this.pack.FrameByType(MT_PAYLOAD)
-	if e != nil {
-		v, err := e.Data()
-		if err != nil {
-			logger.Debug(tag, "get payload fail - %s", err)
-			return nil, 0
-		}
-		return v.NewReader(), v.DataSize()
-	}
-	return nil, 0
+func (this *Message) GetPayload() []byte {
+	r := FrameCoders.Payload.Get(this.pack)
+	return r
 }
 func (this *Message) SetPayload(data []byte) {
 	FrameCoders.Payload.Remove(this.pack)
 	this.pack.PushBack(NewFrameV(MT_PAYLOAD, data, FrameCoders.Payload))
-}
-func (this *Message) GetPayloadB() []byte {
-	r := FrameCoders.Payload.Get(this.pack)
-	return r
 }
 
 func (this *Message) Clone() *Message {
@@ -266,7 +252,7 @@ func (this *Message) Clone() *Message {
 	p1 := this.pack
 	p2 := r.pack
 	for e := p1.Front(); e != nil; e = e.Next() {
-		p2.PushBack(e.Clone(0, false))
+		p2.PushBack(e.Clone(0))
 	}
 	return r
 }

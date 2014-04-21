@@ -2,8 +2,7 @@ package main
 
 import (
 	"bmautil/socket"
-	"esp/espnet/espchannel"
-	"esp/espnet/espclient"
+	"esp/espnet/espsocket"
 	"flag"
 	"fmt"
 	"logger"
@@ -41,14 +40,13 @@ func main() {
 	time.Sleep(1 * time.Second)
 }
 
-func createClient(address string) *espclient.ChannelClient {
-	c := espclient.NewChannelClient()
+func createSocket(address string) *espsocket.Socket {
 	cfg := new(socket.DialConfig)
 	cfg.Address = address
-	err := c.Dial(tag, cfg, espchannel.SOCKET_CHANNEL_CODER_ESPNET)
+	sock, err := espsocket.Dial(tag, cfg, "")
 	if err != nil {
 		logger.Error(tag, "connect %s fail - %s", address, err)
 		return nil
 	}
-	return c
+	return sock
 }

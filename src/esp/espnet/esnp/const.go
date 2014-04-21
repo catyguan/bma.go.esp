@@ -5,6 +5,7 @@ const (
 )
 
 const (
+	MT_END               = byte(0x00)
 	MT_SESSION_INFO      = 0x10
 	MT_MESSAGE_ID        = 0x11
 	MT_SOURCE_MESSAGE_ID = 0x12

@@ -1,4 +1,4 @@
-package espchannel
+package espsocket
 
 import (
 	"fmt"

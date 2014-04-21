@@ -1,9 +1,8 @@
 package esnp
 
 import (
-	"bmautil/byteutil"
-	Coders "bmautil/coder"
 	"errors"
+	"fmt"
 )
 
 type mt_xdata byte
@@ -11,29 +10,35 @@ type mt_xdata byte
 type struct_xdata struct {
 	xid     int
 	value   interface{}
-	reader  *byteutil.BytesBufferReader
+	remain  []byte
 	encoder Encoder
+}
+
+func (this *struct_xdata) String() string {
+	return fmt.Sprintf("%d=%v", this.xid, this.value)
 }
 
 func (this *struct_xdata) Value(dec Decoder) (interface{}, error) {
 	if this.value != nil {
 		return this.value, nil
 	}
-	if this.reader != nil {
+	if this.remain != nil {
 		var err error
 		if dec == nil {
 			dec = Coders.Varinat
 		}
-		this.value, err = dec.Decode(this.reader)
+		var bdr BytesDecodeReader
+		bdr.data = this.remain
+		this.value, err = dec.Decode(&bdr)
 		if err != nil {
 			return nil, err
 		}
-		this.reader = nil
+		this.remain = nil
 	}
 	return this.value, nil
 }
 
-func (O mt_xdata) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
+func (O mt_xdata) Encode(w EncodeWriter, v interface{}) error {
 	if mv, ok := v.(*struct_xdata); ok {
 		Coders.Int.DoEncode(w, mv.xid)
 		var c Encoder
@@ -50,7 +55,7 @@ func (O mt_xdata) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
 	return errors.New("not struct_xdata")
 }
 
-func (O mt_xdata) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
+func (O mt_xdata) Decode(r DecodeReader) (interface{}, error) {
 	c := Coders.Int
 	v1, err := c.Decode(r)
 	if err != nil {
@@ -60,7 +65,7 @@ func (O mt_xdata) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
 	if !ok {
 		return nil, errors.New("not messageValue.xid:int")
 	}
-	return &struct_xdata{xid, nil, r, nil}, nil
+	return &struct_xdata{xid, nil, r.Remain(), nil}, nil
 }
 
 func (O mt_xdata) MT() byte {

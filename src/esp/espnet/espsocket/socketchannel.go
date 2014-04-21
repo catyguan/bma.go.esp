@@ -1,4 +1,4 @@
-package espchannel
+package espsocket
 
 import (
 	"bmautil/byteutil"
@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"logger"
 	"net"
-	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -43,35 +43,31 @@ func GetSocketChannelCoder(n string) SocketChannelCoderFactory {
 
 // SocketChannel
 type SocketChannel struct {
-	id       uint32
-	socket   *socket.Socket
-	coder    SocketChannelCoder
-	receiver func(ev interface{}) error
+	socket        *socket.Socket
+	coder         SocketChannelCoder
+	receiver      esnp.MessageListener
+	closeListener func()
 
-	propLock sync.Mutex
-	props    map[string]interface{}
-
-	lisGroup     CloseListenerGroup
+	closed       uint32
 	socketReturn func(s *socket.Socket)
 }
 
 func NewSocketChannel(sock *socket.Socket, coderName string) *SocketChannel {
-	var c SocketChannelCoder
-	if coderName != "" {
-		fac, ok := globalSocketChannelCoders[coderName]
-		if !ok {
-			panic("unknow socket channel coder '" + coderName + "'")
-		}
-		c = fac()
+	if coderName == "" {
+		coderName = SOCKET_CHANNEL_CODER_ESPNET
 	}
+	var c SocketChannelCoder
+	fac, ok := globalSocketChannelCoders[coderName]
+	if !ok {
+		panic("unknow socket channel coder '" + coderName + "'")
+	}
+	c = fac()
 	return NewSocketChannelC(sock, c)
 }
 
 func NewSocketChannelC(sock *socket.Socket, c SocketChannelCoder) *SocketChannel {
 	this := new(SocketChannel)
-	this.id = NextChanneId()
 	this.socket = sock
-	this.coder = nil
 	if c != nil {
 		this.coder = c
 	}
@@ -97,24 +93,30 @@ func (this *SocketChannel) onSocketReceive(sock *socket.Socket, data []byte) err
 func (this *SocketChannel) onReceiveEvent(ev interface{}) error {
 	rec := this.receiver
 	if rec != nil {
-		return rec(ev)
+		msg, ok := ev.(*esnp.Message)
+		if !ok {
+			logger.Debug(tag, "%s not messsage[%t] pass in", this, ev)
+			return nil
+		}
+		return rec(msg)
 	}
 	logger.Debug(tag, "%s no receiver", this)
 	return nil
 }
 
 func (this *SocketChannel) onSocketClose(sock *socket.Socket) {
-	this.lisGroup.OnClose()
-
-	this.propLock.Lock()
-	defer this.propLock.Unlock()
-	this.props = nil
+	if atomic.CompareAndSwapUint32(&this.closed, 0, 1) {
+		if this.closeListener != nil {
+			this.closeListener()
+			this.closeListener = nil
+		}
+	}
 }
 
 func (this *SocketChannel) String() string {
 	s := this.socket
 	if s == nil {
-		return "closedSocketChannel"
+		return "closedSocketChannel[]"
 	}
 	return s.String()
 }
@@ -131,13 +133,6 @@ func (this *SocketChannel) GetProperty(name string) (interface{}, bool) {
 	}
 	if this.coder != nil {
 		if rv, ok := this.coder.GetProperty(name); ok {
-			return rv, true
-		}
-	}
-	this.propLock.Lock()
-	defer this.propLock.Unlock()
-	if this.props != nil {
-		if rv, ok := this.props[name]; ok {
 			return rv, true
 		}
 	}
@@ -224,16 +219,10 @@ func (this *SocketChannel) SetProperty(name string, val interface{}) bool {
 			return true
 		}
 	}
-	this.propLock.Lock()
-	defer this.propLock.Unlock()
-	if this.props == nil {
-		this.props = make(map[string]interface{})
-		this.props[name] = val
-	}
 	return true
 }
 
-func (this *SocketChannel) PostEvent(ev interface{}, cb ChannelSendCallback) error {
+func (this *SocketChannel) PostEvent(ev interface{}, cb SendCallback) error {
 	s := this.socket
 	if s == nil {
 		return fmt.Errorf("closed")
@@ -291,11 +280,7 @@ func (this *SocketChannel) doPostEvent(ev interface{}, f4send socket.SocketWrite
 }
 
 func (this *SocketChannel) doClose(force bool) {
-	this.propLock.Lock()
 	s := this.socket
-	this.socket = nil
-	this.propLock.Unlock()
-
 	if s == nil {
 		return
 	}
@@ -317,54 +302,25 @@ func (this *SocketChannel) AskClose() {
 	this.doClose(false)
 }
 
-func (this *SocketChannel) ForceClose() {
+func (this *SocketChannel) Shutdown() {
 	this.doClose(true)
 }
 
-func (this *SocketChannel) SetPipelineListner(rec func(ev interface{}) error) {
+func (this *SocketChannel) Bind(rec esnp.MessageListener, closeLis func()) {
 	this.receiver = rec
+	this.closeListener = closeLis
 }
-
-// func (this *SocketChannel) doRequestResponse(rmsg *esnp.Message) error {
-// 	return this.PostEvent(rmsg, nil)
-// }
 
 // Channel
 func (this *SocketChannel) ToChannel() Channel {
 	return Channel(this)
 }
 
-func (this *SocketChannel) Id() uint32 {
-	return this.id
-}
-
-func (this *SocketChannel) Name() string {
-	return this.String()
-}
-
-func (this *SocketChannel) PostMessage(msg *esnp.Message) error {
-	return this.PostEvent(msg, nil)
-}
-
-func (this *SocketChannel) SendMessage(msg *esnp.Message, cb ChannelSendCallback) error {
+func (this *SocketChannel) SendMessage(msg *esnp.Message, cb SendCallback) error {
 	return this.PostEvent(msg, cb)
 }
 
-func (this *SocketChannel) SetMessageListner(rec esnp.MessageListener) {
-	this.SetPipelineListner(func(ev interface{}) error {
-		if msg, ok := ev.(*esnp.Message); ok {
-			return rec(msg)
-		}
-		return nil
-	})
-}
-
-func (this *SocketChannel) SetCloseListener(name string, lis func()) error {
-	this.lisGroup.Set(name, lis)
-	return nil
-}
-
-func (this *SocketChannel) IsBreak() bool {
+func (this *SocketChannel) IsClosing() bool {
 	s := this.socket
 	return s == nil || s.IsClosing()
 }

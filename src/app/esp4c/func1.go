@@ -8,18 +8,18 @@ import (
 )
 
 func doAdd(address string) {
-	c := createClient(address)
-	if c == nil {
+	sock := createSocket(address)
+	if sock == nil {
 		return
 	}
-	defer c.Close()
+	defer sock.AskClose()
 
 	msg := esnp.NewMessage()
 	msg.GetAddress().SetCall("test", "add")
 	ds := msg.Datas()
 	ds.Set("a", 1)
 	ds.Set("b", 2)
-	rmsg, err := c.Call(msg, time.NewTimer(3*time.Second))
+	rmsg, err := sock.Call(msg, 3*time.Second)
 	if err != nil {
 		logger.Warn(tag, "call 'add' fail - %s", err)
 		return
@@ -34,11 +34,11 @@ func doAdd(address string) {
 }
 
 func doMAdd(address string) {
-	c := createClient(address)
-	if c == nil {
+	sock := createSocket(address)
+	if sock == nil {
 		return
 	}
-	defer c.Close()
+	defer sock.AskClose()
 
 	var f1 *syncutil.Future
 	var f2 *syncutil.Future
@@ -48,7 +48,7 @@ func doMAdd(address string) {
 		ds := msg.Datas()
 		ds.Set("a", 1)
 		ds.Set("b", 2)
-		f1 = c.FutureCall(msg)
+		f1 = sock.FutureCall(msg, 3*time.Second)
 	}
 	if true {
 		msg := esnp.NewMessage()
@@ -56,7 +56,7 @@ func doMAdd(address string) {
 		ds := msg.Datas()
 		ds.Set("a", 3)
 		ds.Set("b", 4)
-		f2 = c.FutureCall(msg)
+		f2 = sock.FutureCall(msg, 3*time.Second)
 	}
 
 	fg := syncutil.NewFutureGroup()

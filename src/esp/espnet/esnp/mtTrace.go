@@ -32,7 +32,7 @@ func (O mt_trace) CreateReply(msg *Message, info string) *Message {
 }
 
 func (O mt_trace) GetReplyInfo(msg *Message) string {
-	bs := msg.GetPayloadB()
+	bs := msg.GetPayload()
 	if bs != nil {
 		return string(bs)
 	}

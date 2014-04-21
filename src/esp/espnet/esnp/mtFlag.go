@@ -1,8 +1,6 @@
 package esnp
 
 import (
-	"bmautil/byteutil"
-	"bmautil/coder"
 	"errors"
 )
 
@@ -10,16 +8,16 @@ type MTFlag int32
 
 type mt_flag int
 
-func (O mt_flag) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
+func (O mt_flag) Encode(w EncodeWriter, v interface{}) error {
 	if o, ok := v.(MTFlag); ok {
-		coder.Int32.DoEncode(w, int32(o))
+		Coders.Int32.DoEncode(w, int32(o))
 		return nil
 	}
 	return errors.New("not MTFlag")
 }
 
-func (O mt_flag) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
-	v, err := coder.Int32.DoDecode(r)
+func (O mt_flag) Decode(r DecodeReader) (interface{}, error) {
+	v, err := Coders.Int32.DoDecode(r)
 	if err != nil {
 		return nil, err
 	}

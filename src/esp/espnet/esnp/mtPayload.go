@@ -8,14 +8,14 @@ import (
 
 type mt_payload int
 
-func (O mt_payload) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
+func (O mt_payload) Encode(w EncodeWriter, v interface{}) error {
 	if r, ok := v.([]byte); ok {
-		w.Append(r)
+		w.Write(r)
 		return nil
 	}
 	if r, ok := v.(*byteutil.BytesBuffer); ok {
 		for _, p := range r.DataList {
-			w.Append(p)
+			w.Write(p)
 		}
 		return nil
 	}
@@ -29,7 +29,7 @@ func (O mt_payload) Encode(w *byteutil.BytesBufferWriter, v interface{}) error {
 	return errors.New("not []byte")
 }
 
-func (O mt_payload) Decode(r *byteutil.BytesBufferReader) (interface{}, error) {
+func (O mt_payload) Decode(r DecodeReader) (interface{}, error) {
 	return r.ReadAll(), nil
 }
 

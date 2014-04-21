@@ -6,15 +6,15 @@ import (
 )
 
 func doReload(address string) {
-	c := createClient(address)
-	if c == nil {
+	sock := createSocket(address)
+	if sock == nil {
 		return
 	}
-	defer c.Close()
+	defer sock.AskClose()
 
 	msg := esnp.NewMessage()
 	msg.GetAddress().SetCall("sys", "reload")
-	err := c.SendMessage(msg)
+	err := sock.SendMessage(msg, nil)
 	if err != nil {
 		logger.Warn(tag, "call 'reload' fail - %s", err)
 		return

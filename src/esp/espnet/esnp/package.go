@@ -1,14 +1,8 @@
 package esnp
 
 import (
-	"bmautil/byteutil"
 	"bytes"
 	"fmt"
-)
-
-const (
-	size_READBUF = 4
-	MT_END       = byte(0x00)
 )
 
 // Package
@@ -117,15 +111,15 @@ func (this *Package) InsertAfter(f, mark *Frame) *Frame {
 	return this.insert(f, mark)
 }
 
-func (this *Package) PushBackList(other *Package, cloneData bool) {
+func (this *Package) PushBackList(other *Package) {
 	for e := other.Front(); e != nil; e.Next() {
-		this.insert(e.Clone(0, cloneData), this.tail)
+		this.insert(e.Clone(0), this.tail)
 	}
 }
 
-func (this *Package) PushFrontList(other *Package, cloneData bool) {
+func (this *Package) PushFrontList(other *Package) {
 	for e := other.Back(); e != nil; e = e.Prev() {
-		this.insert(e.Clone(0, cloneData), nil)
+		this.insert(e.Clone(0), nil)
 	}
 }
 
@@ -142,108 +136,95 @@ func (this *Package) String() string {
 	return buf.String()
 }
 
-func (this *Package) ToBytesBuffer() (*byteutil.BytesBuffer, error) {
-	l := 1
+func (this *Package) ToBytes() ([]byte, error) {
+	var w BytesEncodeWriter
 	for e := this.Front(); e != nil; e = e.Next() {
-		l += 1
-		if e.data != nil {
-			l += e.data.Len()
-		}
-	}
-	r := byteutil.NewBytesBuffer()
-	fh := FHeader{}
-	for e := this.Front(); e != nil; e = e.Next() {
-		dl, err := e.Data()
+		err := e.Encode(&w)
 		if err != nil {
 			return nil, err
 		}
-		if dl == nil {
-			continue
-		}
-		fh.MessageType = e.MessageType()
-		fh.Size = uint32(dl.DataSize())
-		r.Add(fh.ToBytes())
-		r.AddAll(dl.DataList)
 	}
-	ph := FHeader{MT_END, 0}
-	r.Add(ph.ToBytes())
-	return r, nil
+	headerWrite(&w, MT_END, 0)
+	return w.ToBytes(), nil
 }
 
 // PackageReader
 type PackageReader struct {
-	buffer *byteutil.BytesBuffer
-
-	hbyte []byte
-
-	pack    *Package
-	fheader FHeader
-	frame   *Frame
+	buffer []byte
+	wpos   int
+	rpos   int
 }
 
 func NewPackageReader() *PackageReader {
 	this := new(PackageReader)
-	this.hbyte = make([]byte, size_READBUF)
-	this.buffer = byteutil.NewBytesBuffer()
+	this.buffer = make([]byte, 1024)
 	return this
 }
 
 func (this *PackageReader) String() string {
 	buf := bytes.NewBuffer(make([]byte, 0))
 	buf.WriteString("[")
-	if this.pack != nil {
-		buf.WriteString("P")
-	}
-	if this.frame != nil {
-		buf.WriteString("F")
-	}
-	buf.WriteString(fmt.Sprintf("%d", this.buffer.DataSize()))
+	buf.WriteString(fmt.Sprintf("R:%d/W:%d/C:%d", this.rpos, this.wpos, cap(this.buffer)))
 	buf.WriteString("]")
 	return buf.String()
 }
 
 func (this *PackageReader) Append(b []byte) {
-	this.buffer.Add(b)
+	l := len(b)
+	if l+this.wpos > cap(this.buffer) {
+		gl := ((l+this.wpos)/1024 + 1) * 1024
+		buf := make([]byte, gl)
+		copy(buf, this.buffer[:this.wpos])
+		this.buffer = buf
+	}
+	copy(this.buffer[this.wpos:], b)
+	this.wpos = this.wpos + l
 }
 
 func (this *PackageReader) ReadPackage(mp int) (*Package, error) {
-	if this.pack == nil {
-		this.pack = NewPackage()
-	}
 	for {
-		if this.frame == nil {
-			// read frame header
-			if !this.buffer.CheckAndPop(this.hbyte, size_FHEADER) {
-				return nil, nil
-			}
-			this.fheader.Read(this.hbyte, 0)
-			if mp > 0 && this.fheader.Size > uint32(mp) {
-				return nil, fmt.Errorf("maxframe %d/%d", this.fheader.Size, mp)
-			}
-			this.frame = newFrameH(this.fheader)
-		}
-
-		// read frame body
-		done := false
-		remain := int(this.fheader.Size) - this.frame.data.DataSize()
-		if remain == 0 {
-			done = true
-		} else {
-			_, done = this.buffer.PopTo(this.frame.data, remain)
-		}
-		if done {
-			if this.frame.MessageType() == MT_END {
-				this.frame = nil
-				p := this.pack
-				this.pack = nil
-				return p, nil
-			}
-			this.pack.PushBack(this.frame)
-			this.frame = nil
-		} else {
+		if this.rpos+size_FHEADER > this.wpos {
+			// invalid header size
 			return nil, nil
 		}
+		mt, sz := headerRead(this.buffer, this.rpos)
+		if mp > 0 && this.rpos+size_FHEADER+sz > mp {
+			return nil, fmt.Errorf("maxPackageSize %d/%d", this.rpos+size_FHEADER+sz, mp)
+		}
+		rp := this.rpos + size_FHEADER
+		if rp+sz > this.wpos {
+			return nil, nil
+		}
+		if mt != 0 {
+			this.rpos = rp + sz
+			continue
+		}
+		break
 	}
+
+	// read frame body
+	l := this.rpos
+	data := make([]byte, l)
+	copy(data, this.buffer[:l])
+	r := NewPackage()
+	rp := 0
+	for rp < l {
+		mt, sz := headerRead(data, rp)
+		if mt == MT_END {
+			break
+		}
+		s := rp + size_FHEADER
+		f := NewFrame(mt, data[s:s+sz])
+		rp = s + sz
+		r.PushBack(f)
+	}
+	rp = rp + size_FHEADER
+
+	// move buffer data
+	this.rpos = 0
+	copy(this.buffer, this.buffer[rp:this.wpos])
+	this.wpos = this.wpos - rp
+	return r, nil
 }
 
 func (this *Package) FrameByType(mt byte) *Frame {
@@ -264,7 +245,7 @@ func (this *Package) RemoveFrame(f func(e *Frame) (bool, bool)) {
 		ne := e.Next()
 		del, stop := f(e)
 		if del {
-			fmt.Println("DELETE", e.MessageType())
+			// fmt.Println("DELETE", e.MessageType())
 			this.Remove(e)
 		}
 		if stop {
