@@ -9,7 +9,7 @@ import (
 type ServiceHandler func(sock *espsocket.Socket, msg *esnp.Message) error
 
 type ServiceRequestContext struct {
-	Channel espchannel.Channel
+	Sock    *espsocket.Socket
 	Message *esnp.Message
 }
 

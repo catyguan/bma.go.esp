@@ -1,6 +1,7 @@
 package espservice
 
 import (
+	"bmautil/socket"
 	"bytes"
 	"errors"
 	"esp/espnet/esnp"
@@ -52,7 +53,7 @@ func (this *GoService) PostRequest(sock *espsocket.Socket, msg *esnp.Message) er
 	if ctrl.Has(p) {
 		info := fmt.Sprintf("%s handled", this)
 		rmsg := ctrl.CreateReply(msg, info)
-		go sock.PostMessage(rmsg, nil)
+		go sock.SendMessage(rmsg, nil)
 	}
 	go func() {
 		defer func() {
@@ -69,7 +70,13 @@ func (this *GoService) PostRequest(sock *espsocket.Socket, msg *esnp.Message) er
 	return nil
 }
 
-func (this *GoService) AcceptESP(sock *espsocket.Socket) error {
+func (this *GoService) AcceptESP(sock *socket.Socket) error {
+	ch := espsocket.NewSocketChannel(sock, "")
+	s := espsocket.NewSocket(ch)
+	return this.AcceptSocket(s)
+}
+
+func (this *GoService) AcceptSocket(sock *espsocket.Socket) error {
 	sock.SetMessageListner(func(msg *esnp.Message) error {
 		return this.PostRequest(sock, msg)
 	})
