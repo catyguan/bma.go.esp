@@ -1,6 +1,9 @@
 package esnp
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 type mt_xdata byte
 
@@ -9,6 +12,10 @@ type struct_xdata struct {
 	value   interface{}
 	remain  []byte
 	encoder Encoder
+}
+
+func (this *struct_xdata) String() string {
+	return fmt.Sprintf("%d=%v", this.xid, this.value)
 }
 
 func (this *struct_xdata) Value(dec Decoder) (interface{}, error) {

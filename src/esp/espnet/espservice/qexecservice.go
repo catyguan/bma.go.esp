@@ -6,10 +6,9 @@ import (
 	"bmautil/valutil"
 	"bytes"
 	"esp/espnet/esnp"
-	"esp/espnet/espchannel"
+	"esp/espnet/espsocket"
 	"fmt"
 	"logger"
-	"sync"
 )
 
 type QExecService struct {
@@ -18,10 +17,6 @@ type QExecService struct {
 	executor *qexec.QueueExecutor
 	rhandler ServiceHandler
 	shandler qexec.StopHandler
-
-	lock       sync.Mutex
-	properties map[string]interface{}
-	channels   espchannel.VChannelGroup
 }
 
 func NewQExecService(name string, rhandler ServiceHandler, shandler qexec.StopHandler) *QExecService {
@@ -133,7 +128,7 @@ func (this *QExecService) SetRequestReceiver(r ServiceHandler) error {
 	}
 }
 
-func (this *QExecService) PostRequest(ch espchannel.Channel, msg *esnp.Message) error {
+func (this *QExecService) PostRequest(ch *espsocket.Socket, msg *esnp.Message) error {
 	ctx := &ServiceRequestContext{ch, msg}
 	return this.executor.DoNow("postRequest", ctx)
 }

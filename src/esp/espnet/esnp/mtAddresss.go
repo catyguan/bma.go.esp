@@ -2,6 +2,7 @@ package esnp
 
 import (
 	"errors"
+	"fmt"
 )
 
 // Address
@@ -10,6 +11,10 @@ type addrCoder byte
 type struct_address_value struct {
 	annotation int
 	value      string
+}
+
+func (this *struct_address_value) String() string {
+	return fmt.Sprintf("%d:%s", this.annotation, this.value)
 }
 
 func (O addrCoder) Encode(w EncodeWriter, v interface{}) error {

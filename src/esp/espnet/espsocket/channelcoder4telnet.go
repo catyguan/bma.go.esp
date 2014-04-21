@@ -1,4 +1,4 @@
-package espchannel
+package espsocket
 
 import (
 	"bmautil/valutil"
@@ -9,14 +9,14 @@ import (
 )
 
 type ChannelCoder4Telnet struct {
-	maxframe      int
+	maxpackage    int
 	buffer        []byte
 	Error2String  func(err error) string
 	Bytes2Message func(str []byte) *esnp.Message
 }
 
 func (this *ChannelCoder4Telnet) Init() {
-	this.maxframe = 1024 * 8
+	this.maxpackage = 1024 * 8
 }
 
 func (this *ChannelCoder4Telnet) EncodeMessage(ch *SocketChannel, ev interface{}, next func(ev interface{}) error) error {
@@ -32,7 +32,7 @@ func (this *ChannelCoder4Telnet) EncodeMessage(ch *SocketChannel, ev interface{}
 					b = []byte(fmt.Sprintf("ERROR:%s\n", err))
 				}
 			} else {
-				b = m.GetPayloadB()
+				b = m.GetPayload()
 			}
 			return next(b)
 		}
@@ -50,8 +50,8 @@ func (this *ChannelCoder4Telnet) DecodeMessage(ch *SocketChannel, b []byte, next
 		l = len(this.buffer)
 		r = bytes.NewBuffer(this.buffer)
 	}
-	if l+len(b) > this.maxframe {
-		return logger.Error(tag, "%s maxframe reach %d/%d", ch, l+len(b), this.maxframe)
+	if l+len(b) > this.maxpackage {
+		return logger.Error(tag, "%s maxpackage reach %d/%d", ch, l+len(b), this.maxpackage)
 	}
 	r.Write(b)
 	for {
@@ -73,8 +73,8 @@ func (this *ChannelCoder4Telnet) DecodeMessage(ch *SocketChannel, b []byte, next
 
 func (this *ChannelCoder4Telnet) SetProperty(name string, val interface{}) bool {
 	switch name {
-	case PROP_ESPNET_MAXFRAME:
-		this.maxframe = valutil.ToInt(val, 0)
+	case PROP_ESPNET_MAXPACKAGE:
+		this.maxpackage = valutil.ToInt(val, 0)
 		return true
 	}
 	return false
@@ -82,8 +82,8 @@ func (this *ChannelCoder4Telnet) SetProperty(name string, val interface{}) bool 
 
 func (this *ChannelCoder4Telnet) GetProperty(name string) (interface{}, bool) {
 	switch name {
-	case PROP_ESPNET_MAXFRAME:
-		return this.maxframe, true
+	case PROP_ESPNET_MAXPACKAGE:
+		return this.maxpackage, true
 	}
 	return nil, false
 }

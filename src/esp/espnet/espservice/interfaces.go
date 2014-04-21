@@ -1,26 +1,19 @@
 package espservice
 
 import (
-	"errors"
 	"esp/espnet/esnp"
-	"esp/espnet/espchannel"
+	"esp/espnet/espsocket"
 	"fmt"
 )
 
-// Service
-type ServiceResponser interface {
-	GetChannel() espchannel.Channel
-	SendMessage(replyMsg *esnp.Message) error
-}
-
-type ServiceHandler func(ch espchannel.Channel, msg *esnp.Message) error
+type ServiceHandler func(sock *espsocket.Socket, msg *esnp.Message) error
 
 type ServiceRequestContext struct {
 	Channel espchannel.Channel
 	Message *esnp.Message
 }
 
-func DoServiceHandle(h ServiceHandler, ch espchannel.Channel, msg *esnp.Message) error {
+func DoServiceHandle(h ServiceHandler, sock *espsocket.Socket, msg *esnp.Message) error {
 	err := func() (r error) {
 		defer func() {
 			r2 := recover()
@@ -28,16 +21,16 @@ func DoServiceHandle(h ServiceHandler, ch espchannel.Channel, msg *esnp.Message)
 				if r3, ok := r2.(error); ok {
 					r = r3
 				} else {
-					r = errors.New(fmt.Sprintf("%s", r2))
+					r = fmt.Errorf("%s", r2)
 				}
 			}
 		}()
-		return h(ch, msg)
+		return h(sock, msg)
 	}()
 	if err != nil {
 		rmsg := msg.ReplyMessage()
 		rmsg.BeError(err)
-		ch.PostMessage(rmsg)
+		sock.SendMessage(rmsg, nil)
 	}
 	return nil
 }

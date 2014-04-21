@@ -1,12 +1,19 @@
 package esnp
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 type MTVersion struct {
 	Major  uint8
 	Minor  uint8
 	Branch uint8
 	Mutate uint8
+}
+
+func (this *MTVersion) String() string {
+	return fmt.Sprintf("%d.%d.%d.%d", this.Major, this.Minor, this.Branch, this.Mutate)
 }
 
 type mt_version int

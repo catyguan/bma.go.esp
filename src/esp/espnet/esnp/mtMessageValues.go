@@ -1,6 +1,9 @@
 package esnp
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 type mvCoder byte
 
@@ -9,6 +12,10 @@ type struct_message_value struct {
 	value   interface{}
 	remain  []byte
 	encoder Encoder
+}
+
+func (this *struct_message_value) String() string {
+	return fmt.Sprintf("%s=%v", this.name, this.value)
 }
 
 func (this *struct_message_value) Value(dec Decoder) (interface{}, error) {

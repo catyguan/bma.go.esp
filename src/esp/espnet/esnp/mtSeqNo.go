@@ -1,10 +1,17 @@
 package esnp
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 type struct_seq_no struct {
 	seqno  int
 	seqmax int
+}
+
+func (this *struct_seq_no) String() string {
+	return fmt.Sprintf("%d/%d", this.seqno, this.seqmax)
 }
 
 type mt_seq_no byte

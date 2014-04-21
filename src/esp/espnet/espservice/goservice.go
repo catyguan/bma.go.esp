@@ -1,11 +1,10 @@
 package espservice
 
 import (
-	"bmautil/socket"
 	"bytes"
 	"errors"
 	"esp/espnet/esnp"
-	"esp/espnet/espchannel"
+	"esp/espnet/espsocket"
 	"fmt"
 	"logger"
 	"runtime/debug"
@@ -16,8 +15,7 @@ type GoService struct {
 	name    string
 	handler ServiceHandler
 
-	closed   uint32
-	channels espchannel.VChannelGroup
+	closed uint32
 }
 
 func NewGoService(name string, h ServiceHandler) *GoService {
@@ -40,21 +38,21 @@ func (this *GoService) String() string {
 
 func (this *GoService) Stop() bool {
 	if atomic.CompareAndSwapUint32(&this.closed, 0, 1) {
-		this.channels.OnClose()
+
 	}
 	return true
 }
 
-func (this *GoService) PostRequest(ch espchannel.Channel, msg *esnp.Message) error {
+func (this *GoService) PostRequest(sock *espsocket.Socket, msg *esnp.Message) error {
 	if atomic.LoadUint32(&this.closed) > 0 {
 		return errors.New("closed")
 	}
 	ctrl := esnp.FrameCoders.Trace
 	p := msg.ToPackage()
 	if ctrl.Has(p) {
-		info := fmt.Sprintf("%s handle", this)
+		info := fmt.Sprintf("%s handled", this)
 		rmsg := ctrl.CreateReply(msg, info)
-		go ch.PostMessage(rmsg)
+		go sock.PostMessage(rmsg, nil)
 	}
 	go func() {
 		defer func() {
@@ -63,7 +61,7 @@ func (this *GoService) PostRequest(ch espchannel.Channel, msg *esnp.Message) err
 				logger.Warn(tag, "execute panic - %s\n%s", err, string(debug.Stack()))
 			}
 		}()
-		err := this.handler(ch, msg)
+		err := this.handler(sock, msg)
 		if err != nil {
 			logger.Warn(tag, "execute fail - %s\n%s", err)
 		}
@@ -71,20 +69,9 @@ func (this *GoService) PostRequest(ch espchannel.Channel, msg *esnp.Message) err
 	return nil
 }
 
-func (this *GoService) AcceptESP(sock *socket.Socket) error {
-	ch := espchannel.NewSocketChannel(sock, espchannel.SOCKET_CHANNEL_CODER_ESPNET)
-	ConnectService(ch, this.PostRequest)
+func (this *GoService) AcceptESP(sock *espsocket.Socket) error {
+	sock.SetMessageListner(func(msg *esnp.Message) error {
+		return this.PostRequest(sock, msg)
+	})
 	return nil
-}
-
-func (this *GoService) NewChannel() (espchannel.Channel, error) {
-	r := new(espchannel.VChannel)
-	r.InitVChannel(this.name)
-	r.RemoveChannel = this.channels.Remove
-
-	r.Sender = func(msg *esnp.Message) error {
-		return DoServiceHandle(this.PostRequest, r, msg)
-	}
-	this.channels.Add(r)
-	return r, nil
 }
