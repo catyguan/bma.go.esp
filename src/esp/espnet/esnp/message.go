@@ -213,6 +213,14 @@ func (this *Message) SetVersion(val *MTVersion) {
 	FrameCoders.Version.Set(this.pack, val)
 }
 
+func (this *Message) HasFlag(f MTFlag) bool {
+	return FrameCoders.Flag.Has(this.pack, f)
+}
+
+func (this *Message) SetFlag(f MTFlag) {
+	FrameCoders.Flag.Set(this.pack, f)
+}
+
 func (this *Message) IsRequest() bool {
 	if FrameCoders.Flag.Has(this.pack, FLAG_REQUEST) {
 		return !FrameCoders.Flag.Has(this.pack, FLAG_RESP)
