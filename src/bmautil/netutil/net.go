@@ -3,100 +3,47 @@ package netutil
 import (
 	"net"
 	"strings"
+	"sync"
 )
 
-type commandConnGroup struct {
-	cmd   int // 0-closeAll 1-add 2-remove 3-removeAndClose
-	conn  net.Conn
-	event func()
-}
 type ConnGroup struct {
-	conns   map[net.Conn]bool
-	command chan commandConnGroup
+	conns map[net.Conn]bool
+	lock  sync.Mutex
 }
 
-func NewConnGroup(size int) *ConnGroup {
+func NewConnGroup() *ConnGroup {
 	r := new(ConnGroup)
-	r.command = make(chan commandConnGroup, size)
 	r.conns = make(map[net.Conn]bool)
-	go r.run()
 	return r
 }
 
-func (this *ConnGroup) Add(c net.Conn, cb func()) (r bool) {
-	defer func() {
-		err := recover()
-		if err != nil {
-			r = false
-		}
-	}()
-	this.command <- commandConnGroup{1, c, cb}
-	r = true
-	return
-}
-
-func (this *ConnGroup) Remove(c net.Conn, cb func()) (r bool) {
-	defer func() {
-		err := recover()
-		if err != nil {
-			r = false
-		}
-	}()
-	this.command <- commandConnGroup{2, c, cb}
-	r = true
-	return
-}
-
-func (this *ConnGroup) RemoveAll(cb func()) (r bool) {
-	defer func() {
-		err := recover()
-		if err != nil {
-			r = false
-		}
-	}()
-	this.command <- commandConnGroup{0, nil, cb}
-	r = true
-	return
-}
-
-func (this *ConnGroup) Close() {
-	close(this.command)
-}
-
-func callback(cb func()) {
-	if cb != nil {
-		defer func() {
-			recover()
-		}()
-		cb()
+func (this *ConnGroup) Add(c net.Conn) bool {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	if _, ok := this.conns[c]; ok {
+		return false
 	}
+	this.conns[c] = true
+	return true
 }
 
-func (this *ConnGroup) run() {
-	defer this.closeAll()
-	for cobj := range this.command {
-		switch cobj.cmd {
-		case 0:
-			this.closeAll()
-		case 1:
-			this.conns[cobj.conn] = true
-		case 2:
-			if _, ok := this.conns[cobj.conn]; ok {
-				cobj.conn.Close()
-				delete(this.conns, cobj.conn)
-			}
-		}
-		if cobj.event != nil {
-			callback(cobj.event)
-		}
+func (this *ConnGroup) Remove(c net.Conn) bool {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	if _, ok := this.conns[c]; ok {
+		delete(this.conns, c)
+		return true
 	}
+	return false
 }
 
-func (this *ConnGroup) closeAll() {
+func (this *ConnGroup) CloseAll() {
+	this.lock.Lock()
+	defer this.lock.Unlock()
 	for conn, _ := range this.conns {
+		delete(this.conns, conn)
 		conn.Close()
 	}
-	this.conns = make(map[net.Conn]bool)
 }
 
 type ChannelCloseListener func()
