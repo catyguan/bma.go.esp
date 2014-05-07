@@ -2,13 +2,10 @@ package mcserver
 
 import (
 	"bmautil/netutil"
-	"bmautil/valutil"
-	"bufio"
 	"fmt"
 	"logger"
 	"net"
 	"runtime/debug"
-	"strings"
 	"sync/atomic"
 )
 
@@ -24,13 +21,10 @@ const (
 	CLOSE          = HandleCode(2)
 )
 
-type MemcacheCommand struct {
-	Action string
-	Params []string
-	Data   []byte
+type MemcacheServerHandler interface {
+	HandleMemcacheCommand(c net.Conn, cmd *MemcacheCommand) (HandleCode, error)
+	OnMemcacheConnClose(c net.Conn)
 }
-
-type MemcacheServerHandler func(c net.Conn, cmd *MemcacheCommand) (HandleCode, error)
 
 type MemcacheServer struct {
 	name    string
@@ -57,7 +51,7 @@ func (this *MemcacheServer) run(lis net.Listener) {
 	cg := netutil.NewConnGroup()
 	defer func() {
 		cg.CloseAll()
-		logger.Info(tag, "'%s' stop (%s %s)", pnet, paddr)
+		logger.Info(tag, "'%s' stop (%s %s)", this.name, pnet, paddr)
 		atomic.CompareAndSwapUint32(&this.state, 1, 0)
 	}()
 	for {
@@ -79,28 +73,28 @@ func (this *MemcacheServer) run(lis net.Listener) {
 
 func (this *MemcacheServer) accept(conn net.Conn, cg *netutil.ConnGroup) {
 	defer func() {
-		cg.Remove(conn)
 		if logger.EnableDebug(tag) {
 			logger.Debug(tag, "'%s' connection close - %s", this.name, conn.RemoteAddr())
 		}
+		cg.Remove(conn)
+		this.handler.OnMemcacheConnClose(conn)
 	}()
 	if logger.EnableDebug(tag) {
 		logger.Debug(tag, "'%s' connection accept - %s", this.name, conn.RemoteAddr())
 	}
-	in := bufio.NewReader(conn)
+	coder := NewMemcacheCoder()
+	buf := make([]byte, 1024)
 	for {
-		line, err := in.ReadString('\n')
+		n, err := conn.Read(buf)
 		if err != nil {
 			if logger.EnableDebug(tag) {
 				logger.Debug(tag, "'%s' read fail - %s - %s", this.name, conn.RemoteAddr(), err)
 			}
 			return
 		}
-		str := strings.TrimSpace(line)
-		logger.Debug(tag, "memcache command << %s", str)
-		cmd, err2 := this.decode(conn, in, str)
-		if err2 != nil {
-			conn.Write([]byte("CLIENT_ERROR " + err2.Error() + "\r\n"))
+		coder.Write(buf[:n])
+		ok, cmd := coder.DecodeCommand()
+		if !ok {
 			continue
 		}
 		code, err3 := this.handle(conn, cmd)
@@ -133,37 +127,5 @@ func (this *MemcacheServer) handle(c net.Conn, cmd *MemcacheCommand) (hc HandleC
 	if cmd.Action == "quit" {
 		return CLOSE, nil
 	}
-	return this.handler(c, cmd)
-}
-
-func (this *MemcacheServer) decode(c net.Conn, in *bufio.Reader, str string) (*MemcacheCommand, error) {
-	cmd := new(MemcacheCommand)
-	strlist := strings.Split(str, " ")
-	var w string
-	if len(strlist) == 0 {
-		return nil, nil
-	}
-	w = strlist[0]
-	cmd.Action = w
-	cmd.Params = strlist[1:]
-	switch w {
-	case "set", "add", "replace":
-		if len(strlist) != 5 {
-			return nil, nil
-		}
-		sz := valutil.ToInt(strlist[4], 0)
-
-		b := make([]byte, sz)
-		var err error
-		for i := 0; i < sz; i++ {
-			b[i], err = in.ReadByte()
-			if err != nil {
-				return nil, err
-			}
-		}
-		in.ReadByte()
-		in.ReadByte()
-		cmd.Data = b
-	}
-	return cmd, nil
+	return this.handler.HandleMemcacheCommand(c, cmd)
 }
