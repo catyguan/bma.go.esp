@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"mcserver"
-	"strings"
 )
 
 type mrGet struct {
@@ -32,21 +30,4 @@ func (this *mrGet) CheckEnd(okc, failc, errc, total int) (end bool, done bool, i
 		return true, true, false
 	}
 	return false, false, false
-}
-
-func mergeResults(results []*mcserver.MemcacheResult) []byte {
-	data := bytes.NewBuffer([]byte{})
-	for _, r := range results {
-		data.WriteString(r.Response)
-		if len(r.Params) > 0 {
-			data.WriteString(" ")
-			data.WriteString(strings.Join(r.Params, " "))
-		}
-		data.WriteString("\r\n")
-		if r.Data != nil {
-			data.Write(r.Data)
-			data.WriteString("\r\n")
-		}
-	}
-	return data.Bytes()
 }

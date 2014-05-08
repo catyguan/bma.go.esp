@@ -5,6 +5,7 @@ import (
 	"boot"
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"logger"
@@ -57,6 +58,33 @@ func (this *Service) HandleMemcacheCommand(c net.Conn, cmd *mcserver.MemcacheCom
 		} else {
 			c.Write([]byte("END\r\n"))
 		}
+		return mcserver.DONE, nil
+	case "getall":
+		cmd2 := new(mcserver.MemcacheCommand)
+		cmd2.Action = "get"
+		cmd2.Params = cmd.Params
+
+		var mr mrGetAll
+		mr.Init()
+		_, err := this.executeMR(c, cmd2, &mr)
+		if err != nil {
+			return mcserver.DONE, err
+		}
+		for _, o := range mr.results {
+			bb := bytes.NewBuffer([]byte{})
+			bb.WriteString(o.key)
+			if o.result != nil {
+				bb.WriteString(" -> ")
+				bb.WriteString(o.result.Response)
+				if o.result.Params != nil {
+					bb.WriteString(" ")
+					bb.WriteString(strings.Join(o.result.Params, " "))
+				}
+				bb.WriteString("\r\n")
+			}
+			c.Write(bb.Bytes())
+		}
+		c.Write([]byte("END\r\n"))
 		return mcserver.DONE, nil
 	case "set", "add":
 		var mr mrUpdate
@@ -129,6 +157,22 @@ func writeCmd(sock *socket.Socket, cmd *mcserver.MemcacheCommand) error {
 		bb.WriteString("\r\n")
 	}
 	return sock.Write(socket.NewWriteReqB(bb.Bytes(), nil))
+}
+func mergeResults(results []*mcserver.MemcacheResult) []byte {
+	data := bytes.NewBuffer([]byte{})
+	for _, r := range results {
+		data.WriteString(r.Response)
+		if len(r.Params) > 0 {
+			data.WriteString(" ")
+			data.WriteString(strings.Join(r.Params, " "))
+		}
+		data.WriteString("\r\n")
+		if r.Data != nil {
+			data.Write(r.Data)
+			data.WriteString("\r\n")
+		}
+	}
+	return data.Bytes()
 }
 func reader(sock *socket.Socket) io.Reader {
 	r, w := io.Pipe()
@@ -226,7 +270,7 @@ func (this *Service) executeMR(conn net.Conn, cmd *mcserver.MemcacheCommand, mr 
 			logger.Debug(tag, "request status = %d/%d", count, total)
 
 			if !res.resp {
-				logger.Info(tag, "remote[%s] execute(%s) fail", cmd.Action)
+				logger.Info(tag, "remote[%s] execute(%s) fail", res.key, cmd.Action)
 			}
 
 			if res.resp {
@@ -248,6 +292,6 @@ func (this *Service) executeMR(conn net.Conn, cmd *mcserver.MemcacheCommand, mr 
 		}
 	}
 
-	logger.Info(tag, "remote[%s] execute(%s) all fail", cmd.Action)
-	return false, nil
+	logger.Info(tag, "execute(%s) all fail", cmd.Action)
+	return false, errors.New("all fail")
 }
