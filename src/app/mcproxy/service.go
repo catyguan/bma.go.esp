@@ -5,7 +5,6 @@ import (
 	"boot"
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"logger"
@@ -24,7 +23,9 @@ type Service struct {
 	plock   sync.RWMutex
 }
 
-type connInfo struct {
+type remoteRequestMR interface {
+	HandleResponse(key string, res *mcserver.MemcacheResult) (more bool, done bool, err error)
+	CheckEnd(okc, failc, errc, total int) (end bool, done bool, iserr bool)
 }
 
 func NewService(n string) *Service {
@@ -36,7 +37,7 @@ func NewService(n string) *Service {
 
 func (this *Service) HandleMemcacheCommand(c net.Conn, cmd *mcserver.MemcacheCommand) (mcserver.HandleCode, error) {
 	switch cmd.Action {
-	case "restart":
+	case "reload":
 		boot.Restart()
 		c.Write([]byte("DONE\r\n"))
 		return mcserver.DONE, nil
@@ -44,18 +45,23 @@ func (this *Service) HandleMemcacheCommand(c net.Conn, cmd *mcserver.MemcacheCom
 		c.Write([]byte("VERSION " + this.config.Version + "\r\n"))
 		return mcserver.DONE, nil
 	case "get":
-		res, err := this.executeGet(c, cmd)
+		var mr mrGet
+		mr.Init()
+		done, err := this.executeMR(c, cmd, &mr)
 		if err != nil {
 			return mcserver.DONE, err
 		}
-		if res.resp {
-			c.Write(res.data.Bytes())
+		if done {
+			data := mergeResults(mr.results)
+			c.Write(data)
 		} else {
 			c.Write([]byte("END\r\n"))
 		}
 		return mcserver.DONE, nil
 	case "set", "add":
-		ok, err := this.executeUpdate(c, cmd, "STORED")
+		var mr mrUpdate
+		mr.oks = "STORED"
+		ok, err := this.executeMR(c, cmd, &mr)
 		if err != nil {
 			return mcserver.DONE, err
 		}
@@ -66,7 +72,8 @@ func (this *Service) HandleMemcacheCommand(c net.Conn, cmd *mcserver.MemcacheCom
 		c.Write([]byte(msg + "\r\n"))
 		return mcserver.DONE, nil
 	case "delete":
-		_, err := this.executeUpdate(c, cmd, "")
+		var mr mrUpdate
+		_, err := this.executeMR(c, cmd, &mr)
 		if err != nil {
 			return mcserver.DONE, err
 		}
@@ -139,48 +146,9 @@ func clearReader(sock *socket.Socket) {
 	sock.RemoveCloseListener("service")
 }
 
-func (this *Service) executeUpdate(conn net.Conn, cmd *mcserver.MemcacheCommand, oks string) (bool, error) {
-	f := func(sock *socket.Socket, key string, ch chan *remoteResult) error {
-		if logger.EnableDebug(tag) {
-			logger.Debug(tag, "remote[%s] execute(%s %v)", key, cmd.Action, cmd.Params)
-		}
-		rd := reader(sock)
-		defer clearReader(sock)
-
-		err0 := writeCmd(sock, cmd)
-		if err0 != nil {
-			return err0
-		}
-
-		coder := mcserver.NewMemcacheCoder()
-		in := bufio.NewReader(rd)
-		buf := make([]byte, 1024)
-		for {
-			n, err := in.Read(buf)
-			if err != nil {
-				return err
-			}
-			coder.Write(buf[:n])
-			ok, r := coder.DecodeResult()
-			if ok {
-				res := new(remoteResult)
-				res.key = key
-				done := false
-				if oks == "" || r.Response == oks {
-					done = true
-				}
-				res.resp = done
-				ch <- res
-				return nil
-			}
-		}
-	}
-	return this.executeAll(conn, cmd, f)
-}
-
-func (this *Service) executeAll(conn net.Conn, cmd *mcserver.MemcacheCommand, exec remoteExecutor) (bool, error) {
+func (this *Service) executeMR(conn net.Conn, cmd *mcserver.MemcacheCommand, mr remoteRequestMR) (bool, error) {
 	if logger.EnableDebug(tag) {
-		logger.Debug(tag, "begin executeAll(%s %v)", cmd.Action, cmd.Params)
+		logger.Debug(tag, "begin executeMR(%s %v)", cmd.Action, cmd.Params)
 	}
 	tmp := make(map[string]*remote)
 	this.plock.RLock()
@@ -191,45 +159,7 @@ func (this *Service) executeAll(conn net.Conn, cmd *mcserver.MemcacheCommand, ex
 	}
 	this.plock.RUnlock()
 
-	ch := make(chan *remoteResult, len(tmp))
-	for _, rmt := range tmp {
-		req := new(remoteRequest)
-		req.conn = conn
-		req.ch = ch
-		req.execute = exec
-		rmt.PostRequest(req)
-	}
-
-	c := len(tmp)
-	count := 0
-	for count < c {
-		select {
-		case res := <-ch:
-			if logger.EnableDebug(tag) {
-				logger.Debug(tag, "remote[%s] execute done -> %v, %v", res.key, res.resp, res.err)
-			}
-			if _, ok := tmp[res.key]; ok {
-				delete(tmp, res.key)
-				count = count + 1
-			}
-			logger.Debug(tag, "request status = %d/%d", count, c)
-
-			if res.err != nil {
-				return false, res.err
-			}
-
-			if !res.resp {
-				logger.Info(tag, "remote[%s] execute(%s) fail", cmd.Action)
-				return false, nil
-			}
-		}
-	}
-
-	return true, nil
-}
-
-func (this *Service) executeGet(conn net.Conn, cmd *mcserver.MemcacheCommand) (*remoteResult, error) {
-	f := func(sock *socket.Socket, key string, ch chan *remoteResult) error {
+	exec := func(sock *socket.Socket, key string, ch chan *remoteResult) error {
 		if logger.EnableDebug(tag) {
 			logger.Debug(tag, "remote[%s] execute(%s %v)", key, cmd.Action, cmd.Params)
 		}
@@ -241,8 +171,6 @@ func (this *Service) executeGet(conn net.Conn, cmd *mcserver.MemcacheCommand) (*
 			return err0
 		}
 
-		res := new(remoteResult)
-		res.key = key
 		coder := mcserver.NewMemcacheCoder()
 		in := bufio.NewReader(rd)
 		buf := make([]byte, 1024)
@@ -257,48 +185,19 @@ func (this *Service) executeGet(conn net.Conn, cmd *mcserver.MemcacheCommand) (*
 				if !ok {
 					break
 				}
-				isErr, errMsg := r.ToError()
-				if isErr {
-					res.err = errors.New(errMsg)
-					ch <- res
-					return nil
+				more, done, err1 := mr.HandleResponse(key, r)
+				if more {
+					continue
 				}
-				if res.data == nil {
-					res.data = bytes.NewBuffer([]byte{})
-				}
-				res.data.WriteString(r.Response)
-				if len(r.Params) > 0 {
-					res.data.WriteString(" ")
-					res.data.WriteString(strings.Join(r.Params, " "))
-				}
-				res.data.WriteString("\r\n")
-				if r.Data != nil {
-					res.data.Write(r.Data)
-					res.data.WriteString("\r\n")
-				}
-				if r.Response == "END" {
-					res.resp = true
-					ch <- res
-					return nil
-				}
+				res := new(remoteResult)
+				res.key = key
+				res.resp = done
+				res.err = err1
+				ch <- res
+				return nil
 			}
 		}
 	}
-	return this.executeOne(conn, cmd, f)
-}
-
-func (this *Service) executeOne(conn net.Conn, cmd *mcserver.MemcacheCommand, exec remoteExecutor) (*remoteResult, error) {
-	if logger.EnableDebug(tag) {
-		logger.Debug(tag, "begin executeOne(%s %v)", cmd.Action, cmd.Params)
-	}
-	tmp := make(map[string]*remote)
-	this.plock.RLock()
-	if true {
-		for k, v := range this.remotes {
-			tmp[k] = v
-		}
-	}
-	this.plock.RUnlock()
 
 	ch := make(chan *remoteResult, len(tmp))
 	for _, rmt := range tmp {
@@ -309,9 +208,12 @@ func (this *Service) executeOne(conn net.Conn, cmd *mcserver.MemcacheCommand, ex
 		rmt.PostRequest(req)
 	}
 
-	c := len(tmp)
+	total := len(tmp)
+	okc := 0
+	failc := 0
+	errc := 0
 	count := 0
-	for count < c {
+	for count < total {
 		select {
 		case res := <-ch:
 			if logger.EnableDebug(tag) {
@@ -321,19 +223,31 @@ func (this *Service) executeOne(conn net.Conn, cmd *mcserver.MemcacheCommand, ex
 				delete(tmp, res.key)
 				count = count + 1
 			}
-
-			if res.err != nil {
-				logger.Debug(tag, "remote[%s] execute error - %s", res.key, res.err)
-				continue
-			}
+			logger.Debug(tag, "request status = %d/%d", count, total)
 
 			if !res.resp {
-				logger.Debug(tag, "remote[%s] execute fail", res.key)
-				continue
+				logger.Info(tag, "remote[%s] execute(%s) fail", cmd.Action)
 			}
 
-			return res, nil
+			if res.resp {
+				okc = okc + 1
+			} else {
+				failc = failc + 1
+			}
+			if res.err != nil {
+				errc = errc + 1
+			}
+
+			end, done, iserr := mr.CheckEnd(okc, failc, errc, total)
+			if end {
+				if iserr {
+					return false, res.err
+				}
+				return done, nil
+			}
 		}
 	}
-	return nil, fmt.Errorf("remotes all fail")
+
+	logger.Info(tag, "remote[%s] execute(%s) all fail", cmd.Action)
+	return false, nil
 }

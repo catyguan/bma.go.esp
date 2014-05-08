@@ -2,7 +2,6 @@ package main
 
 import (
 	"bmautil/socket"
-	"bytes"
 	"fmt"
 	"net"
 	"sync"
@@ -10,11 +9,9 @@ import (
 )
 
 type remoteResult struct {
-	key     string
-	resp    bool
-	message string
-	data    *bytes.Buffer
-	err     error
+	key  string
+	resp bool
+	err  error
 }
 
 type remoteExecutor func(sock *socket.Socket, key string, ch chan *remoteResult) error
