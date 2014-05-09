@@ -1,7 +1,9 @@
 {
 	"global" : {
-		"Debug" : true,
 		"GOMAXPROCS" : 5
+	},
+	"logger" : {
+		"RootLevel" : "INFO"
 	},
 	"mcPoint" : {
 		"Port" : "1080"

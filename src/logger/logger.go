@@ -316,13 +316,19 @@ type beanFilter struct {
 }
 
 type beanLogger struct {
-	Writer []beanWriter
-	Filter []beanFilter
+	RootLevel string
+	Writer    []beanWriter
+	Filter    []beanFilter
 }
 
 func (lc *LoggerConfig) InitLogger() {
 	var beanLogger beanLogger
 	if config.Global.GetBeanConfig("logger", &beanLogger) {
+		if beanLogger.RootLevel != "" {
+			l := level(StringToLevel(beanLogger.RootLevel))
+			fmt.Printf("logger root level = %s\n", l)
+			logConfig.root.level = l
+		}
 		wlist := beanLogger.Writer
 		if wlist != nil {
 			for _, wobj := range wlist {

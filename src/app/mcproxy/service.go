@@ -48,7 +48,7 @@ func (this *Service) HandleMemcacheCommand(c net.Conn, cmd *mcserver.MemcacheCom
 	case "get":
 		var mr mrGet
 		mr.Init()
-		done, err := this.executeMR(c, cmd, &mr)
+		done, err := this.executeMR(c, "", cmd, &mr)
 		if err != nil {
 			return mcserver.DONE, err
 		}
@@ -66,7 +66,7 @@ func (this *Service) HandleMemcacheCommand(c net.Conn, cmd *mcserver.MemcacheCom
 
 		var mr mrGetAll
 		mr.Init()
-		_, err := this.executeMR(c, cmd2, &mr)
+		_, err := this.executeMR(c, "getall", cmd2, &mr)
 		if err != nil {
 			return mcserver.DONE, err
 		}
@@ -89,7 +89,7 @@ func (this *Service) HandleMemcacheCommand(c net.Conn, cmd *mcserver.MemcacheCom
 	case "set", "add":
 		var mr mrUpdate
 		mr.oks = "STORED"
-		ok, err := this.executeMR(c, cmd, &mr)
+		ok, err := this.executeMR(c, "", cmd, &mr)
 		if err != nil {
 			return mcserver.DONE, err
 		}
@@ -101,7 +101,7 @@ func (this *Service) HandleMemcacheCommand(c net.Conn, cmd *mcserver.MemcacheCom
 		return mcserver.DONE, nil
 	case "delete":
 		var mr mrUpdate
-		_, err := this.executeMR(c, cmd, &mr)
+		_, err := this.executeMR(c, "", cmd, &mr)
 		if err != nil {
 			return mcserver.DONE, err
 		}
@@ -190,10 +190,13 @@ func clearReader(sock *socket.Socket) {
 	sock.RemoveCloseListener("service")
 }
 
-func (this *Service) executeMR(conn net.Conn, cmd *mcserver.MemcacheCommand, mr remoteRequestMR) (bool, error) {
-	if logger.EnableDebug(tag) {
-		logger.Debug(tag, "begin executeMR(%s %v)", cmd.Action, cmd.Params)
+func (this *Service) executeMR(conn net.Conn, act string, cmd *mcserver.MemcacheCommand, mr remoteRequestMR) (bool, error) {
+	if act == "" {
+		act = cmd.Action
 	}
+	logger.Info(tag, "%s begin executeMR(%s)", conn.RemoteAddr(), act)
+	defer logger.Info(tag, "%s end executeMR(%s)", conn.RemoteAddr(), act)
+
 	tmp := make(map[string]*remote)
 	this.plock.RLock()
 	if true {
@@ -205,7 +208,7 @@ func (this *Service) executeMR(conn net.Conn, cmd *mcserver.MemcacheCommand, mr 
 
 	exec := func(sock *socket.Socket, key string, ch chan *remoteResult) error {
 		if logger.EnableDebug(tag) {
-			logger.Debug(tag, "remote[%s] execute(%s %v)", key, cmd.Action, cmd.Params)
+			logger.Debug(tag, "remote[%s] execute(%s %v)", key, act, cmd.Params)
 		}
 		rd := reader(sock)
 		defer clearReader(sock)
@@ -270,7 +273,7 @@ func (this *Service) executeMR(conn net.Conn, cmd *mcserver.MemcacheCommand, mr 
 			logger.Debug(tag, "request status = %d/%d", count, total)
 
 			if !res.resp {
-				logger.Info(tag, "remote[%s] execute(%s) fail", res.key, cmd.Action)
+				logger.Info(tag, "remote[%s] execute(%s) fail", res.key, act)
 			}
 
 			if res.resp {
@@ -292,6 +295,6 @@ func (this *Service) executeMR(conn net.Conn, cmd *mcserver.MemcacheCommand, mr 
 		}
 	}
 
-	logger.Info(tag, "execute(%s) all fail", cmd.Action)
+	logger.Info(tag, "execute(%s) all fail", act)
 	return false, errors.New("all fail")
 }

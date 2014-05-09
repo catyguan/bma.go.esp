@@ -113,7 +113,7 @@ func (this *MemcacheCoder) DecodeCommand() (bool, *MemcacheCommand) {
 				return false, nil
 			}
 			sz := valutil.ToInt(strlist[4], 0)
-			if rpos+sz > this.wpos {
+			if rpos+sz+2 > this.wpos {
 				return false, nil
 			}
 
