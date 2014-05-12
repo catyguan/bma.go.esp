@@ -13,15 +13,17 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 type Service struct {
 	name   string
 	config *configInfo
 
-	poolId  int
-	remotes map[string]*remote
-	plock   sync.RWMutex
+	poolId    int
+	remotes   map[string]*remote
+	plock     sync.RWMutex
+	connCount int32
 }
 
 type remoteRequestMR interface {
@@ -112,7 +114,16 @@ func (this *Service) HandleMemcacheCommand(c net.Conn, cmd *mcserver.MemcacheCom
 	return mcserver.UNKNOW_COMMAND, nil
 }
 
+func (this *Service) OnMemcacheConnOpen(c net.Conn) bool {
+	count := atomic.AddInt32(&this.connCount, 1)
+	logger.Info(tag, "'%s' connected [%d] %s", this.name, count, c.RemoteAddr())
+	return true
+}
+
 func (this *Service) OnMemcacheConnClose(c net.Conn) {
+	count := atomic.AddInt32(&this.connCount, -1)
+	logger.Info(tag, "'%s' disconnect[%d] %s", this.name, count, c.RemoteAddr())
+
 	this.plock.RLock()
 	defer this.plock.RUnlock()
 	for _, rmt := range this.remotes {

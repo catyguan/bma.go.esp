@@ -23,6 +23,7 @@ const (
 
 type MemcacheServerHandler interface {
 	HandleMemcacheCommand(c net.Conn, cmd *MemcacheCommand) (HandleCode, error)
+	OnMemcacheConnOpen(c net.Conn) bool
 	OnMemcacheConnClose(c net.Conn)
 }
 
@@ -60,6 +61,11 @@ func (this *MemcacheServer) run(lis net.Listener) {
 			addr := c.RemoteAddr().String()
 			if ok, msg := netutil.IpAccept(addr, this.whiteList, this.blackList, true); !ok {
 				logger.Warn(tag, "unaccept(%s) address %s", msg, addr)
+				c.Close()
+				continue
+			}
+			if !this.handler.OnMemcacheConnOpen(c) {
+				logger.Warn(tag, "handler unaccept address %s", addr)
 				c.Close()
 				continue
 			}
