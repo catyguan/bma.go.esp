@@ -52,6 +52,10 @@ func sname(name string, o interface{}) string {
 	return name
 }
 
+func AddService(o BootObject) {
+	Add(o, "", false)
+}
+
 func Add(o BootObject, name string, install bool) {
 	if name == "" {
 		if n, ok := o.(SupportName); ok {
