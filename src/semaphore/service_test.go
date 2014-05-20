@@ -46,3 +46,18 @@ func TestTimeout(t *testing.T) {
 	}
 	boot.TestGo(cfgFile, 5, []func(){f})
 }
+
+func TestDefaultSem(t *testing.T) {
+	cfgFile := "test.json"
+
+	s := NewService("service")
+	boot.AddService(s)
+
+	f := func() {
+		for i := 0; i < 10; i++ {
+			f := f4test(s, "test3", i+1, 1*time.Second, 100*time.Millisecond)
+			go f()
+		}
+	}
+	boot.TestGo(cfgFile, 5, []func(){f})
+}
