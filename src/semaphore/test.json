@@ -1,0 +1,21 @@
+{
+	"global" : {
+		"GOMAXPROCS" : 5
+	},
+	"service" : {
+		"DefaultSem" : {
+			"Limit" : 10
+		},
+		"Sems" : [
+			{
+				"Name" : "test1",
+				"Limit" : 1,
+				"ExecuteTimeoutMS" : 1000
+			},
+			{
+				"Name" : "test2",
+				"Limit" : 2
+			}
+		]
+	}
+}
