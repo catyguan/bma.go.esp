@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-type LuaInit func(l *lua51.State)
+type GLuaInit func(l *GLua)
 
 type TaskCallback func(n string, cu ContextUpdater, err error)
 

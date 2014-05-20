@@ -21,10 +21,10 @@ func main() {
 	mux := http.NewServeMux()
 	mux4gl := httpmux4glua.NewService("gluaMux", service)
 	mux4gl.InitMux(mux, "/")
-	boot.Add(mux4gl, "", false)
+	boot.AddService(mux4gl)
 
 	httpService := httpserver.NewHttpServer("httpPoint", mux)
-	boot.Add(httpService, "", false)
+	boot.AddService(httpService)
 
 	boot.Go(cfile)
 }

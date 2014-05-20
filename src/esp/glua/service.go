@@ -3,8 +3,9 @@ package glua
 import "sync"
 
 type Service struct {
-	name   string
-	config *serviceConfigInfo
+	name     string
+	config   *serviceConfigInfo
+	gluaInit GLuaInit
 
 	lock  sync.RWMutex
 	gluas map[string]*GLua
@@ -14,6 +15,12 @@ func NewService(n string) *Service {
 	r := new(Service)
 	r.name = n
 	r.gluas = make(map[string]*GLua)
+	return r
+}
+
+func NewServiceI(n string, initor GLuaInit) *Service {
+	r := NewService(n)
+	r.gluaInit = initor
 	return r
 }
 

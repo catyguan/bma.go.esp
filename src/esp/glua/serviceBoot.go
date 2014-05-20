@@ -101,6 +101,9 @@ func (this *Service) Start(ctx *boot.BootContext) bool {
 			continue
 		}
 		gl := NewGLua(k, glcfg)
+		if this.gluaInit != nil {
+			this.gluaInit(gl)
+		}
 		err := gl.Run()
 		if err != nil {
 			logger.Error(tag, "start GLua['%s'] fail %s", k, err)
