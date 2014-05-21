@@ -20,10 +20,15 @@ type Service struct {
 	name   string
 	config *configInfo
 
-	poolId    int
-	remotes   map[string]*remote
-	plock     sync.RWMutex
-	connCount int32
+	poolId  int
+	remotes map[string]*remote
+	plock   sync.RWMutex
+
+	// stats
+	connCount     int32
+	lastConnCount int32
+	actionCount   int32
+	reportC       chan bool
 }
 
 type remoteRequestMR interface {
@@ -35,6 +40,7 @@ func NewService(n string) *Service {
 	this := new(Service)
 	this.name = n
 	this.remotes = make(map[string]*remote)
+	this.reportC = make(chan bool, 1)
 	return this
 }
 
@@ -116,13 +122,13 @@ func (this *Service) HandleMemcacheCommand(c net.Conn, cmd *mcserver.MemcacheCom
 
 func (this *Service) OnMemcacheConnOpen(c net.Conn) bool {
 	count := atomic.AddInt32(&this.connCount, 1)
-	logger.Info(tag, "'%s' connected [%d] %s", this.name, count, c.RemoteAddr())
+	logger.Debug(tag, "'%s' connected [%d] %s", this.name, count, c.RemoteAddr())
 	return true
 }
 
 func (this *Service) OnMemcacheConnClose(c net.Conn) {
 	count := atomic.AddInt32(&this.connCount, -1)
-	logger.Info(tag, "'%s' disconnect[%d] %s", this.name, count, c.RemoteAddr())
+	logger.Debug(tag, "'%s' disconnect[%d] %s", this.name, count, c.RemoteAddr())
 
 	this.plock.RLock()
 	defer this.plock.RUnlock()
@@ -205,8 +211,9 @@ func (this *Service) executeMR(conn net.Conn, act string, cmd *mcserver.Memcache
 	if act == "" {
 		act = cmd.Action
 	}
-	logger.Info(tag, "%s begin executeMR(%s)", conn.RemoteAddr(), act)
-	defer logger.Info(tag, "%s end executeMR(%s)", conn.RemoteAddr(), act)
+	atomic.AddInt32(&this.actionCount, 1)
+	logger.Debug(tag, "%s begin executeMR(%s)", conn.RemoteAddr(), act)
+	defer logger.Debug(tag, "%s end executeMR(%s)", conn.RemoteAddr(), act)
 
 	tmp := make(map[string]*remote)
 	this.plock.RLock()
@@ -284,7 +291,7 @@ func (this *Service) executeMR(conn net.Conn, act string, cmd *mcserver.Memcache
 			logger.Debug(tag, "request status = %d/%d", count, total)
 
 			if !res.resp {
-				logger.Info(tag, "remote[%s] execute(%s) fail", res.key, act)
+				logger.Warn(tag, "remote[%s] execute(%s) fail", res.key, act)
 			}
 
 			if res.resp {
@@ -306,6 +313,18 @@ func (this *Service) executeMR(conn net.Conn, act string, cmd *mcserver.Memcache
 		}
 	}
 
-	logger.Info(tag, "execute(%s) all fail", act)
+	logger.Warn(tag, "execute(%s) all fail", act)
 	return false, errors.New("all fail")
+}
+
+func (this *Service) report() {
+	cc := atomic.LoadInt32(&this.connCount)
+	ac := atomic.LoadInt32(&this.actionCount)
+	if cc != this.lastConnCount || ac != 0 {
+		logger.Info(tag, "conn: %d, action:%d", cc, ac)
+		this.lastConnCount = cc
+	}
+	if ac != 0 {
+		atomic.AddInt32(&this.actionCount, -ac)
+	}
 }

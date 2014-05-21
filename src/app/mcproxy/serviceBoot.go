@@ -3,13 +3,19 @@ package main
 import (
 	"boot"
 	"logger"
+	"time"
+)
+
+const (
+	defaultReportTimeMS = 5 * 1000
 )
 
 type configInfo struct {
-	Version string
-	PoolMax int
-	Trace   int
-	Remotes []string
+	Version      string
+	PoolMax      int
+	Trace        int
+	Remotes      []string
+	ReportTimeMS int
 }
 
 func (this *configInfo) Valid() error {
@@ -18,6 +24,9 @@ func (this *configInfo) Valid() error {
 	}
 	if this.PoolMax <= 0 {
 		this.PoolMax = 10
+	}
+	if this.ReportTimeMS <= 0 {
+		this.ReportTimeMS = defaultReportTimeMS
 	}
 	return nil
 }
@@ -37,6 +46,29 @@ func (this *Service) Name() string {
 }
 
 func (this *Service) Prepare() {
+	this.reportC <- true
+	go func() {
+		for {
+			doit := <-this.reportC
+			if !doit {
+				return
+			}
+
+			this.report()
+
+			tm := defaultReportTimeMS
+			cfg := this.config
+			if cfg != nil {
+				tm = cfg.ReportTimeMS
+			}
+			time.AfterFunc(time.Duration(tm)*time.Millisecond, func() {
+				defer func() {
+					recover()
+				}()
+				this.reportC <- true
+			})
+		}
+	}()
 }
 func (this *Service) CheckConfig(ctx *boot.BootContext) bool {
 	co := ctx.Config
@@ -130,5 +162,6 @@ func (this *Service) Close() bool {
 }
 
 func (this *Service) Cleanup() bool {
+	close(this.reportC)
 	return true
 }
