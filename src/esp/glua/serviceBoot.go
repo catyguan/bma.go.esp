@@ -89,6 +89,20 @@ func (this *Service) Init(ctx *boot.BootContext) bool {
 	return true
 }
 
+func (this *Service) _create(k string, glcfg *ConfigInfo) bool {
+	gl := NewGLua(k, glcfg)
+	if this.gluaInit != nil {
+		this.gluaInit(gl)
+	}
+	err := gl.Run()
+	if err != nil {
+		logger.Error(tag, "start GLua['%s'] fail %s", k, err)
+		return false
+	}
+	this.gluas[k] = gl
+	return true
+}
+
 func (this *Service) Start(ctx *boot.BootContext) bool {
 	ccr := ctx.CheckResult()
 	if ccr.Type == boot.CCR_NONE {
@@ -100,16 +114,9 @@ func (this *Service) Start(ctx *boot.BootContext) bool {
 		if _, ok := this.gluas[k]; ok {
 			continue
 		}
-		gl := NewGLua(k, glcfg)
-		if this.gluaInit != nil {
-			this.gluaInit(gl)
-		}
-		err := gl.Run()
-		if err != nil {
-			logger.Error(tag, "start GLua['%s'] fail %s", k, err)
+		if !this._create(k, glcfg) {
 			return false
 		}
-		this.gluas[k] = gl
 	}
 	return true
 }

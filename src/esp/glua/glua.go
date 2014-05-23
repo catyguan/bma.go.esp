@@ -123,6 +123,7 @@ func (this *GLua) doInitLua() error {
 	l := lua51.NewState()
 	this.l = l
 	l.OpenLibs()
+	l.OpenJson()
 	// set paths
 	pathBuf := bytes.NewBuffer([]byte{})
 	for _, s := range this.config.Paths {

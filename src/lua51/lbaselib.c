@@ -370,6 +370,50 @@ static int luaB_select (lua_State *L) {
   }
 }
 
+#define LEVELS1    12    /* size of the first part of the stack */
+#define LEVELS2    10    /* size of the second part of the stack */
+
+static int luaB_errorfb (lua_State *L) {
+  int level = 0;
+  int firstpart = 1;  /* still before eventual `...' */
+  int arg = lua_gettop(L);
+  lua_State *L1 = L;
+  lua_Debug ar;
+  lua_pushliteral(L, "stack traceback:");
+  while (lua_getstack(L1, level++, &ar)) {
+    if (level > LEVELS1 && firstpart) {
+      /* no more than `LEVELS2' more levels? */
+      if (!lua_getstack(L1, level+LEVELS2, &ar))
+        level--;  /* keep going */
+      else {
+        lua_pushliteral(L, "\n\t...");  /* too many levels */
+        while (lua_getstack(L1, level+LEVELS2, &ar))  /* find last levels */
+          level++;
+      }
+      firstpart = 0;
+      continue;
+    }
+    lua_pushliteral(L, "\n\t");
+    lua_getinfo(L1, "Snl", &ar);
+    lua_pushfstring(L, "%s:", ar.short_src);
+    if (ar.currentline > 0)
+      lua_pushfstring(L, "%d:", ar.currentline);
+    if (*ar.namewhat != '\0')  /* is there a name? */
+        lua_pushfstring(L, " in function " LUA_QS, ar.name);
+    else {
+      if (*ar.what == 'm')  /* main? */
+        lua_pushfstring(L, " in main chunk");
+      else if (*ar.what == 'C' || *ar.what == 't')
+        lua_pushliteral(L, " ?");  /* C function or tail call */
+      else
+        lua_pushfstring(L, " in function <%s:%d>",
+                           ar.short_src, ar.linedefined);
+    }
+    lua_concat(L, lua_gettop(L) - arg);
+  }
+  lua_concat(L, lua_gettop(L) - arg);
+  return 1;
+}
 
 static int luaB_pcall (lua_State *L) {
   int status;
@@ -377,6 +421,9 @@ static int luaB_pcall (lua_State *L) {
   status = lua_pcall(L, lua_gettop(L) - 1, LUA_MULTRET, 0);
   lua_pushboolean(L, (status == 0));
   lua_insert(L, 1);
+  if(status!=0) {
+    luaB_errorfb(L);
+  }
   return lua_gettop(L);  /* return status + all results */
 }
 

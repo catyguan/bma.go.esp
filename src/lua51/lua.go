@@ -522,3 +522,7 @@ func (L *State) OpenTable() {
 func (L *State) OpenOS() {
 	C.clua_openos(L.s)
 }
+
+func (L *State) OpenJson() {
+	C.clua_openjson(L.s)
+}
