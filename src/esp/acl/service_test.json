@@ -1,0 +1,19 @@
+{
+	"test" : {
+		"Users": [
+			{
+				"Id": "test",
+				"Name":"",
+				"Token":"",
+				"Host": "*",
+				"Group": "abc"
+			}
+		],
+		"Ops": [
+			{
+				"Op": "login",
+				"Who" : ["*"]
+			}
+		]
+	}
+}

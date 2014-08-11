@@ -429,28 +429,3 @@ func (c *valueCtx) Value(key interface{}) interface{} {
 	}
 	return c.Context.Value(key)
 }
-
-func WithValues(parent Context, kv map[interface{}]interface{}) Context {
-	return &valuesCtx{parent, kv}
-}
-
-// A valueCtx carries a key-value pair.  It implements Value for that key and
-// delegates all other calls to the embedded Context.
-type valuesCtx struct {
-	Context
-	kv map[interface{}]interface{}
-}
-
-func (c *valuesCtx) String() string {
-	return fmt.Sprintf("%v.WithValues(%v)", c.Context, len(c.kv))
-}
-
-func (c *valuesCtx) Value(key interface{}) interface{} {
-	if c.kv != nil {
-		var v = c.kv[key]
-		if v != nil {
-			return v
-		}
-	}
-	return c.Context.Value(key)
-}
