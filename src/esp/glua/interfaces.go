@@ -1,6 +1,8 @@
 package glua
 
 import (
+	"bytes"
+	"esp/acclog"
 	"fmt"
 	"logger"
 	"lua51"
@@ -58,6 +60,11 @@ type Context struct {
 	Result   map[string]interface{}
 	Error    error
 
+	Acclog    *acclog.Service
+	AccName   string
+	StartTime time.Time
+	Logdata   map[string]interface{}
+
 	callback ExecuteCallback
 	state    int
 	timer    *time.Timer
@@ -76,12 +83,81 @@ func (this *Context) End(err error) {
 		if t != nil {
 			t.Stop()
 		}
+		if this.Acclog != nil {
+			var dt map[string]interface{}
+			if err != nil {
+				dt = make(map[string]interface{})
+				dt["err"] = err.Error()
+			}
+			this.DoAccessLog("end", dt)
+		}
 		this.callback(this)
 	}
 }
 
 func (this *Context) IsEnd() bool {
 	return this.state == stateEnd
+}
+
+type ctxAccLogInfo struct {
+	data      map[string]interface{}
+	time      time.Time
+	id        uint32
+	step      uint32
+	funcName  string
+	act       string
+	timeUseMS int
+}
+
+func (this *ctxAccLogInfo) Message(cfg map[string]string) string {
+	out := bytes.NewBuffer(make([]byte, 0))
+	out.WriteString("t=")
+	out.WriteString(this.time.Format("2006-01-02 15:04:05"))
+	out.WriteString("`")
+	out.WriteString("id=")
+	out.WriteString(fmt.Sprintf("reqi=%d`reqs=%d`reqn=%s`reqa=%s`", this.id, this.step, this.funcName, this.act))
+	for k, v := range this.data {
+		if v != nil {
+			out.WriteString(k)
+			out.WriteString("=")
+			out.WriteString(fmt.Sprintf("%v", v))
+			out.WriteString("`")
+		}
+	}
+	out.WriteString("tu=")
+	out.WriteString(fmt.Sprintf("%d", this.timeUseMS))
+	out.WriteByte('\n')
+	return out.String()
+}
+
+func (this *ctxAccLogInfo) TimeDay() int {
+	return this.time.Day()
+}
+
+func (this *Context) DoAccessLog(act string, dt map[string]interface{}) {
+	if this.Acclog == nil {
+		return
+	}
+	now := time.Now()
+	tu := int(now.Sub(this.StartTime).Seconds() * 1000)
+
+	r := new(ctxAccLogInfo)
+	r.time = now
+	r.timeUseMS = tu
+	r.act = act
+	r.funcName = this.FuncName
+	r.id = this.Id
+	r.step = this.Step
+	if len(this.Logdata)+len(dt) > 0 {
+		r.data = make(map[string]interface{})
+		for k, v := range this.Logdata {
+			r.data[k] = v
+		}
+		for k, v := range dt {
+			r.data[k] = v
+		}
+	}
+	this.Acclog.Write(this.AccName, r)
 }
 
 type ContextUpdater func(ctx *Context)

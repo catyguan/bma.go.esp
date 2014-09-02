@@ -59,6 +59,10 @@ func (this *Service) GetUser(id string, token string, ip string) (*User, error) 
 }
 
 func (this *Service) CheckOp(user *User, op string) (bool, error) {
+	if user == nil {
+		err := logger.Error(tag, "invalid user access '%s'", op)
+		return false, err
+	}
 	cfg := this.config
 	for _, o := range cfg.Ops {
 		if o.Op == op {

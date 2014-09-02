@@ -2,6 +2,7 @@ package httpmux4glua
 
 import (
 	"bmautil/valutil"
+	"esp/acclog"
 	"esp/glua"
 	"fmt"
 	"net/http"
@@ -14,9 +15,11 @@ const (
 )
 
 type Service struct {
-	name   string
-	config *configInfo
-	glua   *glua.Service
+	name    string
+	config  *configInfo
+	glua    *glua.Service
+	AccLog  *acclog.Service
+	AccName string
 }
 
 func NewService(n string, s *glua.Service) *Service {
@@ -107,6 +110,8 @@ func (this *Service) doInvoke(w http.ResponseWriter, req *http.Request, path str
 	}
 
 	ctx := gl.NewContext(this.config.FuncPrefix + f)
+	ctx.Acclog = this.AccLog
+	ctx.AccName = this.AccName
 	ctx.Timeout = time.Duration(to) * time.Millisecond
 	if true {
 		dt := make(map[string]interface{})

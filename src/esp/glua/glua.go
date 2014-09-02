@@ -165,6 +165,8 @@ func (this *GLua) NewContext(f string) *Context {
 	r.Id = id
 	r.FuncName = f
 	r.Timeout = 5 * time.Second
+	r.StartTime = time.Now()
+	r.Logdata = make(map[string]interface{})
 	return r
 }
 
@@ -219,6 +221,7 @@ func (this *GLua) processExecute(f string, ctx *Context) error {
 		logger.Debug(tag, "'%s' [%s] is end, skip", this.name, ctx)
 		return nil
 	}
+	ctx.DoAccessLog("start", nil)
 	if f == "" {
 		return fmt.Errorf("miss func name")
 	}
