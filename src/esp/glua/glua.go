@@ -235,7 +235,8 @@ func (this *GLua) processExecute(f string, ctx *Context) error {
 	defer l.ClearGValues()
 	l.PushGValue(ctx.Data)
 	l.PushGValue(ctx.Result)
-	if l.PCall(2, 1, 0) != 0 {
+	l.PushGValue(ctx.Logdata)
+	if l.PCall(3, 1, 0) != 0 {
 		err := fmt.Errorf("run(%s) fail %s", f, l.ToString(-1))
 		l.Pop(1)
 		return err
