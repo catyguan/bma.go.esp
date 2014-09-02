@@ -225,3 +225,8 @@ void clua_openos(lua_State* L){
 	lua_pushstring(L,"os");
 	lua_call(L, 1, 0);
 }
+
+extern void luamodule_cjson(lua_State *l);
+void clua_openjson(lua_State* L){
+	luamodule_cjson(L);
+}

@@ -57,6 +57,8 @@ func (this *Service) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	if path == "/reload" {
 		this.doReload(w, req)
+	} else if path == "/reset" {
+		this.doReset(w, req)
 	} else {
 		this.doInvoke(w, req, path)
 	}
@@ -80,6 +82,20 @@ func (this *Service) doReload(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, "ok")
+}
+
+func (this *Service) doReset(w http.ResponseWriter, req *http.Request) {
+	g := req.FormValue("g")
+	if g == "" {
+		this.Error(w, -1, "empty param", http.StatusBadRequest)
+		return
+	}
+	ok := this.glua.ResetGLua(g)
+	resp := "ok"
+	if !ok {
+		resp = "fail"
+	}
+	fmt.Fprintf(w, resp)
 }
 
 func (this *Service) doInvoke(w http.ResponseWriter, req *http.Request, path string) {
@@ -138,7 +154,7 @@ func (this *Service) doInvoke(w http.ResponseWriter, req *http.Request, path str
 	}
 
 	res := ctx.Result
-	fmt.Println(res)
+	// fmt.Println(res)
 
 	whs := w.Header()
 	ctype := "text/plain; charset=utf-8"
@@ -173,7 +189,7 @@ func (this *Service) doInvoke(w http.ResponseWriter, req *http.Request, path str
 	content := this.config.EmptyContent
 	if true {
 		if v, ok := res["Content"]; ok {
-			content = fmt.Sprintf("%v", v)
+			content = fmt.Sprintf("%s", v)
 		}
 	}
 	fmt.Fprint(w, content)

@@ -123,6 +123,7 @@ func (this *GLua) doInitLua() error {
 	l := lua51.NewState()
 	this.l = l
 	l.OpenLibs()
+	l.OpenJson()
 	// set paths
 	pathBuf := bytes.NewBuffer([]byte{})
 	for _, s := range this.config.Paths {
@@ -321,6 +322,18 @@ func (this *GLua) ReloadScript(n string) error {
 			return err2
 		}
 		logger.Info(tag, "'%s' reload script '%s' done", this.name, n)
+		return nil
+	})
+}
+
+func (this *GLua) LoadScript(n string) error {
+	return this.goo.DoSync(func() error {
+		l := this.l
+		err2 := l.Eval(fmt.Sprintf("require(\"%s\")", n))
+		if err2 != nil {
+			return err2
+		}
+		logger.Debug(tag, "'%s' load script '%s' done", this.name, n)
 		return nil
 	})
 }

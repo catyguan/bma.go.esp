@@ -2,8 +2,10 @@ package tmp
 
 import (
 	"fmt"
+	"math/rand"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 type A struct {
@@ -54,4 +56,16 @@ func Test5(t *testing.T) {
 		t.Error(v)
 	}
 	t.Error(len(bs))
+}
+
+func TestGenRandome(t *testing.T) {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	for i := 0; i < 1000; i++ {
+		if i != 0 {
+			fmt.Print(",")
+		}
+		fmt.Printf("%d", r.Uint32()%0x7FFFFF)
+	}
+	fmt.Println()
 }
