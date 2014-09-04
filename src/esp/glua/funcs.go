@@ -2,6 +2,7 @@ package glua
 
 import (
 	"bmautil/valutil"
+	"context"
 	"fmt"
 	"logger"
 	"lua51"
@@ -235,7 +236,7 @@ func (this *GLua) doPrint(l *lua51.State) int {
 }
 
 func (this *GLua) doTask(l *lua51.State) int {
-	n := l.ToString(1)
+	taskName := l.ToString(1)
 	var req map[string]interface{}
 	v, _, ok := l.ToGValue(2)
 	if ok {
@@ -244,7 +245,12 @@ func (this *GLua) doTask(l *lua51.State) int {
 			return l.Error("task request not map")
 		}
 	}
-	err := this.StartTask(n, this.context, req, l.ToString(3), nil)
+	ctx := this.context
+	f := l.ToString(3)
+	cb := func(taskName string, ctx context.Context, cu ContextUpdater, err error) {
+		this.luaCallback4Task(taskName, f, ctx, cu, err)
+	}
+	err := this.StartTask(taskName, ctx, req, cb)
 	if err != nil {
 		return l.Error(err.Error())
 	}

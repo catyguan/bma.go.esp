@@ -133,6 +133,10 @@ type Context interface {
 	//              return u, ok
 	//      }
 	Value(key interface{}) interface{}
+
+	LocalValue(key interface{}) interface{}
+
+	Parent() Context
 }
 
 // Canceled is the error returned by Context.Err when the context is canceled.
@@ -158,6 +162,14 @@ func (emptyCtx) Err() error {
 }
 
 func (emptyCtx) Value(key interface{}) interface{} {
+	return nil
+}
+
+func (emptyCtx) LocalValue(key interface{}) interface{} {
+	return nil
+}
+
+func (emptyCtx) Parent() Context {
 	return nil
 }
 
@@ -290,6 +302,10 @@ func (c *cancelCtx) Err() error {
 	return c.err
 }
 
+func (c *cancelCtx) Parent() Context {
+	return c.Context
+}
+
 func (c *cancelCtx) String() string {
 	return fmt.Sprintf("%v.WithCancel", c.Context)
 }
@@ -374,6 +390,10 @@ func (c *timerCtx) Deadline() (deadline time.Time, ok bool) {
 	return c.deadline, true
 }
 
+func (c *timerCtx) Parent() Context {
+	return c.Context
+}
+
 func (c *timerCtx) String() string {
 	return fmt.Sprintf("%v.WithDeadline(%s [%s])", c.cancelCtx.Context, c.deadline, c.deadline.Sub(time.Now()))
 }
@@ -423,9 +443,20 @@ func (c *valueCtx) String() string {
 	return fmt.Sprintf("%v.WithValue(%#v, %#v)", c.Context, c.key, c.val)
 }
 
+func (c *valueCtx) Parent() Context {
+	return c.Context
+}
+
 func (c *valueCtx) Value(key interface{}) interface{} {
 	if c.key == key {
 		return c.val
 	}
 	return c.Context.Value(key)
+}
+
+func (c *valueCtx) LocalValue(key interface{}) interface{} {
+	if c.key == key {
+		return c.val
+	}
+	return nil
 }
