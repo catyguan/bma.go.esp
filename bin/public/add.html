@@ -18,7 +18,7 @@ button.addEventListener( "click", function( ev ) {
 		return
 	}
 	$.ajax({
-		url: "http://127.0.0.1:1081/i/test/add",		
+		url: "http://127.0.0.1:1081/test/add",		
 		data: {
 			a: va,
 			b: vb
@@ -26,7 +26,7 @@ button.addEventListener( "click", function( ev ) {
 		type: "GET",
 		dataType : "json",
 		success: function( json ) {
-			$( "#ask" ).text( json.c );
+			$( "#ask" ).text( json );
 		},
 		error: function( xhr, status, errorThrown ) {
 			alert( "Sorry, there was a problem!" );

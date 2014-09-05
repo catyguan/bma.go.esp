@@ -1,0 +1,18 @@
+You can do this using the Select function from the reflect package:
+
+    func Select(cases []SelectCase) (chosen int, recv Value, recvOK bool)
+
+    Select executes a select operation described by the list of cases. Like the Go select statement, it blocks until at least one of the cases can proceed, makes a uniform pseudo-random choice, and then executes that case. It returns the index of the chosen case and, if that case was a receive operation, the value received and a boolean indicating whether the value corresponds to a send on the channel (as opposed to a zero value received because the channel is closed).
+
+You pass in an array of SelectCase structs that identify the channel to select on, the direction of the operation, and a value to send in the case of a send operation.
+
+So you could do something like this:
+
+cases := make([]reflect.SelectCase, len(chans))
+for i, ch := range chans {
+    cases[i] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ch)}
+}
+chosen, value, ok := reflect.Select(cases)
+# ok will be true if the channel has not been closed.
+ch := chans[chosen]
+msg := value.String()

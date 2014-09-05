@@ -1,0 +1,32 @@
+{
+	"global" : {
+		"Debug" : true,
+		"GOMAXPROCS" : 5
+	},
+	"acclog" : {
+		"Nodes" : [
+			{ "Name" : "*" }
+		]
+	},
+	"httpPoint" : {
+		"Port" : "1081"
+	},
+	"gluaService" : {
+		"GLua" : {
+			"g1" : {
+				"Paths" : ["${CWD}/lua"],
+				"Preloads" : ["test"]
+			}
+		}
+	},
+	"gluaMux" : {
+		"DevMode" : true,
+		"AutoReload" : true,
+		"App" : [
+			{
+				"Name" : "g1",
+				"Location" : "/"
+			}
+		]
+	}
+}
