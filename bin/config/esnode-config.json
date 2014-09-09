@@ -9,7 +9,8 @@
 		]
 	},
 	"httpPoint" : {
-		"Port" : "1081"
+		"Port" : "1081",
+		"WhiteIp" : "127.0.0.1"
 	},
 	"gluaService" : {
 		"GLua" : {

@@ -12,6 +12,8 @@ type HttpServerConfigInfo struct {
 	Address   string
 	Port      int
 	TimeoutMS int
+	WhiteIp   string
+	BlackIp   string
 }
 
 func (this *HttpServerConfigInfo) Valid() error {
@@ -37,6 +39,12 @@ func (this *HttpServerConfigInfo) Compare(old *HttpServerConfigInfo) int {
 	}
 	if this.TimeoutMS != old.TimeoutMS {
 		return boot.CCR_NEED_START
+	}
+	if this.WhiteIp != old.WhiteIp {
+		return boot.CCR_CHANGE
+	}
+	if this.BlackIp != old.BlackIp {
+		return boot.CCR_CHANGE
 	}
 	return boot.CCR_NONE
 }
@@ -94,12 +102,22 @@ func (this *HttpServer) Run(ctx *boot.BootContext) bool {
 		return true
 	}
 
+	if this.ownMux {
+		logger.Info(tag, "%s build http mux", this.name)
+		bl := this.muxBuilders
+		mux := http.NewServeMux()
+		for _, b := range bl {
+			b(mux)
+		}
+		this.Handler = mux
+	}
+
 	addr := this.config.Address
 	s := &http.Server{
 		Addr:         addr,
 		ReadTimeout:  this.timeout,
 		WriteTimeout: this.timeout,
-		Handler:      this.Handler,
+		Handler:      this,
 	}
 	go func() {
 		defer func() {
