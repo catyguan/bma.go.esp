@@ -56,6 +56,14 @@ func (this *Service) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
+	for _, p1 := range this.config.Skip {
+		if p1 == path {
+			logger.Debug(tag, "global skip %s:%s", host, path)
+			http.NotFound(w, req)
+			return
+		}
+	}
+
 	cfg := this.config
 	var mapp *configApp
 	mlen := 0
@@ -80,6 +88,14 @@ func (this *Service) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		path = path + mapp.IndexName
 	}
 	logger.Debug(tag, "match %s:%s => %s:%s:%s", host, opath, mapp.Name, mapp.Location, path)
+
+	for _, p1 := range mapp.Skip {
+		if p1 == path {
+			logger.Debug(tag, "app skip %s", path)
+			http.NotFound(w, req)
+			return
+		}
+	}
 
 	this.doInvoke(w, req, mapp, path)
 }
@@ -146,6 +162,7 @@ func (this *Service) doInvoke(w http.ResponseWriter, req *http.Request, app *con
 	}()
 
 	if errE != nil {
+		glua.GLuaContext.End(ctx, errE)
 		this.Error(w, -9, errE.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -155,6 +172,9 @@ func (this *Service) doInvoke(w http.ResponseWriter, req *http.Request, app *con
 
 	whs := w.Header()
 	ctype := "text/plain; charset=utf-8"
+	if ctypev, ok := res["Content-Type"]; ok {
+		ctype = fmt.Sprintf("%v", ctypev)
+	}
 	if true {
 		if v, ok := res["Header"]; ok {
 			if hs, ok2 := v.(map[string]interface{}); ok2 {

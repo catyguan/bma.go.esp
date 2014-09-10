@@ -5,6 +5,7 @@ import (
 	"boot/httpmux4boot"
 	"esp/acclog"
 	"esp/glua"
+	"esp/glua/http4glua"
 	"esp/glua/httpmux4glua"
 	"httpserver"
 	"net/http"
@@ -20,7 +21,11 @@ func main() {
 	acclog := acclog.NewService("acclog")
 	boot.AddService(acclog)
 
-	service := glua.NewService("gluaService")
+	initor := func(l *glua.GLua) {
+		l.Add(new(glua.PluginAll))
+		l.Add(new(http4glua.PluginHttp))
+	}
+	service := glua.NewServiceI("gluaService", initor)
 	boot.AddService(service)
 
 	// var wd, _ = os.Getwd()

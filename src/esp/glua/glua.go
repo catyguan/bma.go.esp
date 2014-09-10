@@ -61,6 +61,10 @@ func (this *ConfigInfo) Compare(old *ConfigInfo) int {
 	return boot.CCR_NONE
 }
 
+var (
+	execId uint32
+)
+
 // GLua
 type GLua struct {
 	name   string
@@ -69,7 +73,6 @@ type GLua struct {
 	goo     goo.Goo
 	l       *lua51.State
 	plugins map[string]GLuaPlugin
-	execId  uint32
 	statis  StatisInfo
 	context context.Context
 
@@ -161,9 +164,9 @@ func (this *GLua) doInitLua() error {
 }
 
 func (this *GLua) NewContext(title string, acclog bool) context.Context {
-	id := atomic.AddUint32(&this.execId, 1)
+	id := atomic.AddUint32(&execId, 1)
 	if id == 0 {
-		id = atomic.AddUint32(&this.execId, 1)
+		id = atomic.AddUint32(&execId, 1)
 	}
 	einfo := new(ContextExecuteInfo)
 	einfo.Step = 0
@@ -357,7 +360,10 @@ func (this *GLua) luaCallback4Task(taskName string, f string, ctx context.Contex
 		if f != "" {
 			linfo := new(ContextLuaInfo)
 			linfo.FuncName = f
-			this.processExecute(ctx, linfo)
+			err0 := this.processExecute(ctx, linfo)
+			if err0 != nil {
+				GLuaContext.End(ctx, err0)
+			}
 		}
 	})
 	if err != nil {

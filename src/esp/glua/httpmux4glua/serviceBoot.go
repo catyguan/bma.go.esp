@@ -15,6 +15,7 @@ type configApp struct {
 	TimeoutMS    int
 	FuncPrefix   string
 	EmptyContent string
+	Skip         []string
 }
 
 func (this *configApp) Valid() error {
@@ -53,6 +54,7 @@ type configInfo struct {
 	DevMode    bool
 	AutoReload bool
 	App        []*configApp
+	Skip       []string
 }
 
 func (this *configInfo) Valid() error {

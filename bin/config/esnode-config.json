@@ -36,7 +36,8 @@
 		"App" : [
 			{
 				"Name" : "g1",
-				"Location" : "/"
+				"Location" : "/",
+				"Skip" : ["/favicon.ico"]
 			}
 		]
 	}

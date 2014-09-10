@@ -247,6 +247,17 @@ func (clsGLuaContext) AccessLog(ctx context.Context, act string, dt map[string]i
 	return r
 }
 
+func (clsGLuaContext) HasAccessLog(ctx context.Context) bool {
+	info, _ := GLuaContext.AcclogInfo(ctx)
+	if info == nil {
+		return false
+	}
+	if info.Acclog == nil {
+		return false
+	}
+	return true
+}
+
 func (clsGLuaContext) DoAccessLog(ctx context.Context, act string, dt map[string]interface{}) {
 	info, _ := GLuaContext.AcclogInfo(ctx)
 	if info == nil {
