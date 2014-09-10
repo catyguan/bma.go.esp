@@ -8,7 +8,6 @@ import (
 	"esp/glua/httpmux4glua"
 	"httpserver"
 	"net/http"
-	"os"
 )
 
 const (
@@ -24,22 +23,40 @@ func main() {
 	service := glua.NewService("gluaService")
 	boot.AddService(service)
 
-	var wd, _ = os.Getwd()
+	// var wd, _ = os.Getwd()
 
-	mux := http.NewServeMux()
-	mux.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir(wd+"/public"))))
+	// mux.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir(wd+"/public"))))
 
 	mux4gl := httpmux4glua.NewService("gluaMux", service, httpmux4glua.CommonDispatcher)
 	mux4gl.AccLog = acclog
 	mux4gl.AccName = "http"
-	mux4gl.InitMux(mux, "/")
-	mux4gl.InitManageMux(mux, "/m/")
 	boot.AddService(mux4gl)
 
-	httpmux4boot.InitMux(mux, "/sys/")
+	if true {
+		fileServer := httpserver.NewHttpFileServer("fileServer")
+		boot.AddService(fileServer)
 
-	httpService := httpserver.NewHttpServer("httpPoint", mux)
-	boot.AddService(httpService)
+		httpService := httpserver.NewHttpServer("httpPoint", nil)
+		httpService.Add(fileServer.BuildMux)
+		httpService.Add(func(mux *http.ServeMux) {
+			mux4gl.InitMux(mux, "/")
+		})
+		boot.AddService(httpService)
+	}
+
+	if true {
+		fileServer := httpserver.NewHttpFileServer("manageFileServer")
+		boot.AddService(fileServer)
+
+		httpService := httpserver.NewHttpServer("manageHttpPoint", nil)
+		httpService.Add(fileServer.BuildMux)
+		httpService.Add(func(mux *http.ServeMux) {
+			mux4gl.InitManageMux(mux, "/m/")
+			httpmux4boot.InitMux(mux, "/sys/")
+		})
+		boot.AddService(httpService)
+
+	}
 
 	boot.Go(cfile)
 }

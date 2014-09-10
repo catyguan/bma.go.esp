@@ -9,8 +9,18 @@
 		]
 	},
 	"httpPoint" : {
-		"Port" : "1081",
+		"Port" : "1081"
+	},
+	"fileServer" : {
+		"Location" : [
+			{"Path": "/public/", "Dir" : "${CWD}/public"}
+		]
+	},
+	"manageHttpPoint" : {
+		"Port" : "1082",
 		"WhiteIp" : "127.0.0.1"
+	},
+	"manageFileServer" : {
 	},
 	"gluaService" : {
 		"GLua" : {
