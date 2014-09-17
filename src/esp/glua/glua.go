@@ -244,9 +244,14 @@ func (this *GLua) processExecute(ctx context.Context, linfo *ContextLuaInfo) err
 	this.context = ctx
 	defer func() {
 		this.context = nil
-	}()
+	}()	
 	if linfo == nil {
 		linfo = GLuaContext.Lua(ctx)
+	} else {
+		if linfo.Script=="" {
+			ctxlinfo := GLuaContext.Lua(ctx)
+			linfo.Script = ctxlinfo.Script
+		}
 	}
 	if linfo == nil {
 		return logger.Error(tag, "processExecute(%s) miss LuaInfo", logstr)
