@@ -50,7 +50,8 @@ func (this *Request) Valid() error {
 }
 
 type PluginSHM struct {
-	mem *LinkMap
+	mem   *LinkMap
+	timer *time.Ticker
 }
 
 func NewSHM() *PluginSHM {
@@ -145,4 +146,27 @@ func (this *PluginSHM) doExecute(task *glua.PluginTask, req *Request) error {
 	glua.GLuaContext.DoAccessLog(ctx, "shm:execute", nil)
 	task.Callback(this.Name(), cu, nil)
 	return nil
+}
+
+func (this *PluginSHM) Start() {
+	if this.timer == nil {
+		tm := time.NewTicker(10 * time.Millisecond)
+		this.timer = tm
+		go func() {
+			for {
+				_, ok := <-tm.C
+				if !ok {
+					return
+				}
+				this.mem.Clear(10)
+			}
+		}()
+	}
+}
+
+func (this *PluginSHM) Stop() {
+	if this.timer != nil {
+		this.timer.Stop()
+		this.timer = nil
+	}
 }

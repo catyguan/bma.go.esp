@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func TestPluginHttp(t *testing.T) {
+func TestSHM(t *testing.T) {
 	time.AfterFunc(5*time.Second, func() {
 		fmt.Sprintln("os exit!!!")
 		os.Exit(-1)
@@ -51,5 +51,23 @@ func TestPluginHttp(t *testing.T) {
 		// 	delete(hresp.(map[string]interface{}), "Content")
 		// }
 		fmt.Println(str, rs, shm.mem, err)
+	}
+}
+
+func TestSHMRun(t *testing.T) {
+	time.AfterFunc(5*time.Second, func() {
+		fmt.Sprintln("os exit!!!")
+		os.Exit(-1)
+	})
+
+	shm := NewSHM()
+	shm.mem.Put("test", 1234, 8, 100)
+
+	shm.Start()
+	defer shm.Stop()
+
+	for i := 0; i < 3; i++ {
+		time.Sleep(50 * time.Millisecond)
+		fmt.Println(shm.mem.String())
 	}
 }

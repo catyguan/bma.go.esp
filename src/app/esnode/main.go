@@ -7,6 +7,7 @@ import (
 	"esp/glua"
 	"esp/glua/http4glua"
 	"esp/glua/httpmux4glua"
+	"esp/glua/shm4glua"
 	"httpserver"
 	"net/http"
 )
@@ -21,9 +22,14 @@ func main() {
 	acclog := acclog.NewService("acclog")
 	boot.AddService(acclog)
 
+	pSHM := shm4glua.NewSHM()
+	pSHM.Start()
+	defer pSHM.Stop()
+
 	initor := func(l *glua.GLua) {
 		l.Add(new(glua.PluginAll))
 		l.Add(new(http4glua.PluginHttp))
+		l.Add(pSHM)
 	}
 	service := glua.NewServiceI("gluaService", initor)
 	boot.AddService(service)
