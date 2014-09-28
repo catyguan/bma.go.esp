@@ -7,6 +7,7 @@ type SimpleNode struct {
 	children []Node
 	id       int
 	token    *Token
+	action   Action
 }
 
 var (

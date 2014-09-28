@@ -19,15 +19,26 @@ func TestParser1(t *testing.T) {
 		safeCall()
 
 		s := ""
-		s = "obj:print(1 + 2, true, a.b)"
-		// s = "abc = 1 + 2"
+		// s = "abc.def.ghj = 1"
+		// s = "obj:print(1 + 2, true, a.b)"
+		s = "abc = 1 + 2"
 
 		p := NewLuaParser1(s)
 		node, err := p.Chunk()
 		if err != nil {
-			fmt.Println("error", err)
+			fmt.Println("ParseError", err)
 		} else {
 			node.dump("")
+
+			builder := NewLuaBuilder(node)
+			act, err2 := builder.Build()
+			if err2 != nil {
+				fmt.Println("BuildError", err2)
+			} else {
+				fmt.Println("--------------- BUILD ---------------")
+				s := DumpActions(act, " ")
+				fmt.Println(s)
+			}
 		}
 
 	}
