@@ -80,7 +80,7 @@ outer:
 	return n, lr.err
 }
 
-var trace = flag.Bool("trace", false, "turn on all traces")
+var trace = flag.Bool("trace", true, "turn on all traces")
 var logit = flag.Bool("log", false, "log traces (does not activate traces)")
 var lit = flag.Bool("literate", false, "force reading in literate mode")
 var no_prelude = flag.Bool("no-prelude", false, "do not load prelude.gel")
