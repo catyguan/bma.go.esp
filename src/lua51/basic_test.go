@@ -43,4 +43,6 @@ func TestBase(t *testing.T) {
 	L.Call(0, 0)
 	L.Call(0, 0)
 	L.Call(0, 0)
+
+	// L.Eval("print(1)")
 }
