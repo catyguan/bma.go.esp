@@ -1,6 +1,7 @@
 package http4glua
 
 import (
+	"context"
 	"esp/glua"
 	"fmt"
 	"os"
@@ -33,13 +34,19 @@ func TestPluginHttp(t *testing.T) {
 	}()
 
 	if true {
-		ctx := gl.NewContext("http")
-		ctx.Timeout = 3 * time.Second
-		gl.ExecuteSync(ctx)
+		ctx := gl.NewContext("http", false)
+		lua := glua.NewLuaInfo("", "http", false)
+		glua.GLuaContext.SetExecuteInfo(ctx, "", lua, nil)
+
+		ctx, _ = context.WithTimeout(ctx, 3*time.Second)
+
+		err := gl.ExecuteSync(ctx)
+		str := glua.GLuaContext.String(ctx)
+		rs := glua.GLuaContext.GetResult(ctx)
 		// hresp := ctx.Result["http"]
 		// if hresp != nil {
 		// 	delete(hresp.(map[string]interface{}), "Content")
 		// }
-		fmt.Println(ctx, ctx.Data, ctx.Result, ctx.Error)
+		fmt.Println(str, rs, err)
 	}
 }

@@ -2,18 +2,35 @@ package httpmux4glua
 
 import (
 	"boot"
+	"fmt"
 	"logger"
+	"strings"
 )
 
-type configInfo struct {
-	DevMode      bool
-	Location     map[string]string
+type configApp struct {
+	Name         string
+	Host         string
+	Location     string
+	IndexName    string
 	TimeoutMS    int
 	FuncPrefix   string
 	EmptyContent string
+	Skip         []string
 }
 
-func (this *configInfo) Valid() error {
+func (this *configApp) Valid() error {
+	if this.Name == "" {
+		return fmt.Errorf("empty http glua app name")
+	}
+	if this.Location == "" {
+		this.Location = "/"
+	}
+	if !strings.HasSuffix(this.Location, "/") {
+		this.Location = this.Location + "/"
+	}
+	if this.IndexName == "" {
+		this.IndexName = "index"
+	}
 	if this.FuncPrefix == "" {
 		this.FuncPrefix = "service_"
 	}
@@ -22,6 +39,30 @@ func (this *configInfo) Valid() error {
 	}
 	if this.EmptyContent == "" {
 		this.EmptyContent = "<empty response>"
+	}
+	return nil
+}
+
+func (this *configApp) Compare(old *configInfo) int {
+	if old == nil {
+		return boot.CCR_NEED_START
+	}
+	return boot.CCR_CHANGE
+}
+
+type configInfo struct {
+	DevMode    bool
+	AutoReload bool
+	App        []*configApp
+	Skip       []string
+}
+
+func (this *configInfo) Valid() error {
+	for _, app := range this.App {
+		err := app.Valid()
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

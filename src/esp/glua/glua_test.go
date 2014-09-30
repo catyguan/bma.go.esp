@@ -1,6 +1,7 @@
 package glua
 
 import (
+	"context"
 	"fmt"
 	"lua51"
 	"os"
@@ -40,7 +41,7 @@ func TestGLuaBase(t *testing.T) {
 	cfg.Paths = []string{pw}
 	cfg.Preloads = []string{"test"}
 
-	gl := NewGLua("test", 16, cfg)
+	gl := NewGLua("test", cfg)
 	gl.Add(new(pl4test))
 	gl.Add(new(PluginAll))
 
@@ -51,35 +52,52 @@ func TestGLuaBase(t *testing.T) {
 	}()
 
 	if true {
-		ctx := gl.NewContext("hello")
-		ctx.Timeout = 100 * time.Millisecond
-		gl.ExecuteSync(ctx)
-		fmt.Println(ctx, ctx.Error)
+		ctx := gl.NewContext("hello", false)
+		lua := NewLuaInfo("", "hello", false)
+		GLuaContext.SetExecuteInfo(ctx, "helloT", lua, nil)
+
+		ctx, _ = context.WithTimeout(ctx, 100*time.Millisecond)
+
+		err := gl.ExecuteSync(ctx)
+		str := GLuaContext.String(ctx)
+		fmt.Println(str, err)
 	}
 
 	if true {
-		ctx := gl.NewContext("add")
-		ctx.Timeout = 1 * time.Second
+		ctx := gl.NewContext("add", false)
+		lua := NewLuaInfo("", "add", false)
 
 		dt := make(map[string]interface{})
 		dt["a"] = 1
 		dt["b"] = 2
-		ctx.Data = dt
+		GLuaContext.SetExecuteInfo(ctx, "", lua, dt)
 
-		gl.ExecuteSync(ctx)
-		fmt.Println(ctx, ctx.Data, ctx.Result, ctx.Error)
+		err := gl.ExecuteSync(ctx)
+		str := GLuaContext.String(ctx)
+		rs := GLuaContext.GetResult(ctx)
+		fmt.Println(str, dt, rs, err)
 	}
 
 	if true {
-		ctx := gl.NewContext("async")
-		ctx.Timeout = 1 * time.Second
-		gl.ExecuteSync(ctx)
-		fmt.Println(ctx, ctx.Data, ctx.Result, ctx.Error)
+		ctx := gl.NewContext("async", false)
+		lua := NewLuaInfo("", "async", false)
+		GLuaContext.SetExecuteInfo(ctx, "", lua, nil)
+
+		// ctx.Timeout = 1 * time.Second
+		err := gl.ExecuteSync(ctx)
+		str := GLuaContext.String(ctx)
+		rs := GLuaContext.GetResult(ctx)
+		fmt.Println(str, rs, err)
 	}
 	if true {
-		ctx := gl.NewContext("all")
-		ctx.Timeout = 1 * time.Second
-		gl.ExecuteSync(ctx)
-		fmt.Println(ctx, ctx.Data, ctx.Result, ctx.Error)
+		ctx := gl.NewContext("all", false)
+		lua := NewLuaInfo("", "all", false)
+		GLuaContext.SetExecuteInfo(ctx, "", lua, nil)
+
+		// ctx.Timeout = 1 * time.Second
+		err := gl.ExecuteSync(ctx)
+		str := GLuaContext.String(ctx)
+		rs := GLuaContext.GetResult(ctx)
+		fmt.Println(str, rs, err)
 	}
 }

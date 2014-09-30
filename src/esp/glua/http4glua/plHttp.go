@@ -2,6 +2,7 @@ package http4glua
 
 import (
 	"bmautil/valutil"
+	"context"
 	"esp/glua"
 	"fmt"
 	"io"
@@ -66,6 +67,8 @@ func (this *PluginHttp) Execute(task *glua.PluginTask) error {
 }
 
 func (this *PluginHttp) doExecute(task *glua.PluginTask, req *Request) error {
+	ctx := task.Context
+
 	var body io.Reader
 	method := "GET"
 	qurl := req.URL
@@ -93,19 +96,41 @@ func (this *PluginHttp) doExecute(task *glua.PluginTask, req *Request) error {
 	for k, v := range req.Headers {
 		hreq.Header.Set(k, v)
 	}
+	logstr := ""
+	if logger.EnableDebug(tag) {
+		logstr = glua.GLuaContext.String(task.Context)
+	}
 	client := http.DefaultClient
-	logger.Debug(tag, "[%s] http '%s' start", task.Context, qurl)
+	logger.Debug(tag, "[%s] http '%s' start", logstr, qurl)
+	if glua.GLuaContext.HasAccessLog(ctx) {
+		ainfo := make(map[string]interface{})
+		ainfo["url"] = qurl
+		glua.GLuaContext.DoAccessLog(ctx, "http:start", nil)
+	}
+
 	ts := time.Now()
 	hresp, err3 := client.Do(hreq)
 	te := time.Now()
 	if err3 != nil {
-		logger.Debug(tag, "[%s] http '%s' fail '%s'", task.Context, qurl, err3)
+		logger.Debug(tag, "[%s] http '%s' fail '%s'", logstr, qurl, err3)
+		if glua.GLuaContext.HasAccessLog(ctx) {
+			ainfo := make(map[string]interface{})
+			ainfo["url"] = qurl
+			ainfo["error"] = err3.Error()
+			glua.GLuaContext.DoAccessLog(ctx, "http:end", ainfo)
+		}
 		return err3
 	}
-	logger.Debug(tag, "[%s] http '%s' end '%d'", task.Context, qurl, hresp.StatusCode)
+	logger.Debug(tag, "[%s] http '%s' end '%d'", logstr, qurl, hresp.StatusCode)
 	defer hresp.Body.Close()
 	respBody, err4 := ioutil.ReadAll(hresp.Body)
 	if err4 != nil {
+		if glua.GLuaContext.HasAccessLog(ctx) {
+			ainfo := make(map[string]interface{})
+			ainfo["url"] = qurl
+			ainfo["error"] = err4.Error()
+			glua.GLuaContext.DoAccessLog(ctx, "http:end", ainfo)
+		}
 		return err4
 	}
 	m := make(map[string]interface{})
@@ -119,12 +144,15 @@ func (this *PluginHttp) doExecute(task *glua.PluginTask, req *Request) error {
 	m["Content"] = string(respBody)
 	m["Time"] = te.Sub(ts).Seconds()
 
-	task.Callback(this.Name(), func(ctx *glua.Context) {
+	glua.GLuaContext.DoAccessLog(ctx, "http:end", nil)
+
+	task.Callback(this.Name(), func(ctx context.Context) {
 		rk := req.ResultKey
 		if rk == "" {
 			rk = "http"
 		}
-		ctx.Result[rk] = m
+		rs := glua.GLuaContext.GetResult(ctx)
+		rs[rk] = m
 	}, nil)
 	return nil
 }

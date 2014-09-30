@@ -1,9 +1,11 @@
 package httpmux4glua
 
 import (
-	"bmautil/valutil"
+	"context"
+	"esp/acclog"
 	"esp/glua"
 	"fmt"
+	"logger"
 	"net/http"
 	"strings"
 	"time"
@@ -14,15 +16,19 @@ const (
 )
 
 type Service struct {
-	name   string
-	config *configInfo
-	glua   *glua.Service
+	name       string
+	config     *configInfo
+	glua       *glua.Service
+	dispatcher Dispatcher
+	AccLog     *acclog.Service
+	AccName    string
 }
 
-func NewService(n string, s *glua.Service) *Service {
+func NewService(n string, s *glua.Service, dis Dispatcher) *Service {
 	this := new(Service)
 	this.name = n
 	this.glua = s
+	this.dispatcher = dis
 	return this
 }
 
@@ -42,90 +48,93 @@ func (this *Service) Error(w http.ResponseWriter, ec int, err string, code int) 
 }
 
 func (this *Service) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	host := req.Host
+	if !strings.Contains(host, ":") {
+		host = host + ":80"
+	}
 	path := req.URL.Path
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
-	cfg := this.config
-	if cfg.Location != nil {
-		if s, ok := cfg.Location[path]; ok {
-			path = s
+	for _, p1 := range this.config.Skip {
+		if p1 == path {
+			logger.Debug(tag, "global skip %s:%s", host, path)
+			http.NotFound(w, req)
+			return
 		}
 	}
-	if path == "/reload" {
-		this.doReload(w, req)
-	} else if path == "/reset" {
-		this.doReset(w, req)
-	} else {
-		this.doInvoke(w, req, path)
-	}
-}
 
-func (this *Service) doReload(w http.ResponseWriter, req *http.Request) {
-	g := req.FormValue("g")
-	l := req.FormValue("l")
-	if g == "" || l == "" {
-		this.Error(w, -1, "empty param", http.StatusBadRequest)
+	cfg := this.config
+	var mapp *configApp
+	mlen := 0
+	for _, app := range cfg.App {
+		if app.Host == "" || app.Host == host {
+			if strings.HasPrefix(path, app.Location) {
+				if len(app.Location) > mlen {
+					mlen = len(app.Location)
+					mapp = app
+				}
+			}
+		}
+	}
+	if mapp == nil {
+		logger.Debug(tag, "miss %s:%s", host, path)
+		this.Error(w, -1, "invalid glua app", http.StatusBadRequest)
 		return
 	}
+	opath := path
+	path = strings.TrimPrefix(path, mapp.Location)
+	if path == "" || strings.HasSuffix(path, "/") {
+		path = path + mapp.IndexName
+	}
+	logger.Debug(tag, "match %s:%s => %s:%s:%s", host, opath, mapp.Name, mapp.Location, path)
+
+	for _, p1 := range mapp.Skip {
+		if p1 == path {
+			logger.Debug(tag, "app skip %s", path)
+			http.NotFound(w, req)
+			return
+		}
+	}
+
+	this.doInvoke(w, req, mapp, path)
+}
+
+func (this *Service) doInvoke(w http.ResponseWriter, req *http.Request, app *configApp, path string) {
+	greq, err0 := this.dispatcher(req, path)
+	if err0 != nil {
+		this.Error(w, -2, err0.Error(), http.StatusBadRequest)
+		return
+	}
+	if greq.FuncName == "" {
+		this.Error(w, -3, "glua func miss", http.StatusBadRequest)
+		return
+	}
+	if app.FuncPrefix != "" {
+		greq.FuncName = app.FuncPrefix + greq.FuncName
+	}
+	g := app.Name
 	gl := this.glua.GetGLua(g)
 	if gl == nil {
-		this.Error(w, -2, fmt.Sprintf("invalid gl - %s", g), http.StatusBadRequest)
-		return
-	}
-	err2 := gl.ReloadScript(l)
-	if err2 != nil {
-		this.Error(w, -9, err2.Error(), http.StatusInternalServerError)
-		return
-	}
-	fmt.Fprintf(w, "ok")
-}
-
-func (this *Service) doReset(w http.ResponseWriter, req *http.Request) {
-	g := req.FormValue("g")
-	if g == "" {
-		this.Error(w, -1, "empty param", http.StatusBadRequest)
-		return
-	}
-	ok := this.glua.ResetGLua(g)
-	resp := "ok"
-	if !ok {
-		resp = "fail"
-	}
-	fmt.Fprintf(w, resp)
-}
-
-func (this *Service) doInvoke(w http.ResponseWriter, req *http.Request, path string) {
-	qpath := strings.TrimPrefix(path, "/")
-	qlist := strings.SplitN(qpath, "/", 2)
-	if len(qlist) != 2 {
-		this.Error(w, -1, fmt.Sprintf("invalid request location - %s", path), http.StatusBadRequest)
-		return
-	}
-	g := qlist[0]
-	f := qlist[1]
-	if g == "" || f == "" {
-		this.Error(w, -1, "empty param", http.StatusBadRequest)
-		return
-	}
-	gl := this.glua.GetGLua(g)
-	if gl == nil {
-		this.Error(w, -2, fmt.Sprintf("invalid gl - %s", g), http.StatusBadRequest)
+		this.Error(w, -4, fmt.Sprintf("invalid gl - %s", g), http.StatusBadRequest)
 		return
 	}
 
-	to := valutil.ToInt(req.FormValue("_to"), 0)
+	to := greq.timeout
 	if to <= 0 {
-		to = this.config.TimeoutMS
+		to = app.TimeoutMS
 	}
 	if to <= 0 {
 		to = 5000
 	}
 
-	ctx := gl.NewContext(this.config.FuncPrefix + f)
-	ctx.Timeout = time.Duration(to) * time.Millisecond
+	ctx := gl.NewContext("", true)
+	ainfo, _ := glua.GLuaContext.AcclogInfo(ctx)
+	ainfo.Acclog = this.AccLog
+	ainfo.AccName = this.AccName
+
+	dt := make(map[string]interface{})
 	if true {
-		dt := make(map[string]interface{})
 		for k, _ := range req.Form {
 			if !strings.HasPrefix(k, "_") {
 				v := req.FormValue(k)
@@ -138,21 +147,34 @@ func (this *Service) doInvoke(w http.ResponseWriter, req *http.Request, path str
 			hs[k] = v
 		}
 		dt["Header"] = hs
-		ctx.Data = dt
 	}
+	reload := false
+	if this.config.DevMode && this.config.AutoReload {
+		reload = true
+	}
+	lua := glua.NewLuaInfo(greq.Script, greq.FuncName, reload)
+	glua.GLuaContext.SetExecuteInfo(ctx, greq.FuncName, lua, dt)
 
-	gl.ExecuteSync(ctx)
+	errE := func() error {
+		nctx, cancel := context.WithTimeout(ctx, time.Duration(to)*time.Millisecond)
+		defer cancel()
+		return gl.ExecuteSync(nctx)
+	}()
 
-	if ctx.Error != nil {
-		this.Error(w, -9, ctx.Error.Error(), http.StatusInternalServerError)
+	if errE != nil {
+		glua.GLuaContext.End(ctx, errE)
+		this.Error(w, -9, errE.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	res := ctx.Result
+	res := glua.GLuaContext.GetResult(ctx)
 	// fmt.Println(res)
 
 	whs := w.Header()
 	ctype := "text/plain; charset=utf-8"
+	if ctypev, ok := res["Content-Type"]; ok {
+		ctype = fmt.Sprintf("%v", ctypev)
+	}
 	if true {
 		if v, ok := res["Header"]; ok {
 			if hs, ok2 := v.(map[string]interface{}); ok2 {
@@ -181,7 +203,7 @@ func (this *Service) doInvoke(w http.ResponseWriter, req *http.Request, path str
 	}
 	w.WriteHeader(st)
 
-	content := this.config.EmptyContent
+	content := app.EmptyContent
 	if true {
 		if v, ok := res["Content"]; ok {
 			content = fmt.Sprintf("%s", v)

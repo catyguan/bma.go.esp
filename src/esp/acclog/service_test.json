@@ -1,0 +1,15 @@
+{
+	"test" : {
+		"Nodes" : [
+			{
+				"Name" : "*",
+				"Path" : "",
+				"File" : "test",
+				"QueueSize" : 16,
+				"MaxLines" : 0,
+				"MaxSize" : 0,
+				"NoDaily" : false
+			}
+		]
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"bmautil/goo"
 	"boot"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"logger"
@@ -60,6 +61,10 @@ func (this *ConfigInfo) Compare(old *ConfigInfo) int {
 	return boot.CCR_NONE
 }
 
+var (
+	execId uint32
+)
+
 // GLua
 type GLua struct {
 	name   string
@@ -68,9 +73,10 @@ type GLua struct {
 	goo     goo.Goo
 	l       *lua51.State
 	plugins map[string]GLuaPlugin
-	execId  uint32
 	statis  StatisInfo
-	context *Context
+	context context.Context
+
+	service *Service
 }
 
 func NewGLua(n string, cfg *ConfigInfo) *GLua {
@@ -157,83 +163,147 @@ func (this *GLua) doInitLua() error {
 	return nil
 }
 
-func (this *GLua) NewContext(f string) *Context {
-	id := atomic.AddUint32(&this.execId, 1)
+func (this *GLua) NewContext(title string, acclog bool) context.Context {
+	id := atomic.AddUint32(&execId, 1)
 	if id == 0 {
-		id = atomic.AddUint32(&this.execId, 1)
+		id = atomic.AddUint32(&execId, 1)
 	}
-	r := new(Context)
-	r.Id = id
-	r.FuncName = f
-	r.Timeout = 5 * time.Second
-	return r
+	einfo := new(ContextExecuteInfo)
+	einfo.Step = 0
+	einfo.Title = title
+	einfo.Result = make(map[string]interface{})
+
+	var ainfo *ContextAcclogInfo
+	if acclog {
+		ainfo = new(ContextAcclogInfo)
+		ainfo.StartTime = time.Now()
+		ainfo.Logdata = make(map[string]interface{})
+	}
+
+	return GLuaContext.New(id, einfo, ainfo)
 }
 
-func (this *GLua) ExecuteSync(ctx *Context) {
-	ev := make(chan bool, 1)
+func (this *GLua) ExecuteSync(ctx context.Context) error {
+	ev := make(chan error, 1)
 	defer close(ev)
-	cb := func(rctx *Context) {
-		ev <- true
+	cb := func(ctx context.Context, err error) {
+		ev <- err
 	}
-	if err := this.ExecuteNow(ctx, cb); err != nil {
-		ctx.End(err)
-		return
+	this.ExecuteNow(ctx, cb)
+	select {
+	case err := <-ev:
+		return err
+	case <-ctx.Done():
+		err := ctx.Err()
+		return err
 	}
-	<-ev
 }
 
-func (this *GLua) ExecuteNow(ctx *Context, cb ExecuteCallback) error {
-	ctx.callback = func(rctx *Context) {
-		this.statis.Active = this.statis.Active - 1
-		cb(rctx)
+func (this *GLua) ExecuteNow(ctx context.Context, cb GLuaCallback) {
+	atomic.AddInt32(&this.statis.Active, 1)
+	lcb := func(ctx context.Context, err error) {
+		atomic.AddInt32(&this.statis.Active, -1)
+		cb(ctx, err)
 	}
-	if ctx.Result == nil {
-		ctx.Result = make(map[string]interface{})
+	einfo, _ := GLuaContext.ExecuteInfo(ctx)
+	if einfo != nil {
+		if einfo.Result == nil {
+			einfo.Result = make(map[string]interface{})
+		}
+		einfo.callback = lcb
 	}
-	this.statis.Active = this.statis.Active + 1
-	return this.goo.DoNow(func() {
+	err := this.goo.DoNow(func() {
 		this.doExecute(ctx)
 	})
-}
-
-func (this *GLua) doExecute(ctx *Context) {
-	err := this.processExecute(ctx.FuncName, ctx)
 	if err != nil {
-		logger.Error(tag, "'%s' [%s] execute fail -> %s", this.name, ctx, err)
-		ctx.End(err)
-	}
-	if !ctx.IsEnd() {
-		ctx.timer = time.AfterFunc(ctx.Timeout, func() {
-			this.timeout(ctx)
-		})
+		cb(ctx, err)
 	}
 }
 
-func (this *GLua) processExecute(f string, ctx *Context) error {
+func (this *GLua) doExecute(ctx context.Context) {
+	err := this.processExecute(ctx, nil)
+	if err != nil {
+		if logger.EnableDebug(tag) {
+			s := GLuaContext.String(ctx)
+			logger.Error(tag, "'%s' [%s] execute fail -> %s", this.name, s, err)
+		}
+		GLuaContext.End(ctx, err)
+	}
+}
+
+func (this *GLua) processExecute(ctx context.Context, linfo *ContextLuaInfo) error {
+	logstr := ""
+	if logger.EnableDebug(tag) {
+		logstr = GLuaContext.String(ctx)
+	}
+	if GLuaContext.IsEnd(ctx) {
+		logger.Debug(tag, "'%s' [%s] is end, skip", this.name, logstr)
+		return nil
+	}
+
 	this.context = ctx
 	defer func() {
 		this.context = nil
-	}()
-	ctx.Step = ctx.Step + 1
-	logger.Debug(tag, "'%s' [%s] execute(%s) start", this.name, ctx, f)
-	if ctx.IsEnd() {
-		logger.Debug(tag, "'%s' [%s] is end, skip", this.name, ctx)
-		return nil
+	}()	
+	if linfo == nil {
+		linfo = GLuaContext.Lua(ctx)
+	} else {
+		if linfo.Script=="" {
+			ctxlinfo := GLuaContext.Lua(ctx)
+			linfo.Script = ctxlinfo.Script
+		}
 	}
-	if f == "" {
-		return fmt.Errorf("miss func name")
+	if linfo == nil {
+		return logger.Error(tag, "processExecute(%s) miss LuaInfo", logstr)
 	}
+	if linfo.FuncName == "" {
+		return fmt.Errorf("processsExecute(%s) miss func name", logstr)
+	}
+
+	einfo, _ := GLuaContext.ExecuteInfo(ctx)
+	if einfo == nil {
+		return logger.Error(tag, "processExecute(%s) miss ExecuteInfo", linfo)
+	}
+	einfo.Step = einfo.Step + 1
+	if logstr != "" {
+		logstr = GLuaContext.String(ctx)
+	}
+
+	ainfo, _ := GLuaContext.AcclogInfo(ctx)
+	var accData map[string]interface{}
+	if ainfo != nil {
+		accData = ainfo.Logdata
+	}
+
+	logger.Debug(tag, "'%s' [%s] execute(%s) start", this.name, logstr, linfo)
+
+	GLuaContext.DoAccessLog(ctx, "execute", nil)
+
 	l := this.l
-	l.GetGlobal(f)
+	if linfo.Script != "" {
+		if linfo.Reload {
+			err1 := l.Eval(fmt.Sprintf("package.loaded[\"%s\"] = nil", linfo.Script))
+			if err1 != nil {
+				return err1
+			}
+		}
+		err2 := l.Eval(fmt.Sprintf("require(\"%s\")", linfo.Script))
+		if err2 != nil {
+			return err2
+		}
+		logger.Debug(tag, "'%s' load script '%s' done", this.name, linfo.Script)
+	}
+	l.GetGlobal(linfo.FuncName)
 	if !l.IsFunction(-1) {
 		l.Pop(1)
-		return fmt.Errorf("func '%s' not exists", f)
+		return fmt.Errorf("func '%s' not exists", linfo.FuncName)
 	}
 	defer l.ClearGValues()
-	l.PushGValue(ctx.Data)
-	l.PushGValue(ctx.Result)
-	if l.PCall(2, 1, 0) != 0 {
-		err := fmt.Errorf("run(%s) fail %s", f, l.ToString(-1))
+	l.PushGValue(einfo.Data)
+	l.PushGValue(einfo.Result)
+	l.PushGValue(accData)
+	if l.PCall(3, 1, 0) != 0 {
+		err := fmt.Errorf("run(%s) fail %s", linfo.FuncName, l.ToString(-1))
 		l.Pop(1)
 		return err
 	}
@@ -241,69 +311,68 @@ func (this *GLua) processExecute(f string, ctx *Context) error {
 		r := l.ToBoolean(-1)
 		l.Pop(1)
 		if r {
-			logger.Debug(tag, "'%s' [%s] execute(%s) done", this.name, ctx, f)
-			ctx.End(nil)
+			logger.Debug(tag, "'%s' [%s] execute(%s) done", this.name, logstr, linfo)
+			GLuaContext.End(ctx, nil)
 		}
 	} else if l.IsString(-1) {
 		r := l.ToString(-1)
 		l.Pop(1)
-		logger.Debug(tag, "'%s' [%s] execute(%s) fail -> %s", this.name, ctx, f, r)
-		ctx.End(errors.New(r))
+		logger.Debug(tag, "'%s' [%s] execute(%s) fail -> %s", this.name, logstr, linfo, r)
+		GLuaContext.End(ctx, errors.New(r))
 	}
 	return nil
 }
 
-func (this *GLua) timeout(ctx *Context) {
-	if ctx.IsEnd() {
-		return
-	}
-	err := this.goo.DoNow(func() {
-		if !ctx.IsEnd() {
-			logger.Debug(tag, "'%s' [%s] timeout", this.name, ctx)
-			ctx.End(errors.New("timeout"))
-		}
-	})
-	if err != nil {
-		ctx.End(err)
-	}
-}
-
-func (this *GLua) StartTask(n string, ctx *Context, req map[string]interface{}, next string, cb TaskCallback) error {
-	pl, ok0 := this.plugins[n]
+func (this *GLua) StartTask(taskName string, ctx context.Context, req map[string]interface{}, cb TaskCallback) error {
+	pl, ok0 := this.plugins[taskName]
 	if !ok0 {
-		return fmt.Errorf("task '%s' not exists", n)
+		return fmt.Errorf("task '%s' not exists", taskName)
 	}
+	einfo, _ := GLuaContext.ExecuteInfo(ctx)
+	if einfo != nil {
+		einfo.Step = einfo.Step + 1
+	}
+
 	task := new(PluginTask)
 	task.Context = ctx
-	task.Next = next
 	task.Request = req
-	task.Service = this
-	task.State = this.l
+	task.GLua = this
+	task.Service = this.service
+	task.GLuaName = this.name
 	task.cb = cb
-	logger.Debug(tag, "'%s' [%s] task[%s] start", this.name, task.Context, n)
+	s := ""
+	if logger.EnableDebug(tag) {
+		s = GLuaContext.String(ctx)
+	}
+	logger.Debug(tag, "'%s' [%s] task[%s] start", this.name, s, taskName)
 	err := pl.Execute(task)
 	if err != nil {
-		logger.Debug(tag, "'%s' [%s] task[%s] fail - %s", this.name, ctx, n, err)
+		logger.Debug(tag, "'%s' [%s] task[%s] fail - %s", this.name, s, taskName, err)
 		return err
 	}
 	return nil
 }
 
-func (this *GLua) TaskCallback(n string, f string, ctx *Context, cu ContextUpdater, taskErr error) {
+func (this *GLua) luaCallback4Task(taskName string, f string, ctx context.Context, cu ContextUpdater, taskErr error) {
 	err := this.goo.DoNow(func() {
 		if cu != nil {
 			cu(ctx)
 		}
 		if taskErr != nil {
-			ctx.End(taskErr)
+			GLuaContext.End(ctx, taskErr)
 			return
 		}
 		if f != "" {
-			this.processExecute(f, ctx)
+			linfo := new(ContextLuaInfo)
+			linfo.FuncName = f
+			err0 := this.processExecute(ctx, linfo)
+			if err0 != nil {
+				GLuaContext.End(ctx, err0)
+			}
 		}
 	})
 	if err != nil {
-		ctx.End(err)
+		GLuaContext.End(ctx, err)
 	}
 }
 

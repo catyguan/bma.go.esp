@@ -25,3 +25,5 @@ _testmain.go
 /go_esp.sublime-workspace
 /test/*.db
 /bin/local.db
+/backup/shell
+/backup/namedsql

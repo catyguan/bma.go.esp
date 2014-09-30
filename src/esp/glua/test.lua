@@ -3,6 +3,7 @@ print("module test init")
 function hello( ctx, result )
 	print("hello world, i will timeout!!!")
 	-- error("fuck")
+	-- print("hello world")
 	-- return true
 end
 

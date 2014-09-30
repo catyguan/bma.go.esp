@@ -67,7 +67,7 @@ func (w *RotateFile) Write(day int, msg string) bool {
 	// Perform the write
 	n, err := fmt.Fprint(w.file, msg)
 	if err != nil {
-		fmt.Printf("ERROR: FileLogWriter(%q): %s\n", w.filename, err)
+		fmt.Printf("ERROR: RotateFile(%q): %s\n", w.filename, err)
 		return false
 	}
 

@@ -1,0 +1,44 @@
+{
+	"global" : {
+		"Debug" : true,
+		"GOMAXPROCS" : 5
+	},
+	"acclog" : {
+		"Nodes" : [
+			{ "Name" : "*" }
+		]
+	},
+	"httpPoint" : {
+		"Port" : "1081"
+	},
+	"fileServer" : {
+		"Location" : [
+			{"Path": "/public/", "Dir" : "${CWD}/public"}
+		]
+	},
+	"manageHttpPoint" : {
+		"Port" : "1082",
+		"WhiteIp" : "127.0.0.1"
+	},
+	"manageFileServer" : {
+	},
+	"gluaService" : {
+		"GLua" : {
+			"g1" : {
+				"Paths" : ["${CWD}/lua"],
+				"Preloads" : ["test"]
+			}
+		}
+	},
+	"gluaMux" : {
+		"DevMode" : true,
+		"AutoReload" : true,
+		"App" : [
+			{
+				"Name" : "g1",
+				"Location" : "/",
+				"Skip" : ["/favicon.ico"]
+			}
+		]
+	}
+}

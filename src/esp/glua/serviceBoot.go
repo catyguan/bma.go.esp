@@ -91,6 +91,7 @@ func (this *Service) Init(ctx *boot.BootContext) bool {
 
 func (this *Service) _create(k string, glcfg *ConfigInfo) bool {
 	gl := NewGLua(k, glcfg)
+	gl.service = this
 	if this.gluaInit != nil {
 		this.gluaInit(gl)
 	}

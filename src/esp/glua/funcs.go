@@ -2,6 +2,7 @@ package glua
 
 import (
 	"bmautil/valutil"
+	"context"
 	"fmt"
 	"logger"
 	"lua51"
@@ -66,6 +67,17 @@ func msv(l *lua51.State, v interface{}) int {
 	return l.Error("not map or array")
 }
 
+func glua_getBool(l *lua51.State) int {
+	v, ok := m2v(l)
+	if ok {
+		rv := valutil.ToBool(v, false)
+		l.PushBoolean(rv)
+		return 1
+	}
+	l.PushNil()
+	return 1
+}
+
 func glua_getInt(l *lua51.State) int {
 	v, ok := m2v(l)
 	if ok {
@@ -125,6 +137,11 @@ func glua_getArray(l *lua51.State) int {
 
 func glua_setNil(l *lua51.State) int {
 	return msv(l, nil)
+}
+
+func glua_setBool(l *lua51.State) int {
+	v := l.ToBoolean(3)
+	return msv(l, v)
 }
 
 func glua_setInt(l *lua51.State) int {
@@ -235,7 +252,7 @@ func (this *GLua) doPrint(l *lua51.State) int {
 }
 
 func (this *GLua) doTask(l *lua51.State) int {
-	n := l.ToString(1)
+	taskName := l.ToString(1)
 	var req map[string]interface{}
 	v, _, ok := l.ToGValue(2)
 	if ok {
@@ -244,7 +261,12 @@ func (this *GLua) doTask(l *lua51.State) int {
 			return l.Error("task request not map")
 		}
 	}
-	err := this.StartTask(n, this.context, req, l.ToString(3), nil)
+	ctx := this.context
+	f := l.ToString(3)
+	cb := func(taskName string, ctx context.Context, cu ContextUpdater, err error) {
+		this.luaCallback4Task(taskName, f, ctx, cu, err)
+	}
+	err := this.StartTask(taskName, ctx, req, cb)
 	if err != nil {
 		return l.Error(err.Error())
 	}
@@ -256,12 +278,14 @@ func (this *GLua) initGoFunctions() {
 	l.Register("glua_print", this.doPrint)
 	l.Register("glua_task", this.doTask)
 
+	l.Register("glua_getBool", glua_getBool)
 	l.Register("glua_getInt", glua_getInt)
 	l.Register("glua_getNumber", glua_getNumber)
 	l.Register("glua_getString", glua_getString)
 	l.Register("glua_getMap", glua_getMap)
 	l.Register("glua_getArray", glua_getArray)
 	l.Register("glua_setNil", glua_setNil)
+	l.Register("glua_setBool", glua_setBool)
 	l.Register("glua_setInt", glua_setInt)
 	l.Register("glua_setNumber", glua_setNumber)
 	l.Register("glua_setString", glua_setString)
