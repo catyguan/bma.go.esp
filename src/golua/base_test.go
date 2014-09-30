@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestFuncs(t *testing.T) {
+func T2estFuncs(t *testing.T) {
 	safeCall()
 
 	if false {
@@ -46,4 +46,16 @@ func TestFuncs(t *testing.T) {
 			// break
 		}
 	}
+}
+
+func TestVMAPI(t *testing.T) {
+	safeCall()
+	vm := NewVM()
+	defer vm.Destroy()
+	vm.API_insert(1, 1)
+	fmt.Println(vm.stackTop, vm.stack)
+	vm.API_insert(1, 2)
+	fmt.Println(vm.stackTop, vm.stack)
+	vm.API_remove(2)
+	fmt.Println(vm.stackTop, vm.stack)
 }

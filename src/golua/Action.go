@@ -9,10 +9,13 @@ type linfo struct {
 	line int
 }
 
+type GoFunction func(vm *VM) (int, error)
+
 type Action interface {
 	Line() int
 	Children() []Action
 	String() string
+	Exec(vm *VM) (int, error)
 }
 
 func dumpActions(buf *bytes.Buffer, act Action, tab string, idx int) {
@@ -41,11 +44,13 @@ func DumpActions(act Action, tab string) string {
 
 // BlockAction
 type BlockAction struct {
+	name    string
 	actions []Action
 }
 
-func NewBlockAction() *BlockAction {
+func NewBlockAction(n string) *BlockAction {
 	r := new(BlockAction)
+	r.name = n
 	r.actions = make([]Action, 0)
 	return r
 }
@@ -63,6 +68,10 @@ func (this *BlockAction) Children() []Action {
 
 func (this *BlockAction) String() string {
 	return "Block"
+}
+
+func (this *BlockAction) Exec(vm *VM) (int, error) {
+	return 0, nil
 }
 
 // ValueAction
@@ -86,6 +95,10 @@ func (this *ValueAction) Children() []Action {
 
 func (this *ValueAction) String() string {
 	return fmt.Sprintf("Value(%v)", this.value)
+}
+
+func (this *ValueAction) Exec(vm *VM) (int, error) {
+	return 0, nil
 }
 
 // VarAction
@@ -113,9 +126,14 @@ func (this *VarAction) String() string {
 	return fmt.Sprintf("Var(%s)", this.name)
 }
 
+func (this *VarAction) Exec(vm *VM) (int, error) {
+	return 0, nil
+}
+
 // Op2Action
 type Op2Action struct {
 	id      int
+	kind    int
 	action1 Action
 	action2 Action
 }
@@ -133,10 +151,6 @@ func NewOp2Action(id int, a1, a2 Action) *Op2Action {
 	return r
 }
 
-func (this *Op2Action) canMerge() bool {
-	return this.action1 == nil
-}
-
 func (this *Op2Action) Line() int {
 	return this.action1.Line()
 }
@@ -146,5 +160,12 @@ func (this *Op2Action) Children() []Action {
 }
 
 func (this *Op2Action) String() string {
+	if this.kind != 0 {
+		return fmt.Sprintf("%s(%s)", JJT_NODE_NAME[this.id], tokenImage[this.kind])
+	}
 	return fmt.Sprintf("%s", JJT_NODE_NAME[this.id])
+}
+
+func (this *Op2Action) Exec(vm *VM) (int, error) {
+	return 0, nil
 }

@@ -20,6 +20,10 @@ type LiterateReader struct {
 	scratch         []byte
 }
 
+func test() {
+	// gelo.NewNumberFromString(nil)
+}
+
 //      A proxy reader that filters its source to support literate programming
 // in the same limited manner as the Haskell .lhs format. Namely, every line of
 // text in the source reader is discarded unless it's first character is the
