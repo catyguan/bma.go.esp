@@ -1,4 +1,4 @@
-package golua
+package goluaparser
 
 type list struct {
 	data []interface{}

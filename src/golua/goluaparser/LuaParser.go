@@ -1,4 +1,4 @@
-package golua
+package goluaparser
 
 import "fmt"
 
@@ -175,7 +175,8 @@ func (this *LuaParser) pushTokenNode(kind int) {
 	case LONGSTRING0, LONGSTRING1, LONGSTRING2, LONGSTRING3, LONGSTRINGN, FALSE,
 		NIL, NOT, TRUE, NAME, NUMBER, STRING, CHARSTRING,
 		74, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94,
-		AND, OR:
+		AND, OR,
+		LOCAL, FUNCTION:
 		n := NewSimpleNodeT(this.token)
 		this.jjtree.pushNode(n)
 	}

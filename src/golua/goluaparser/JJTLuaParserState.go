@@ -1,4 +1,4 @@
-package golua
+package goluaparser
 
 type JJTLuaParserState struct {
 	nodes        *list

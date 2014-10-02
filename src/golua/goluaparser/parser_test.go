@@ -1,4 +1,4 @@
-package golua
+package goluaparser
 
 import (
 	"fmt"
@@ -19,9 +19,10 @@ func TestParser1(t *testing.T) {
 		safeCall()
 
 		s := ""
-		// s = "a.b.c = 1.1"
+		s = "a = 1.1"
 		// s = "obj:print(1 + 2, true, a.b)"
-		s = "a.b = 1 + 2 - 3"
+		// s = "a.b = 1 + 2 - 3"
+		// s = "function a(b, c) end"
 
 		p := NewLuaParser1(s)
 		node, err := p.Chunk()
@@ -29,16 +30,6 @@ func TestParser1(t *testing.T) {
 			fmt.Println("ParseError", err)
 		} else {
 			node.dump("")
-
-			builder := NewLuaBuilder(node, "test")
-			act, err2 := builder.Build()
-			if err2 != nil {
-				fmt.Println("BuildError", err2)
-			} else {
-				fmt.Println("--------------- BUILD ---------------")
-				s := DumpActions(act, " ")
-				fmt.Println(s)
-			}
 		}
 
 	}

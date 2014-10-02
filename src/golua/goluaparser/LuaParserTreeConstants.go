@@ -1,4 +1,4 @@
-package golua
+package goluaparser
 
 const (
 	JJTCHUNK            = 0

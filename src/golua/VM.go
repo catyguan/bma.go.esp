@@ -1,78 +1,35 @@
 package golua
 
 import (
+	"bmautil/syncutil"
+	"bytes"
 	"fmt"
 	"logger"
-	"sync"
 	"sync/atomic"
-)
-
-var (
-	_max_id uint32
 )
 
 const (
 	tag = "golua"
 )
 
-type VMVar interface {
-	Get() (interface{}, error)
-	Set(v interface{}) (bool, error)
-}
-
-type _vmSH struct {
-	parent *_vmSH
-	heap   map[string]interface{}
-	mux    *sync.RWMutex
-}
-
-func (this *_vmSH) Lock() {
-	if this.mux != nil {
-		this.mux.Lock()
-	}
-}
-
-func (this *_vmSH) RLock() {
-	if this.mux != nil {
-		this.mux.RLock()
-	}
-}
-
-func (this *_vmSH) Unlock() {
-	if this.mux != nil {
-		this.mux.Unlock()
-	}
-}
-
-func (this *_vmSH) RUnlock() {
-	if this.mux != nil {
-		this.mux.RUnlock()
-	}
-}
-
 type VM struct {
-	id          uint32
-	running     bool
-	kill_switch chan bool
-	heritage    *_heritage
-	sh          *_vmSH
-	stack       []interface{}
-	stackTop    int
+	id      uint32
+	running int32
+	vmg     *VMG
+	stack   *VMStack
+	syncutil.CloseState
 }
 
-type _heritage struct {
-	children map[uint32]chan bool
-	parent   *VM
-}
-
-func NewVM() *VM {
+func newVM(vmg *VMG, id uint32) *VM {
 	vm := new(VM)
-	vm.id = atomic.AddUint32(&_max_id, 1)
-	vm.kill_switch = make(chan bool)
-	vm.sh = new(_vmSH)
-	vm.sh.heap = make(map[string]interface{})
-	vm.stack = make([]interface{}, 0, 8)
+	vm.id = id
+	vm.vmg = vmg
+	vm.InitCloseState()
 	return vm
+}
+
+func (this *VM) initStack(st *VMStack) {
+	this.stack = st
 }
 
 func (this *VM) Id() uint32 {
@@ -80,124 +37,176 @@ func (this *VM) Id() uint32 {
 }
 
 func (this *VM) String() string {
-	return fmt.Sprintf("VM(%d)", this.id)
+	return fmt.Sprintf("VM(%s:%d)", this.vmg.name, this.id)
 }
 
-func (this *VM) Spawn() *VM {
-	vm2 := NewVM()
-	vm2.heritage = &_heritage{parent: this}
-	//no parent
-	if this.heritage == nil {
-		this.heritage = &_heritage{children: make(map[uint32]chan bool)}
+func (this *VM) Spawn(n string) (*VM, error) {
+	vm2, err := this.vmg.newVM()
+	if err != nil {
+		return nil, err
 	}
-	//parent, no children
-	if this.heritage.children == nil { //has a parent but no children
-		this.heritage.children = make(map[uint32]chan bool)
-	}
-	this.Lock()
-	this.heritage.children[vm2.id] = vm2.kill_switch
-	this.Unlock()
-	vm2.heritage.parent = this
-	vm2.sh.parent = this.sh
-	logger.Debug(tag, "%s spawn a child %s", this, vm2)
-	return vm2
-}
-
-func (this *VM) Lock() {
-	this.sh.Lock()
-}
-
-func (this *VM) RLock() {
-	this.sh.RLock()
-}
-
-func (this *VM) Unlock() {
-	this.sh.Unlock()
-}
-
-func (this *VM) RUnlock() {
-	this.sh.RUnlock()
+	st := newVMStack(this.stack)
+	st.name = n
+	vm2.initStack(st)
+	logger.Debug(tag, "%s spawn -> %s", this, vm2)
+	return vm2, nil
 }
 
 func (this *VM) Destroy() {
-	if this == nil {
+	if this.IsRunning() {
+		//therefore we are in a different goroutine
+		this.AskClose()
 		return
 	}
-	if this.running {
-		//therefore we are in a different goroutine
-		this.kill_switch <- true
+	if this.IsClosed() {
+		return
+	}
+	if !this.vmg.removeVM(this.id) {
 		return
 	}
 	logger.Debug(tag, "%s destoryed", this)
-	if this.heritage != nil {
-		h := this.heritage
-		if h.parent != nil && h.parent.heritage != nil {
-			//if we grab a reference before the field is set to nil in the
-			//parent, it doesn't matter whether we delete our entry
-			if pm := h.parent.heritage.children; pm != nil {
-				h.parent.Lock()
-				delete(pm, this.id)
-				h.parent.Unlock()
-			}
-		}
-		//if we spawned any VMs, kill them
-		if h.children != nil {
-			for _, child := range h.children {
-				child <- true
-			}
-			h.children = nil
-		} else {
-			//If there were children we cannot free the ns pointers until
-			//they are dead so they don't explode before they have a chance
-			//to shut down, so we have to wait for the host to discard its
-			//pointer to this VM for them to be collected.
-			//If there were no children, however, we can safely discard them now
-			this.sh = nil
-		}
+	st := this.stack
+	for st != nil {
+		p := st.parent
+		st.clear()
+		st = p
 	}
-	this.kill_switch = nil
-	this.heritage = nil
-	this.sh = nil
-}
-
-func Kill(vm *VM) {
-	//if vm isn't nil but kill_switch is the vm has been destroyed but
-	//the host is still holding on to a pointer
-	if vm != nil {
-		//grab a copy in case vm is destroyed in another thread
-		//between the test and the send. Sending a kill to a destroyed VM
-		//is safe.
-		if kill_switch := vm.kill_switch; kill_switch != nil {
-			logger.Debug(tag, "%s sent kill signal", vm)
-			kill_switch <- true
-		}
-	}
-}
-
-func (this *VM) IsDead() bool {
-	return this == nil || this.sh == nil
+	this.stack = nil
+	this.DoneClose()
 }
 
 func (this *VM) IsRunning() bool {
-	if this == nil {
-		return false
+	return atomic.LoadInt32(&this.running) > 0
+}
+
+type StackTraceError struct {
+	s []string
+}
+
+func (this *StackTraceError) String() string {
+	return this.Error()
+}
+
+func (this *StackTraceError) Error() string {
+	buf := bytes.NewBuffer(make([]byte, 0, 32))
+	for i, err := range this.s {
+		if i != 0 {
+			buf.WriteString("\nat ")
+		}
+		buf.WriteString(err)
 	}
-	return this.running
+	return buf.String()
 }
 
-func (this *VM) IsIdle() bool {
-	return !this.IsDead() && !this.IsIdle()
+func (this *VM) Call(nargs int, nresults int) (rerr error) {
+	if this.IsClosing() {
+		return fmt.Errorf("%s closed", this)
+	}
+	st := this.stack
+	var nst *VMStack
+	err := func(nargs int, nresults int) error {
+		atomic.AddInt32(&this.running, 1)
+		defer func() {
+			atomic.AddInt32(&this.running, -1)
+			if x := recover(); x != nil {
+				logger.Warn(tag, "runtime panic: %v", x)
+				if err, ok := x.(error); ok {
+					rerr = err
+				} else {
+					rerr = fmt.Errorf("%v", x)
+				}
+			}
+		}()
+		n := nargs + 1
+		err1 := this.API_checkstack(n)
+		if err1 != nil {
+			return err1
+		}
+		at := this.API_absindex(-n)
+		f, err5 := this.API_peek(at)
+		if err5 != nil {
+			return err5
+		}
+		f, err5 = this.API_value(f)
+		if err5 != nil {
+			return err5
+		}
+		if !this.API_canCall(f) {
+			return fmt.Errorf("can't call at '%v'", f)
+		}
+		nst = newVMStack(st)
+		if tt, ok := f.(StackTracable); ok {
+			nst.name = tt.StackInfo()
+		}
+		for i := 1; i <= nargs; i++ {
+			v, err2 := this.API_peek(at + i)
+			if err2 != nil {
+				return err2
+			}
+			nst.stack = append(nst.stack, v)
+			nst.stackTop++
+		}
+		this.API_pop(n)
+		this.stack = nst
+
+		if gof, ok := f.(GoFunction); ok {
+			nst.gof = gof
+			rc, err3 := gof.Exec(this)
+			if err3 != nil {
+				return err3
+			}
+			at = this.API_absindex(-rc)
+			nres := nresults
+			if nres < 0 {
+				nres = rc
+			}
+			for i := 0; i < nres; i++ {
+				var r interface{}
+				if i < rc {
+					v, err4 := this.API_peek(at + i)
+					if err4 != nil {
+						return err4
+					}
+					r = v
+				} else {
+					r = nil
+				}
+				if st.stackTop < len(st.stack) {
+					st.stack[st.stackTop] = r
+				} else {
+					st.stack = append(st.stack, r)
+				}
+				st.stackTop++
+			}
+			logger.Debug(tag, "Call %s(%d,%d) -> %d", gof, nargs, nresults, rc)
+		} else {
+			panic(fmt.Errorf("unknow callable '%v'", f))
+		}
+		return nil
+	}(nargs, nresults)
+
+	if err != nil {
+		if _, ok := err.(*StackTraceError); !ok {
+			nerr := new(StackTraceError)
+			nerr.s = make([]string, 0, 8)
+			nerr.s = append(nerr.s, err.Error())
+			p := this.stack
+			for p != nil {
+				nerr.s = append(nerr.s, p.String())
+				p = p.parent
+			}
+			err = nerr
+		}
+	}
+
+	if nst != nil {
+		nst.clear()
+	}
+	this.stack = st
+
+	return err
 }
 
-func (this *VM) Call(nargs int, nresults int) error {
-	old := this.running
-	this.running = true
-	defer func() {
-		this.running = old
-	}()
-	// c, err := root.Exec(this)
-	// if err != nil {
-	// 	return err
-	// }
-	return nil
+func (this *VM) DumpStack() string {
+	return this.stack.Dump()
 }

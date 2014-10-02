@@ -1,4 +1,4 @@
-package golua
+package goluaparser
 
 func (this *LuaParser) Unop() error {
 	/*@bgen(jjtree) Unop */
@@ -1014,6 +1014,8 @@ func (this *LuaParser) FuncOp() error { /*@bgen(jjtree) FuncOp */
 				return err
 			}
 		}
+
+		jjtn000.line = this.token.BeginLine
 
 		switch cv {
 		case 74:

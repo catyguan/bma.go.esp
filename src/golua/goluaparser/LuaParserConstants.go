@@ -1,4 +1,4 @@
-package golua
+package goluaparser
 
 const (
 	/** End of File. */
@@ -133,6 +133,7 @@ const (
 )
 
 var tokenImage []string
+var TokenImage []string
 
 func init() {
 	tokenImage = []string{
@@ -232,4 +233,5 @@ func init() {
 		"\"==\"",
 		"\"~=\"",
 	}
+	TokenImage = tokenImage
 }

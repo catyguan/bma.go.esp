@@ -1,4 +1,4 @@
-package golua
+package goluaparser
 
 func (this *LuaParser) jj_2_1(xla int) (bool, error) {
 	this.jj_la = xla

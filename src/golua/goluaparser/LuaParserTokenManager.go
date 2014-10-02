@@ -1,4 +1,4 @@
-package golua
+package goluaparser
 
 import "bytes"
 

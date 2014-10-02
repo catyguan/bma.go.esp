@@ -1,4 +1,4 @@
-package golua
+package goluaparser
 
 type Node interface {
 
@@ -29,4 +29,8 @@ type Node interface {
 	getId() int
 
 	dump(prefix string)
+}
+
+func DumpNode(n Node, p string) {
+	n.dump(p)
 }
