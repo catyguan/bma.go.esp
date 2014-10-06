@@ -1,0 +1,2694 @@
+
+0: shift/reduce conflict (shift 6(0), red'n 7(0)) on DO
+0: shift/reduce conflict (shift 15(0), red'n 7(0)) on FOR
+0: shift/reduce conflict (shift 11(0), red'n 7(0)) on FUNCTION
+0: shift/reduce conflict (shift 10(0), red'n 7(0)) on IF
+0: shift/reduce conflict (shift 14(0), red'n 7(0)) on LOCAL
+0: shift/reduce conflict (shift 9(0), red'n 7(0)) on REPEAT
+0: shift/reduce conflict (shift 7(0), red'n 7(0)) on WHILE
+0: shift/reduce conflict (shift 18(0), red'n 7(0)) on NAME
+state 0
+	$accept: .Chunk $end 
+	StatList: .    (7)
+
+	DO  shift 6
+	FOR  shift 15
+	FUNCTION  shift 11
+	IF  shift 10
+	LOCAL  shift 14
+	REPEAT  shift 9
+	WHILE  shift 7
+	NAME  shift 18
+	.  reduce 7 (src line 62)
+
+	Chunk  goto 1
+	Block  goto 2
+	StatList  goto 3
+	Stat  goto 4
+	Binding  goto 5
+	Repetition  goto 8
+	SetList  goto 12
+	FuncCall  goto 13
+	Var  goto 16
+	PrefixExp  goto 17
+
+state 1
+	$accept:  Chunk.$end 
+
+	$end  accept
+	.  error
+
+
+state 2
+	Chunk:  Block.    (1)
+
+	.  reduce 1 (src line 49)
+
+
+state 3
+	Block:  StatList.    (2)
+	Block:  StatList.LastStat 
+	StatList:  StatList.Stat 
+
+	BREAK  shift 21
+	DO  shift 6
+	FOR  shift 15
+	FUNCTION  shift 11
+	IF  shift 10
+	LOCAL  shift 14
+	RETURN  shift 22
+	REPEAT  shift 9
+	WHILE  shift 7
+	NAME  shift 18
+	.  reduce 2 (src line 52)
+
+	LastStat  goto 19
+	Stat  goto 20
+	Binding  goto 5
+	Repetition  goto 8
+	SetList  goto 12
+	FuncCall  goto 13
+	Var  goto 16
+	PrefixExp  goto 17
+
+state 4
+	StatList:  Stat.    (5)
+
+	.  reduce 5 (src line 59)
+
+
+state 5
+	Stat:  Binding.    (8)
+
+	.  reduce 8 (src line 64)
+
+
+6: shift/reduce conflict (shift 6(0), red'n 7(0)) on DO
+6: shift/reduce conflict (shift 15(0), red'n 7(0)) on FOR
+6: shift/reduce conflict (shift 11(0), red'n 7(0)) on FUNCTION
+6: shift/reduce conflict (shift 10(0), red'n 7(0)) on IF
+6: shift/reduce conflict (shift 14(0), red'n 7(0)) on LOCAL
+6: shift/reduce conflict (shift 9(0), red'n 7(0)) on REPEAT
+6: shift/reduce conflict (shift 7(0), red'n 7(0)) on WHILE
+6: shift/reduce conflict (shift 18(0), red'n 7(0)) on NAME
+state 6
+	Stat:  DO.Block END 
+	StatList: .    (7)
+
+	DO  shift 6
+	FOR  shift 15
+	FUNCTION  shift 11
+	IF  shift 10
+	LOCAL  shift 14
+	REPEAT  shift 9
+	WHILE  shift 7
+	NAME  shift 18
+	.  reduce 7 (src line 62)
+
+	Block  goto 23
+	StatList  goto 3
+	Stat  goto 4
+	Binding  goto 5
+	Repetition  goto 8
+	SetList  goto 12
+	FuncCall  goto 13
+	Var  goto 16
+	PrefixExp  goto 17
+
+state 7
+	Stat:  WHILE.Exp DO Block END 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 24
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 8
+	Stat:  Repetition.DO Block END 
+
+	DO  shift 43
+	.  error
+
+
+9: shift/reduce conflict (shift 6(0), red'n 7(0)) on DO
+9: shift/reduce conflict (shift 15(0), red'n 7(0)) on FOR
+9: shift/reduce conflict (shift 11(0), red'n 7(0)) on FUNCTION
+9: shift/reduce conflict (shift 10(0), red'n 7(0)) on IF
+9: shift/reduce conflict (shift 14(0), red'n 7(0)) on LOCAL
+9: shift/reduce conflict (shift 9(0), red'n 7(0)) on REPEAT
+9: shift/reduce conflict (shift 7(0), red'n 7(0)) on WHILE
+9: shift/reduce conflict (shift 18(0), red'n 7(0)) on NAME
+state 9
+	Stat:  REPEAT.UBlock 
+	StatList: .    (7)
+
+	DO  shift 6
+	FOR  shift 15
+	FUNCTION  shift 11
+	IF  shift 10
+	LOCAL  shift 14
+	REPEAT  shift 9
+	WHILE  shift 7
+	NAME  shift 18
+	.  reduce 7 (src line 62)
+
+	Block  goto 45
+	StatList  goto 3
+	UBlock  goto 44
+	Stat  goto 4
+	Binding  goto 5
+	Repetition  goto 8
+	SetList  goto 12
+	FuncCall  goto 13
+	Var  goto 16
+	PrefixExp  goto 17
+
+state 10
+	Stat:  IF.Conds END 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 49
+	Conds  goto 46
+	FuncCall  goto 40
+	CondList  goto 47
+	Cond  goto 48
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 11
+	Stat:  FUNCTION.FuncName FuncBody 
+
+	NAME  shift 52
+	.  error
+
+	FuncName  goto 50
+	DottedName  goto 51
+
+state 12
+	Stat:  SetList.= ExpList1 
+	SetList:  SetList., Var 
+
+	=  shift 53
+	,  shift 54
+	.  error
+
+
+state 13
+	Stat:  FuncCall.    (16)
+	PrefixExp:  FuncCall.    (69)
+
+	:  reduce 69 (src line 155)
+	[  reduce 69 (src line 155)
+	.  reduce 69 (src line 155)
+	(  reduce 69 (src line 155)
+	.  reduce 16 (src line 73)
+
+
+state 14
+	Binding:  LOCAL.NameList 
+	Binding:  LOCAL.NameList = ExpList1 
+	Binding:  LOCAL.FUNCTION NAME FuncBody 
+
+	FUNCTION  shift 56
+	NAME  shift 57
+	.  error
+
+	NameList  goto 55
+
+state 15
+	Repetition:  FOR.NAME = ExpList23 
+	Repetition:  FOR.NameList IN ExpList1 
+
+	NAME  shift 58
+	.  error
+
+	NameList  goto 59
+
+state 16
+	SetList:  Var.    (30)
+	PrefixExp:  Var.    (68)
+
+	=  reduce 30 (src line 100)
+	,  reduce 30 (src line 100)
+	.  reduce 68 (src line 153)
+
+
+state 17
+	Var:  PrefixExp.[ Exp ] 
+	Var:  PrefixExp.. NAME 
+	FuncCall:  PrefixExp.Args 
+	FuncCall:  PrefixExp.: NAME Args 
+
+	:  shift 63
+	[  shift 60
+	.  shift 61
+	(  shift 64
+	.  error
+
+	Args  goto 62
+
+state 18
+	Var:  NAME.    (65)
+
+	.  reduce 65 (src line 145)
+
+
+state 19
+	Block:  StatList LastStat.    (3)
+
+	.  reduce 3 (src line 54)
+
+
+state 20
+	StatList:  StatList Stat.    (6)
+
+	.  reduce 6 (src line 61)
+
+
+state 21
+	LastStat:  BREAK.    (24)
+
+	.  reduce 24 (src line 90)
+
+
+state 22
+	LastStat:  RETURN.    (25)
+	LastStat:  RETURN.ExpList1 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  reduce 25 (src line 92)
+
+	Exp  goto 66
+	ExpList1  goto 65
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 23
+	Stat:  DO Block.END 
+
+	END  shift 67
+	.  error
+
+
+state 24
+	Stat:  WHILE Exp.DO Block END 
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+
+	AND  shift 70
+	DO  shift 68
+	OR  shift 69
+	SLTEQ  shift 81
+	SGTEQ  shift 82
+	SEQ  shift 83
+	SNOTEQ  shift 84
+	STRADD  shift 72
+	<  shift 79
+	>  shift 80
+	+  shift 74
+	-  shift 73
+	*  shift 75
+	/  shift 76
+	%  shift 78
+	^  shift 77
+	.  error
+
+	LogicOp  goto 71
+
+state 25
+	Exp:  NIL.    (36)
+
+	.  reduce 36 (src line 112)
+
+
+state 26
+	Exp:  TRUE.    (37)
+
+	.  reduce 37 (src line 114)
+
+
+state 27
+	Exp:  FALSE.    (38)
+
+	.  reduce 38 (src line 115)
+
+
+state 28
+	Exp:  NUMBER.    (39)
+
+	.  reduce 39 (src line 116)
+
+
+state 29
+	Exp:  STRING.    (40)
+
+	.  reduce 40 (src line 117)
+
+
+state 30
+	Exp:  MORE.    (41)
+
+	.  reduce 41 (src line 118)
+
+
+state 31
+	Exp:  FuncDef.    (42)
+
+	.  reduce 42 (src line 119)
+
+
+state 32
+	Exp:  PrefixExp.    (43)
+	Var:  PrefixExp.[ Exp ] 
+	Var:  PrefixExp.. NAME 
+	FuncCall:  PrefixExp.Args 
+	FuncCall:  PrefixExp.: NAME Args 
+
+	:  shift 63
+	[  shift 60
+	.  shift 61
+	(  shift 64
+	.  reduce 43 (src line 120)
+
+	Args  goto 62
+
+state 33
+	Exp:  Tableconstructor.    (44)
+
+	.  reduce 44 (src line 121)
+
+
+state 34
+	Exp:  Arrayconstructor.    (45)
+
+	.  reduce 45 (src line 122)
+
+
+state 35
+	Exp:  NOT.Exp 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 85
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 36
+	Exp:  #.Exp 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 86
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 37
+	Exp:  -.Exp 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 87
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 38
+	FuncDef:  FUNCTION.FuncBody 
+
+	(  shift 90
+	.  error
+
+	FuncBody  goto 88
+	ParamDefList  goto 89
+
+state 39
+	PrefixExp:  Var.    (68)
+
+	.  reduce 68 (src line 153)
+
+
+state 40
+	PrefixExp:  FuncCall.    (69)
+
+	.  reduce 69 (src line 155)
+
+
+state 41
+	Tableconstructor:  {.} 
+	Tableconstructor:  {.FieldList } 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 95
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 96
+	{  shift 41
+	}  shift 91
+	.  error
+
+	Exp  goto 94
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+	FieldList  goto 92
+	Field  goto 93
+
+state 42
+	Arrayconstructor:  [.] 
+	Arrayconstructor:  [.ExpList1 ] 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	]  shift 97
+	{  shift 41
+	.  error
+
+	Exp  goto 66
+	ExpList1  goto 98
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+43: shift/reduce conflict (shift 6(0), red'n 7(0)) on DO
+43: shift/reduce conflict (shift 15(0), red'n 7(0)) on FOR
+43: shift/reduce conflict (shift 11(0), red'n 7(0)) on FUNCTION
+43: shift/reduce conflict (shift 10(0), red'n 7(0)) on IF
+43: shift/reduce conflict (shift 14(0), red'n 7(0)) on LOCAL
+43: shift/reduce conflict (shift 9(0), red'n 7(0)) on REPEAT
+43: shift/reduce conflict (shift 7(0), red'n 7(0)) on WHILE
+43: shift/reduce conflict (shift 18(0), red'n 7(0)) on NAME
+state 43
+	Stat:  Repetition DO.Block END 
+	StatList: .    (7)
+
+	DO  shift 6
+	FOR  shift 15
+	FUNCTION  shift 11
+	IF  shift 10
+	LOCAL  shift 14
+	REPEAT  shift 9
+	WHILE  shift 7
+	NAME  shift 18
+	.  reduce 7 (src line 62)
+
+	Block  goto 99
+	StatList  goto 3
+	Stat  goto 4
+	Binding  goto 5
+	Repetition  goto 8
+	SetList  goto 12
+	FuncCall  goto 13
+	Var  goto 16
+	PrefixExp  goto 17
+
+state 44
+	Stat:  REPEAT UBlock.    (12)
+
+	.  reduce 12 (src line 69)
+
+
+state 45
+	UBlock:  Block.UNTIL Exp 
+
+	UNTIL  shift 100
+	.  error
+
+
+state 46
+	Stat:  IF Conds.END 
+
+	END  shift 101
+	.  error
+
+
+state 47
+	Conds:  CondList.    (19)
+	Conds:  CondList.ELSE Block 
+	CondList:  CondList.ELSEIF Cond 
+
+	ELSE  shift 102
+	ELSEIF  shift 103
+	.  reduce 19 (src line 79)
+
+
+state 48
+	CondList:  Cond.    (21)
+
+	.  reduce 21 (src line 83)
+
+
+state 49
+	Cond:  Exp.THEN Block 
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+
+	AND  shift 70
+	OR  shift 69
+	THEN  shift 104
+	SLTEQ  shift 81
+	SGTEQ  shift 82
+	SEQ  shift 83
+	SNOTEQ  shift 84
+	STRADD  shift 72
+	<  shift 79
+	>  shift 80
+	+  shift 74
+	-  shift 73
+	*  shift 75
+	/  shift 76
+	%  shift 78
+	^  shift 77
+	.  error
+
+	LogicOp  goto 71
+
+state 50
+	Stat:  FUNCTION FuncName.FuncBody 
+
+	(  shift 90
+	.  error
+
+	FuncBody  goto 105
+	ParamDefList  goto 89
+
+state 51
+	FuncName:  DottedName.    (32)
+	FuncName:  DottedName.: NAME 
+	DottedName:  DottedName., NAME 
+
+	,  shift 107
+	:  shift 106
+	.  reduce 32 (src line 104)
+
+
+state 52
+	DottedName:  NAME.    (34)
+
+	.  reduce 34 (src line 108)
+
+
+state 53
+	Stat:  SetList =.ExpList1 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 66
+	ExpList1  goto 108
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 54
+	SetList:  SetList ,.Var 
+
+	NAME  shift 18
+	.  error
+
+	FuncCall  goto 40
+	Var  goto 109
+	PrefixExp  goto 17
+
+state 55
+	Binding:  LOCAL NameList.    (27)
+	Binding:  LOCAL NameList.= ExpList1 
+	NameList:  NameList., NAME 
+
+	=  shift 110
+	,  shift 111
+	.  reduce 27 (src line 95)
+
+
+state 56
+	Binding:  LOCAL FUNCTION.NAME FuncBody 
+
+	NAME  shift 112
+	.  error
+
+
+state 57
+	NameList:  NAME.    (81)
+
+	.  reduce 81 (src line 181)
+
+
+state 58
+	Repetition:  FOR NAME.= ExpList23 
+	NameList:  NAME.    (81)
+
+	=  shift 113
+	.  reduce 81 (src line 181)
+
+
+state 59
+	Repetition:  FOR NameList.IN ExpList1 
+	NameList:  NameList., NAME 
+
+	IN  shift 114
+	,  shift 111
+	.  error
+
+
+state 60
+	Var:  PrefixExp [.Exp ] 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 115
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 61
+	Var:  PrefixExp ..NAME 
+
+	NAME  shift 116
+	.  error
+
+
+state 62
+	FuncCall:  PrefixExp Args.    (70)
+
+	.  reduce 70 (src line 157)
+
+
+state 63
+	FuncCall:  PrefixExp :.NAME Args 
+
+	NAME  shift 117
+	.  error
+
+
+state 64
+	Args:  (.) 
+	Args:  (.ExpList1 ) 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	)  shift 118
+	{  shift 41
+	.  error
+
+	Exp  goto 66
+	ExpList1  goto 119
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 65
+	LastStat:  RETURN ExpList1.    (26)
+	ExpList1:  ExpList1., Exp 
+
+	,  shift 120
+	.  reduce 26 (src line 93)
+
+
+state 66
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+	ExpList1:  Exp.    (85)
+
+	AND  shift 70
+	OR  shift 69
+	SLTEQ  shift 81
+	SGTEQ  shift 82
+	SEQ  shift 83
+	SNOTEQ  shift 84
+	STRADD  shift 72
+	<  shift 79
+	>  shift 80
+	+  shift 74
+	-  shift 73
+	*  shift 75
+	/  shift 76
+	%  shift 78
+	^  shift 77
+	.  reduce 85 (src line 189)
+
+	LogicOp  goto 71
+
+state 67
+	Stat:  DO Block END.    (9)
+
+	.  reduce 9 (src line 66)
+
+
+68: shift/reduce conflict (shift 6(0), red'n 7(0)) on DO
+68: shift/reduce conflict (shift 15(0), red'n 7(0)) on FOR
+68: shift/reduce conflict (shift 11(0), red'n 7(0)) on FUNCTION
+68: shift/reduce conflict (shift 10(0), red'n 7(0)) on IF
+68: shift/reduce conflict (shift 14(0), red'n 7(0)) on LOCAL
+68: shift/reduce conflict (shift 9(0), red'n 7(0)) on REPEAT
+68: shift/reduce conflict (shift 7(0), red'n 7(0)) on WHILE
+68: shift/reduce conflict (shift 18(0), red'n 7(0)) on NAME
+state 68
+	Stat:  WHILE Exp DO.Block END 
+	StatList: .    (7)
+
+	DO  shift 6
+	FOR  shift 15
+	FUNCTION  shift 11
+	IF  shift 10
+	LOCAL  shift 14
+	REPEAT  shift 9
+	WHILE  shift 7
+	NAME  shift 18
+	.  reduce 7 (src line 62)
+
+	Block  goto 121
+	StatList  goto 3
+	Stat  goto 4
+	Binding  goto 5
+	Repetition  goto 8
+	SetList  goto 12
+	FuncCall  goto 13
+	Var  goto 16
+	PrefixExp  goto 17
+
+state 69
+	Exp:  Exp OR.Exp 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 122
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 70
+	Exp:  Exp AND.Exp 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 123
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 71
+	Exp:  Exp LogicOp.Exp 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 124
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 72
+	Exp:  Exp STRADD.Exp 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 125
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 73
+	Exp:  Exp -.Exp 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 126
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 74
+	Exp:  Exp +.Exp 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 127
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 75
+	Exp:  Exp *.Exp 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 128
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 76
+	Exp:  Exp /.Exp 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 129
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 77
+	Exp:  Exp ^.Exp 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 130
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 78
+	Exp:  Exp %.Exp 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 131
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 79
+	LogicOp:  <.    (59)
+
+	.  reduce 59 (src line 137)
+
+
+state 80
+	LogicOp:  >.    (60)
+
+	.  reduce 60 (src line 139)
+
+
+state 81
+	LogicOp:  SLTEQ.    (61)
+
+	.  reduce 61 (src line 140)
+
+
+state 82
+	LogicOp:  SGTEQ.    (62)
+
+	.  reduce 62 (src line 141)
+
+
+state 83
+	LogicOp:  SEQ.    (63)
+
+	.  reduce 63 (src line 142)
+
+
+state 84
+	LogicOp:  SNOTEQ.    (64)
+
+	.  reduce 64 (src line 143)
+
+
+state 85
+	Exp:  NOT Exp.    (46)
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+
+	^  shift 77
+	.  reduce 46 (src line 123)
+
+	LogicOp  goto 71
+
+86: shift/reduce conflict (shift 70(2), red'n 47(0)) on AND
+86: shift/reduce conflict (shift 69(1), red'n 47(0)) on OR
+86: shift/reduce conflict (shift 81(3), red'n 47(0)) on SLTEQ
+86: shift/reduce conflict (shift 82(3), red'n 47(0)) on SGTEQ
+86: shift/reduce conflict (shift 83(3), red'n 47(0)) on SEQ
+86: shift/reduce conflict (shift 84(3), red'n 47(0)) on SNOTEQ
+86: shift/reduce conflict (shift 72(4), red'n 47(0)) on STRADD
+86: shift/reduce conflict (shift 79(3), red'n 47(0)) on <
+86: shift/reduce conflict (shift 80(3), red'n 47(0)) on >
+86: shift/reduce conflict (shift 74(5), red'n 47(0)) on +
+86: shift/reduce conflict (shift 73(5), red'n 47(0)) on -
+86: shift/reduce conflict (shift 75(6), red'n 47(0)) on *
+86: shift/reduce conflict (shift 76(6), red'n 47(0)) on /
+86: shift/reduce conflict (shift 78(6), red'n 47(0)) on %
+86: shift/reduce conflict (shift 77(8), red'n 47(0)) on ^
+state 86
+	Exp:  # Exp.    (47)
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+
+	AND  shift 70
+	OR  shift 69
+	SLTEQ  shift 81
+	SGTEQ  shift 82
+	SEQ  shift 83
+	SNOTEQ  shift 84
+	STRADD  shift 72
+	<  shift 79
+	>  shift 80
+	+  shift 74
+	-  shift 73
+	*  shift 75
+	/  shift 76
+	%  shift 78
+	^  shift 77
+	.  reduce 47 (src line 124)
+
+	LogicOp  goto 71
+
+state 87
+	Exp:  - Exp.    (48)
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+
+	^  shift 77
+	.  reduce 48 (src line 125)
+
+	LogicOp  goto 71
+
+state 88
+	FuncDef:  FUNCTION FuncBody.    (74)
+
+	.  reduce 74 (src line 165)
+
+
+89: shift/reduce conflict (shift 6(0), red'n 7(0)) on DO
+89: shift/reduce conflict (shift 15(0), red'n 7(0)) on FOR
+89: shift/reduce conflict (shift 11(0), red'n 7(0)) on FUNCTION
+89: shift/reduce conflict (shift 10(0), red'n 7(0)) on IF
+89: shift/reduce conflict (shift 14(0), red'n 7(0)) on LOCAL
+89: shift/reduce conflict (shift 9(0), red'n 7(0)) on REPEAT
+89: shift/reduce conflict (shift 7(0), red'n 7(0)) on WHILE
+89: shift/reduce conflict (shift 18(0), red'n 7(0)) on NAME
+state 89
+	FuncBody:  ParamDefList.Block END 
+	StatList: .    (7)
+
+	DO  shift 6
+	FOR  shift 15
+	FUNCTION  shift 11
+	IF  shift 10
+	LOCAL  shift 14
+	REPEAT  shift 9
+	WHILE  shift 7
+	NAME  shift 18
+	.  reduce 7 (src line 62)
+
+	Block  goto 132
+	StatList  goto 3
+	Stat  goto 4
+	Binding  goto 5
+	Repetition  goto 8
+	SetList  goto 12
+	FuncCall  goto 13
+	Var  goto 16
+	PrefixExp  goto 17
+
+state 90
+	ParamDefList:  (.ParDefList ) 
+	ParDefList: .    (80)
+
+	NAME  shift 57
+	MORE  shift 135
+	.  reduce 80 (src line 178)
+
+	NameList  goto 134
+	ParDefList  goto 133
+
+state 91
+	Tableconstructor:  { }.    (89)
+
+	.  reduce 89 (src line 197)
+
+
+state 92
+	Tableconstructor:  { FieldList.} 
+	FieldList:  FieldList.FieldSP Field 
+
+	,  shift 138
+	}  shift 136
+	;  shift 139
+	.  error
+
+	FieldSP  goto 137
+
+state 93
+	FieldList:  Field.    (91)
+
+	.  reduce 91 (src line 201)
+
+
+state 94
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+	Field:  Exp.    (95)
+
+	AND  shift 70
+	OR  shift 69
+	SLTEQ  shift 81
+	SGTEQ  shift 82
+	SEQ  shift 83
+	SNOTEQ  shift 84
+	STRADD  shift 72
+	<  shift 79
+	>  shift 80
+	+  shift 74
+	-  shift 73
+	*  shift 75
+	/  shift 76
+	%  shift 78
+	^  shift 77
+	.  reduce 95 (src line 209)
+
+	LogicOp  goto 71
+
+state 95
+	Var:  NAME.    (65)
+	Field:  NAME.= Exp 
+
+	=  shift 140
+	.  reduce 65 (src line 145)
+
+
+state 96
+	Arrayconstructor:  [.] 
+	Arrayconstructor:  [.ExpList1 ] 
+	Field:  [.Exp ] = Exp 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	]  shift 97
+	{  shift 41
+	.  error
+
+	Exp  goto 141
+	ExpList1  goto 98
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 97
+	Arrayconstructor:  [ ].    (83)
+
+	.  reduce 83 (src line 185)
+
+
+state 98
+	Arrayconstructor:  [ ExpList1.] 
+	ExpList1:  ExpList1., Exp 
+
+	,  shift 120
+	]  shift 142
+	.  error
+
+
+state 99
+	Stat:  Repetition DO Block.END 
+
+	END  shift 143
+	.  error
+
+
+state 100
+	UBlock:  Block UNTIL.Exp 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 144
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 101
+	Stat:  IF Conds END.    (13)
+
+	.  reduce 13 (src line 70)
+
+
+102: shift/reduce conflict (shift 6(0), red'n 7(0)) on DO
+102: shift/reduce conflict (shift 15(0), red'n 7(0)) on FOR
+102: shift/reduce conflict (shift 11(0), red'n 7(0)) on FUNCTION
+102: shift/reduce conflict (shift 10(0), red'n 7(0)) on IF
+102: shift/reduce conflict (shift 14(0), red'n 7(0)) on LOCAL
+102: shift/reduce conflict (shift 9(0), red'n 7(0)) on REPEAT
+102: shift/reduce conflict (shift 7(0), red'n 7(0)) on WHILE
+102: shift/reduce conflict (shift 18(0), red'n 7(0)) on NAME
+state 102
+	Conds:  CondList ELSE.Block 
+	StatList: .    (7)
+
+	DO  shift 6
+	FOR  shift 15
+	FUNCTION  shift 11
+	IF  shift 10
+	LOCAL  shift 14
+	REPEAT  shift 9
+	WHILE  shift 7
+	NAME  shift 18
+	.  reduce 7 (src line 62)
+
+	Block  goto 145
+	StatList  goto 3
+	Stat  goto 4
+	Binding  goto 5
+	Repetition  goto 8
+	SetList  goto 12
+	FuncCall  goto 13
+	Var  goto 16
+	PrefixExp  goto 17
+
+state 103
+	CondList:  CondList ELSEIF.Cond 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 49
+	FuncCall  goto 40
+	Cond  goto 146
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+104: shift/reduce conflict (shift 6(0), red'n 7(0)) on DO
+104: shift/reduce conflict (shift 15(0), red'n 7(0)) on FOR
+104: shift/reduce conflict (shift 11(0), red'n 7(0)) on FUNCTION
+104: shift/reduce conflict (shift 10(0), red'n 7(0)) on IF
+104: shift/reduce conflict (shift 14(0), red'n 7(0)) on LOCAL
+104: shift/reduce conflict (shift 9(0), red'n 7(0)) on REPEAT
+104: shift/reduce conflict (shift 7(0), red'n 7(0)) on WHILE
+104: shift/reduce conflict (shift 18(0), red'n 7(0)) on NAME
+state 104
+	Cond:  Exp THEN.Block 
+	StatList: .    (7)
+
+	DO  shift 6
+	FOR  shift 15
+	FUNCTION  shift 11
+	IF  shift 10
+	LOCAL  shift 14
+	REPEAT  shift 9
+	WHILE  shift 7
+	NAME  shift 18
+	.  reduce 7 (src line 62)
+
+	Block  goto 147
+	StatList  goto 3
+	Stat  goto 4
+	Binding  goto 5
+	Repetition  goto 8
+	SetList  goto 12
+	FuncCall  goto 13
+	Var  goto 16
+	PrefixExp  goto 17
+
+state 105
+	Stat:  FUNCTION FuncName FuncBody.    (14)
+
+	.  reduce 14 (src line 71)
+
+
+state 106
+	FuncName:  DottedName :.NAME 
+
+	NAME  shift 148
+	.  error
+
+
+state 107
+	DottedName:  DottedName ,.NAME 
+
+	NAME  shift 149
+	.  error
+
+
+state 108
+	Stat:  SetList = ExpList1.    (15)
+	ExpList1:  ExpList1., Exp 
+
+	,  shift 120
+	.  reduce 15 (src line 72)
+
+
+state 109
+	SetList:  SetList , Var.    (31)
+	PrefixExp:  Var.    (68)
+
+	=  reduce 31 (src line 102)
+	,  reduce 31 (src line 102)
+	.  reduce 68 (src line 153)
+
+
+state 110
+	Binding:  LOCAL NameList =.ExpList1 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 66
+	ExpList1  goto 150
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 111
+	NameList:  NameList ,.NAME 
+
+	NAME  shift 151
+	.  error
+
+
+state 112
+	Binding:  LOCAL FUNCTION NAME.FuncBody 
+
+	(  shift 90
+	.  error
+
+	FuncBody  goto 152
+	ParamDefList  goto 89
+
+state 113
+	Repetition:  FOR NAME =.ExpList23 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 154
+	FuncCall  goto 40
+	ExpList23  goto 153
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 114
+	Repetition:  FOR NameList IN.ExpList1 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 66
+	ExpList1  goto 155
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 115
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+	Var:  PrefixExp [ Exp.] 
+
+	AND  shift 70
+	OR  shift 69
+	SLTEQ  shift 81
+	SGTEQ  shift 82
+	SEQ  shift 83
+	SNOTEQ  shift 84
+	STRADD  shift 72
+	<  shift 79
+	>  shift 80
+	+  shift 74
+	-  shift 73
+	*  shift 75
+	/  shift 76
+	%  shift 78
+	^  shift 77
+	]  shift 156
+	.  error
+
+	LogicOp  goto 71
+
+state 116
+	Var:  PrefixExp . NAME.    (67)
+
+	.  reduce 67 (src line 148)
+
+
+state 117
+	FuncCall:  PrefixExp : NAME.Args 
+
+	(  shift 64
+	.  error
+
+	Args  goto 157
+
+state 118
+	Args:  ( ).    (72)
+
+	.  reduce 72 (src line 161)
+
+
+state 119
+	Args:  ( ExpList1.) 
+	ExpList1:  ExpList1., Exp 
+
+	,  shift 120
+	)  shift 158
+	.  error
+
+
+state 120
+	ExpList1:  ExpList1 ,.Exp 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 159
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 121
+	Stat:  WHILE Exp DO Block.END 
+
+	END  shift 160
+	.  error
+
+
+state 122
+	Exp:  Exp.OR Exp 
+	Exp:  Exp OR Exp.    (49)
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+
+	AND  shift 70
+	SLTEQ  shift 81
+	SGTEQ  shift 82
+	SEQ  shift 83
+	SNOTEQ  shift 84
+	STRADD  shift 72
+	<  shift 79
+	>  shift 80
+	+  shift 74
+	-  shift 73
+	*  shift 75
+	/  shift 76
+	%  shift 78
+	^  shift 77
+	.  reduce 49 (src line 126)
+
+	LogicOp  goto 71
+
+state 123
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp AND Exp.    (50)
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+
+	SLTEQ  shift 81
+	SGTEQ  shift 82
+	SEQ  shift 83
+	SNOTEQ  shift 84
+	STRADD  shift 72
+	<  shift 79
+	>  shift 80
+	+  shift 74
+	-  shift 73
+	*  shift 75
+	/  shift 76
+	%  shift 78
+	^  shift 77
+	.  reduce 50 (src line 127)
+
+	LogicOp  goto 71
+
+124: shift/reduce conflict (shift 70(2), red'n 51(0)) on AND
+124: shift/reduce conflict (shift 69(1), red'n 51(0)) on OR
+124: shift/reduce conflict (shift 81(3), red'n 51(0)) on SLTEQ
+124: shift/reduce conflict (shift 82(3), red'n 51(0)) on SGTEQ
+124: shift/reduce conflict (shift 83(3), red'n 51(0)) on SEQ
+124: shift/reduce conflict (shift 84(3), red'n 51(0)) on SNOTEQ
+124: shift/reduce conflict (shift 72(4), red'n 51(0)) on STRADD
+124: shift/reduce conflict (shift 79(3), red'n 51(0)) on <
+124: shift/reduce conflict (shift 80(3), red'n 51(0)) on >
+124: shift/reduce conflict (shift 74(5), red'n 51(0)) on +
+124: shift/reduce conflict (shift 73(5), red'n 51(0)) on -
+124: shift/reduce conflict (shift 75(6), red'n 51(0)) on *
+124: shift/reduce conflict (shift 76(6), red'n 51(0)) on /
+124: shift/reduce conflict (shift 78(6), red'n 51(0)) on %
+124: shift/reduce conflict (shift 77(8), red'n 51(0)) on ^
+state 124
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp LogicOp Exp.    (51)
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+
+	AND  shift 70
+	OR  shift 69
+	SLTEQ  shift 81
+	SGTEQ  shift 82
+	SEQ  shift 83
+	SNOTEQ  shift 84
+	STRADD  shift 72
+	<  shift 79
+	>  shift 80
+	+  shift 74
+	-  shift 73
+	*  shift 75
+	/  shift 76
+	%  shift 78
+	^  shift 77
+	.  reduce 51 (src line 128)
+
+	LogicOp  goto 71
+
+state 125
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp STRADD Exp.    (52)
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+
+	STRADD  shift 72
+	+  shift 74
+	-  shift 73
+	*  shift 75
+	/  shift 76
+	%  shift 78
+	^  shift 77
+	.  reduce 52 (src line 129)
+
+	LogicOp  goto 71
+
+state 126
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp - Exp.    (53)
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+
+	*  shift 75
+	/  shift 76
+	%  shift 78
+	^  shift 77
+	.  reduce 53 (src line 130)
+
+	LogicOp  goto 71
+
+state 127
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp + Exp.    (54)
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+
+	*  shift 75
+	/  shift 76
+	%  shift 78
+	^  shift 77
+	.  reduce 54 (src line 131)
+
+	LogicOp  goto 71
+
+state 128
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp * Exp.    (55)
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+
+	^  shift 77
+	.  reduce 55 (src line 132)
+
+	LogicOp  goto 71
+
+state 129
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp / Exp.    (56)
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+
+	^  shift 77
+	.  reduce 56 (src line 133)
+
+	LogicOp  goto 71
+
+state 130
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp ^ Exp.    (57)
+	Exp:  Exp.% Exp 
+
+	^  shift 77
+	.  reduce 57 (src line 134)
+
+	LogicOp  goto 71
+
+state 131
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+	Exp:  Exp % Exp.    (58)
+
+	^  shift 77
+	.  reduce 58 (src line 135)
+
+	LogicOp  goto 71
+
+state 132
+	FuncBody:  ParamDefList Block.END 
+
+	END  shift 161
+	.  error
+
+
+state 133
+	ParamDefList:  ( ParDefList.) 
+
+	)  shift 162
+	.  error
+
+
+state 134
+	ParDefList:  NameList.    (77)
+	ParDefList:  NameList., MORE 
+	NameList:  NameList., NAME 
+
+	,  shift 163
+	.  reduce 77 (src line 174)
+
+
+state 135
+	ParDefList:  MORE.    (78)
+
+	.  reduce 78 (src line 176)
+
+
+state 136
+	Tableconstructor:  { FieldList }.    (90)
+
+	.  reduce 90 (src line 199)
+
+
+state 137
+	FieldList:  FieldList FieldSP.Field 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 95
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 96
+	{  shift 41
+	.  error
+
+	Exp  goto 94
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+	Field  goto 164
+
+state 138
+	FieldSP:  ,.    (93)
+
+	.  reduce 93 (src line 205)
+
+
+state 139
+	FieldSP:  ;.    (94)
+
+	.  reduce 94 (src line 207)
+
+
+state 140
+	Field:  NAME =.Exp 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 165
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+141: shift/reduce conflict (shift 166(0), red'n 85(0)) on ]
+state 141
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+	ExpList1:  Exp.    (85)
+	Field:  [ Exp.] = Exp 
+
+	AND  shift 70
+	OR  shift 69
+	SLTEQ  shift 81
+	SGTEQ  shift 82
+	SEQ  shift 83
+	SNOTEQ  shift 84
+	STRADD  shift 72
+	<  shift 79
+	>  shift 80
+	+  shift 74
+	-  shift 73
+	*  shift 75
+	/  shift 76
+	%  shift 78
+	^  shift 77
+	]  shift 166
+	.  reduce 85 (src line 189)
+
+	LogicOp  goto 71
+
+state 142
+	Arrayconstructor:  [ ExpList1 ].    (84)
+
+	.  reduce 84 (src line 187)
+
+
+state 143
+	Stat:  Repetition DO Block END.    (11)
+
+	.  reduce 11 (src line 68)
+
+
+state 144
+	UBlock:  Block UNTIL Exp.    (4)
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+
+	AND  shift 70
+	OR  shift 69
+	SLTEQ  shift 81
+	SGTEQ  shift 82
+	SEQ  shift 83
+	SNOTEQ  shift 84
+	STRADD  shift 72
+	<  shift 79
+	>  shift 80
+	+  shift 74
+	-  shift 73
+	*  shift 75
+	/  shift 76
+	%  shift 78
+	^  shift 77
+	.  reduce 4 (src line 56)
+
+	LogicOp  goto 71
+
+state 145
+	Conds:  CondList ELSE Block.    (20)
+
+	.  reduce 20 (src line 81)
+
+
+state 146
+	CondList:  CondList ELSEIF Cond.    (22)
+
+	.  reduce 22 (src line 85)
+
+
+state 147
+	Cond:  Exp THEN Block.    (23)
+
+	.  reduce 23 (src line 87)
+
+
+state 148
+	FuncName:  DottedName : NAME.    (33)
+
+	.  reduce 33 (src line 106)
+
+
+state 149
+	DottedName:  DottedName , NAME.    (35)
+
+	.  reduce 35 (src line 110)
+
+
+state 150
+	Binding:  LOCAL NameList = ExpList1.    (28)
+	ExpList1:  ExpList1., Exp 
+
+	,  shift 120
+	.  reduce 28 (src line 97)
+
+
+state 151
+	NameList:  NameList , NAME.    (82)
+
+	.  reduce 82 (src line 183)
+
+
+state 152
+	Binding:  LOCAL FUNCTION NAME FuncBody.    (29)
+
+	.  reduce 29 (src line 98)
+
+
+state 153
+	Repetition:  FOR NAME = ExpList23.    (17)
+
+	.  reduce 17 (src line 75)
+
+
+state 154
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+	ExpList23:  Exp., Exp 
+	ExpList23:  Exp., Exp , Exp 
+
+	AND  shift 70
+	OR  shift 69
+	SLTEQ  shift 81
+	SGTEQ  shift 82
+	SEQ  shift 83
+	SNOTEQ  shift 84
+	STRADD  shift 72
+	<  shift 79
+	>  shift 80
+	+  shift 74
+	-  shift 73
+	*  shift 75
+	/  shift 76
+	%  shift 78
+	^  shift 77
+	,  shift 167
+	.  error
+
+	LogicOp  goto 71
+
+state 155
+	Repetition:  FOR NameList IN ExpList1.    (18)
+	ExpList1:  ExpList1., Exp 
+
+	,  shift 120
+	.  reduce 18 (src line 77)
+
+
+state 156
+	Var:  PrefixExp [ Exp ].    (66)
+
+	.  reduce 66 (src line 147)
+
+
+state 157
+	FuncCall:  PrefixExp : NAME Args.    (71)
+
+	.  reduce 71 (src line 159)
+
+
+state 158
+	Args:  ( ExpList1 ).    (73)
+
+	.  reduce 73 (src line 163)
+
+
+state 159
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+	ExpList1:  ExpList1 , Exp.    (86)
+
+	AND  shift 70
+	OR  shift 69
+	SLTEQ  shift 81
+	SGTEQ  shift 82
+	SEQ  shift 83
+	SNOTEQ  shift 84
+	STRADD  shift 72
+	<  shift 79
+	>  shift 80
+	+  shift 74
+	-  shift 73
+	*  shift 75
+	/  shift 76
+	%  shift 78
+	^  shift 77
+	.  reduce 86 (src line 191)
+
+	LogicOp  goto 71
+
+state 160
+	Stat:  WHILE Exp DO Block END.    (10)
+
+	.  reduce 10 (src line 67)
+
+
+state 161
+	FuncBody:  ParamDefList Block END.    (75)
+
+	.  reduce 75 (src line 168)
+
+
+state 162
+	ParamDefList:  ( ParDefList ).    (76)
+
+	.  reduce 76 (src line 171)
+
+
+state 163
+	ParDefList:  NameList ,.MORE 
+	NameList:  NameList ,.NAME 
+
+	NAME  shift 151
+	MORE  shift 168
+	.  error
+
+
+state 164
+	FieldList:  FieldList FieldSP Field.    (92)
+
+	.  reduce 92 (src line 203)
+
+
+state 165
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+	Field:  NAME = Exp.    (96)
+
+	AND  shift 70
+	OR  shift 69
+	SLTEQ  shift 81
+	SGTEQ  shift 82
+	SEQ  shift 83
+	SNOTEQ  shift 84
+	STRADD  shift 72
+	<  shift 79
+	>  shift 80
+	+  shift 74
+	-  shift 73
+	*  shift 75
+	/  shift 76
+	%  shift 78
+	^  shift 77
+	.  reduce 96 (src line 211)
+
+	LogicOp  goto 71
+
+state 166
+	Field:  [ Exp ].= Exp 
+
+	=  shift 169
+	.  error
+
+
+state 167
+	ExpList23:  Exp ,.Exp 
+	ExpList23:  Exp ,.Exp , Exp 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 170
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 168
+	ParDefList:  NameList , MORE.    (79)
+
+	.  reduce 79 (src line 177)
+
+
+state 169
+	Field:  [ Exp ] =.Exp 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 171
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 170
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+	ExpList23:  Exp , Exp.    (87)
+	ExpList23:  Exp , Exp., Exp 
+
+	AND  shift 70
+	OR  shift 69
+	SLTEQ  shift 81
+	SGTEQ  shift 82
+	SEQ  shift 83
+	SNOTEQ  shift 84
+	STRADD  shift 72
+	<  shift 79
+	>  shift 80
+	+  shift 74
+	-  shift 73
+	*  shift 75
+	/  shift 76
+	%  shift 78
+	^  shift 77
+	,  shift 172
+	.  reduce 87 (src line 193)
+
+	LogicOp  goto 71
+
+state 171
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+	Field:  [ Exp ] = Exp.    (97)
+
+	AND  shift 70
+	OR  shift 69
+	SLTEQ  shift 81
+	SGTEQ  shift 82
+	SEQ  shift 83
+	SNOTEQ  shift 84
+	STRADD  shift 72
+	<  shift 79
+	>  shift 80
+	+  shift 74
+	-  shift 73
+	*  shift 75
+	/  shift 76
+	%  shift 78
+	^  shift 77
+	.  reduce 97 (src line 212)
+
+	LogicOp  goto 71
+
+state 172
+	ExpList23:  Exp , Exp ,.Exp 
+
+	FALSE  shift 27
+	FUNCTION  shift 38
+	NIL  shift 25
+	NOT  shift 35
+	TRUE  shift 26
+	NUMBER  shift 28
+	STRING  shift 29
+	NAME  shift 18
+	MORE  shift 30
+	-  shift 37
+	#  shift 36
+	[  shift 42
+	{  shift 41
+	.  error
+
+	Exp  goto 173
+	FuncCall  goto 40
+	Var  goto 39
+	FuncDef  goto 31
+	PrefixExp  goto 32
+	Tableconstructor  goto 33
+	Arrayconstructor  goto 34
+
+state 173
+	Exp:  Exp.OR Exp 
+	Exp:  Exp.AND Exp 
+	Exp:  Exp.LogicOp Exp 
+	Exp:  Exp.STRADD Exp 
+	Exp:  Exp.- Exp 
+	Exp:  Exp.+ Exp 
+	Exp:  Exp.* Exp 
+	Exp:  Exp./ Exp 
+	Exp:  Exp.^ Exp 
+	Exp:  Exp.% Exp 
+	ExpList23:  Exp , Exp , Exp.    (88)
+
+	AND  shift 70
+	OR  shift 69
+	SLTEQ  shift 81
+	SGTEQ  shift 82
+	SEQ  shift 83
+	SNOTEQ  shift 84
+	STRADD  shift 72
+	<  shift 79
+	>  shift 80
+	+  shift 74
+	-  shift 73
+	*  shift 75
+	/  shift 76
+	%  shift 78
+	^  shift 77
+	.  reduce 88 (src line 195)
+
+	LogicOp  goto 71
+
+55 terminals, 33 nonterminals
+98 grammar rules, 174/2000 states
+95 shift/reduce, 0 reduce/reduce conflicts reported
+82 working sets used
+memory: parser 492/30000
+115 extra closures
+846 shift entries, 9 exceptions
+108 goto entries
+265 entries saved by goto default
+Optimizer space used: output 525/30000
+525 table entries, 130 zero
+maximum spread: 55, maximum offset: 172
