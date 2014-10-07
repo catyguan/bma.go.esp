@@ -183,32 +183,34 @@ NameList:
 	| NameList "," NAME { nameAppend(yylex, &$$, &$1, &$3) }
 
 Arrayconstructor:
-	'[' ']'
-	| '[' ExpList1 ']'
+	'[' ']' { op1(yylex, &$$, OP_ARRAY, nil) }
+	| '[' ExpList1 ']' { op1(yylex, &$$, OP_ARRAY, &$2) }
 
 ExpList1:
-	Exp
-	| ExpList1 ',' Exp
+	Exp { opExpList(yylex, &$$, &$1, nil) }
+	| ExpList1 ',' Exp { opExpList(yylex, &$$, &$1, &$3) }
 
 ExpList23:
 	Exp ',' Exp
 	| Exp ',' Exp ',' Exp
 
 Tableconstructor:
-	'{' '}'
-	| '{' FieldList '}'
+	'{' '}' { op1(yylex, &$$, OP_TABLE, nil) }
+	| '{' FieldList '}' { op1(yylex, &$$, OP_TABLE, &$2) }
 
 FieldList:
 	Field
-	| FieldList FieldSP Field
+	| FieldList FieldSP Field { opAppend(yylex, &$$, &$1, &$3) }
 
 FieldSP:
 	','
 	| ';'
             
 Field:
-	Exp
-	| NAME '=' Exp
-	| '[' Exp ']' '=' Exp
+	NAME '=' Exp { 
+		opValueExt(&$1, $1.token.image)
+		op2(yylex, &$$, OP_FIELD, &$1, &$3)
+	}
+	| '[' Exp ']' '=' Exp { op2(yylex, &$$, OP_FIELD, &$2, &$5) }
 
 %%

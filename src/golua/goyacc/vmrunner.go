@@ -39,10 +39,10 @@ func ExecNumberType(val interface{}) NumberType {
 	}
 }
 
-func ExecOp2(op OP, val1 interface{}, val2 interface{}) (interface{}, error) {
+func ExecOp2(op OP, val1 interface{}, val2 interface{}) (bool, interface{}, error) {
 	if op == OP_STRADD {
 		s := fmt.Sprintf("%v%v", val1, val2)
-		return s, nil
+		return true, s, nil
 	}
 	nt1 := ExecNumberType(val1)
 	nt2 := ExecNumberType(val2)
@@ -51,77 +51,184 @@ func ExecOp2(op OP, val1 interface{}, val2 interface{}) (interface{}, error) {
 	case OP_ADD:
 		switch nt {
 		case 128:
-			return nt.ToFloat64(val1) + nt.ToFloat64(val2), nil
+			return true, nt.ToFloat64(val1) + nt.ToFloat64(val2), nil
 		case 64:
-			return nt.ToInt32(val1) + nt.ToInt32(val2), nil
+			return true, nt.ToInt32(val1) + nt.ToInt32(val2), nil
 		case 32:
-			return nt.ToInt64(val1) + nt.ToInt64(val2), nil
+			return true, nt.ToInt64(val1) + nt.ToInt64(val2), nil
 		default:
-			return nil, fmt.Errorf("invalid %v + %v", val1, val2)
+			return false, nil, fmt.Errorf("invalid %v + %v", val1, val2)
 		}
 	case OP_SUB:
 		switch nt {
 		case 128:
-			return nt.ToFloat64(val1) - nt.ToFloat64(val2), nil
+			return true, nt.ToFloat64(val1) - nt.ToFloat64(val2), nil
 		case 64:
-			return nt.ToInt32(val1) - nt.ToInt32(val2), nil
+			return true, nt.ToInt32(val1) - nt.ToInt32(val2), nil
 		case 32:
-			return nt.ToInt64(val1) - nt.ToInt64(val2), nil
+			return true, nt.ToInt64(val1) - nt.ToInt64(val2), nil
 		default:
-			return nil, fmt.Errorf("invalid %v - %v", val1, val2)
+			return false, nil, fmt.Errorf("invalid %v - %v", val1, val2)
 		}
 	case OP_MUL:
 		switch nt {
 		case 128:
-			return nt.ToFloat64(val1) * nt.ToFloat64(val2), nil
+			return true, nt.ToFloat64(val1) * nt.ToFloat64(val2), nil
 		case 64:
-			return nt.ToInt32(val1) * nt.ToInt32(val2), nil
+			return true, nt.ToInt32(val1) * nt.ToInt32(val2), nil
 		case 32:
-			return nt.ToInt64(val1) * nt.ToInt64(val2), nil
+			return true, nt.ToInt64(val1) * nt.ToInt64(val2), nil
 		default:
-			return nil, fmt.Errorf("invalid %v * %v", val1, val2)
+			return false, nil, fmt.Errorf("invalid %v * %v", val1, val2)
 		}
 	case OP_DIV:
 		switch nt {
 		case 128:
 			v := nt.ToFloat64(val2)
 			if v == 0 {
-				return nil, fmt.Errorf("div zero(%v)", val2)
+				return false, nil, fmt.Errorf("div zero(%v)", val2)
 			}
-			return nt.ToFloat64(val1) + v, nil
+			return true, nt.ToFloat64(val1) + v, nil
 		case 64:
 			v := nt.ToInt32(val2)
 			if v == 0 {
-				return nil, fmt.Errorf("div zero(%v)", val2)
+				return false, nil, fmt.Errorf("div zero(%v)", val2)
 			}
-			return nt.ToInt32(val1) + v, nil
+			return true, nt.ToInt32(val1) + v, nil
 		case 32:
 			v := nt.ToInt64(val2)
 			if v == 0 {
-				return nil, fmt.Errorf("div zero(%v)", val2)
+				return true, nil, fmt.Errorf("div zero(%v)", val2)
 			}
-			return nt.ToInt64(val1) + v, nil
+			return true, nt.ToInt64(val1) + v, nil
 		default:
-			return nil, fmt.Errorf("invalid add(%v, %v)", val1, val2)
+			return false, nil, fmt.Errorf("invalid add(%v, %v)", val1, val2)
 		}
 	case OP_PMUL:
 		switch nt {
 		case 64:
-			return nt.ToInt32(val1) ^ nt.ToInt32(val2), nil
+			return true, nt.ToInt32(val1) ^ nt.ToInt32(val2), nil
 		case 32:
-			return nt.ToInt64(val1) ^ nt.ToInt64(val2), nil
+			return true, nt.ToInt64(val1) ^ nt.ToInt64(val2), nil
 		default:
-			return nil, fmt.Errorf("invalid %v ^ %v", val1, val2)
+			return false, nil, fmt.Errorf("invalid %v ^ %v", val1, val2)
 		}
 	case OP_MOD:
 		switch nt {
 		case 64:
-			return nt.ToInt32(val1) % nt.ToInt32(val2), nil
+			return true, nt.ToInt32(val1) % nt.ToInt32(val2), nil
 		case 32:
-			return nt.ToInt64(val1) % nt.ToInt64(val2), nil
+			return true, nt.ToInt64(val1) % nt.ToInt64(val2), nil
 		default:
-			return nil, fmt.Errorf("invalid %v % %v", val1, val2)
+			return false, nil, fmt.Errorf("invalid %v % %v", val1, val2)
 		}
+	case OP_AND:
+		if val1 == nil || val2 == nil {
+			return true, false, nil
+		}
+		v1, ok1 := val1.(bool)
+		if !ok1 {
+			v1 = valutil.ToBool(val1, false)
+		}
+		v2, ok2 := val2.(bool)
+		if !ok2 {
+			v2 = valutil.ToBool(val2, false)
+		}
+		return true, v1 && v2, nil
+	case OP_OR:
+		if val1 == nil || val2 == nil {
+			return true, false, nil
+		}
+		v1, ok1 := val1.(bool)
+		if !ok1 {
+			v1 = valutil.ToBool(val1, false)
+		}
+		v2, ok2 := val2.(bool)
+		if !ok2 {
+			v2 = valutil.ToBool(val2, false)
+		}
+		return true, v1 || v2, nil
+	case OP_LT:
+		switch nt {
+		case 128:
+			return true, nt.ToFloat64(val1) < nt.ToFloat64(val2), nil
+		case 64:
+			return true, nt.ToInt32(val1) < nt.ToInt32(val2), nil
+		case 32:
+			return true, nt.ToInt64(val1) < nt.ToInt64(val2), nil
+		default:
+			return false, nil, fmt.Errorf("invalid %v < %v", val1, val2)
+		}
+	case OP_LTEQ:
+		switch nt {
+		case 128:
+			return true, nt.ToFloat64(val1) <= nt.ToFloat64(val2), nil
+		case 64:
+			return true, nt.ToInt32(val1) <= nt.ToInt32(val2), nil
+		case 32:
+			return true, nt.ToInt64(val1) <= nt.ToInt64(val2), nil
+		default:
+			return false, nil, fmt.Errorf("invalid %v <= %v", val1, val2)
+		}
+	case OP_GT:
+		switch nt {
+		case 128:
+			return true, nt.ToFloat64(val1) > nt.ToFloat64(val2), nil
+		case 64:
+			return true, nt.ToInt32(val1) > nt.ToInt32(val2), nil
+		case 32:
+			return true, nt.ToInt64(val1) > nt.ToInt64(val2), nil
+		default:
+			return false, nil, fmt.Errorf("invalid %v > %v", val1, val2)
+		}
+	case OP_GTEQ:
+		switch nt {
+		case 128:
+			return true, nt.ToFloat64(val1) >= nt.ToFloat64(val2), nil
+		case 64:
+			return true, nt.ToInt32(val1) >= nt.ToInt32(val2), nil
+		case 32:
+			return true, nt.ToInt64(val1) >= nt.ToInt64(val2), nil
+		default:
+			return false, nil, fmt.Errorf("invalid %v >= %v", val1, val2)
+		}
+	case OP_EQ, OP_NOTEQ:
+		r := false
+		if s1, ok1 := val1.(string); ok1 {
+			if s2, ok2 := val2.(string); ok2 {
+				r = s1 == s2
+				if op == OP_NOTEQ {
+					r = !r
+				}
+				return true, r, nil
+			}
+		}
+		if b1, ok1 := val1.(bool); ok1 {
+			if b2, ok2 := val2.(bool); ok2 {
+				r = b1 == b2
+				if op == OP_NOTEQ {
+					r = !r
+				}
+				return true, r, nil
+			}
+		}
+		if nt1 == 0 || nt2 == 0 {
+			return false, nil, fmt.Errorf("invalid %v,%T == %v,%T", val1, val1, val2, val2)
+		}
+		switch nt {
+		case 128:
+			r = nt.ToFloat64(val1) == nt.ToFloat64(val2)
+		case 64:
+			r = nt.ToInt32(val1) == nt.ToInt32(val2)
+		case 32:
+			r = nt.ToInt64(val1) == nt.ToInt64(val2)
+		default:
+			return false, nil, fmt.Errorf("invalid %v == %v", val1, val2)
+		}
+		if op == OP_NOTEQ {
+			r = !r
+		}
+		return true, r, nil
 	}
-	return nil, nil
+	return false, nil, nil
 }

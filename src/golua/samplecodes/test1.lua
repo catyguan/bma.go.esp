@@ -1,6 +1,8 @@
 -- local v1
-local v2 = 1+2*3+b
-v3 = o.name
+-- local v2 = 1+2*3+b
+-- v3 = o["e"]
+v4 = [1,2,3,4,5]
+-- v4 = {a=1,b=2.0,c=true,d="hello",["e"]=nil}
 -- repeat
 -- until v1>0
 
@@ -14,4 +16,4 @@ v3 = o.name
 -- function f2(a,b)
 -- end
 -- return v2
-return 1 + 2
+-- return 1 + 2

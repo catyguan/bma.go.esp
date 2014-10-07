@@ -84,7 +84,7 @@ func (this *Node0) GetNumChildren() int {
 
 func (this *Node0) String() string {
 	if this.Value != nil {
-		return fmt.Sprintf("%s(%v)", this.baseNode.String(), this.Value)
+		return fmt.Sprintf("%s(%v,%T)", this.baseNode.String(), this.Value, this.Value)
 	}
 	return this.baseNode.String()
 }

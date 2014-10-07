@@ -3,6 +3,7 @@ package goyacc
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 type OP uint8
@@ -40,7 +41,20 @@ const (
 	OP_LEN     = OP(29)
 	OP_NSIGN   = OP(30)
 	OP_MEMBER  = OP(31)
+	OP_FIELD   = OP(32)
+	OP_TABLE   = OP(33)
+	OP_ARRAY   = OP(34)
 )
+
+// type NILVALUE bool
+
+// func IsNilValue(v interface{}) bool {
+// 	if v == nil {
+// 		return true
+// 	}
+// 	_, ok := v.(NILVALUE)
+// 	return ok
+// }
 
 var OPNames = []string{
 	"NONE", "VALUE",
@@ -50,7 +64,7 @@ var OPNames = []string{
 	"var", "and", "or", "=",
 	"if", "until", "while", "for", "for-in",
 	"not", "#", "-sign",
-	"member",
+	"member", "field", "table", "array",
 }
 
 func toNode(yylex yyLexer, val *yySymType) (Node, error) {
@@ -105,17 +119,19 @@ func op2(yylex yyLexer, lval *yySymType, op OP, v1 *yySymType, v2 *yySymType) {
 		fmt.Println("op2 >> ", op, v1, v2)
 	}
 	if v1.op == OP_VALUE && v2.op == OP_VALUE {
-		v, err := ExecOp2(op, v1.value, v2.value)
+		ok, v, err := ExecOp2(op, v1.value, v2.value)
 		if err != nil {
 			yylex.Error(err.Error())
 			return
 		}
-		lval.op = OP_VALUE
-		lval.value = v
-		if yyDebug >= 2 {
-			fmt.Println("op2 merge value >> ", op, v1.value, v2.value, v)
+		if ok {
+			lval.op = OP_VALUE
+			lval.value = v
+			if yyDebug >= 2 {
+				fmt.Println("op2 merge value >> ", op, v1.value, v2.value, v)
+			}
+			return
 		}
-		return
 	}
 	n1, err1 := toNode(yylex, v1)
 	if err1 != nil {
@@ -139,6 +155,14 @@ func op2(yylex yyLexer, lval *yySymType, op OP, v1 *yySymType, v2 *yySymType) {
 }
 
 func opAppend(yylex yyLexer, lval *yySymType, v1 *yySymType, v2 *yySymType) {
+	doOpAppend(yylex, lval, v1, v2, OP_BLOCK)
+}
+
+func opExpList(yylex yyLexer, lval *yySymType, v1 *yySymType, v2 *yySymType) {
+	doOpAppend(yylex, lval, v1, v2, OP_EXPLIST)
+}
+
+func doOpAppend(yylex yyLexer, lval *yySymType, v1 *yySymType, v2 *yySymType, op OP) {
 	if yyDebug >= 2 {
 		fmt.Println("opAppend >> ", v1, v2)
 	}
@@ -171,7 +195,7 @@ func opAppend(yylex yyLexer, lval *yySymType, v1 *yySymType, v2 *yySymType) {
 	nn1, ok1 := n1.(*NodeN)
 	if !ok1 {
 		tmp := new(NodeN)
-		tmp.op = OP_BLOCK
+		tmp.op = op
 		tmp.Childs = []Node{n1}
 		nn1 = tmp
 		if yyDebug >= 2 {
@@ -181,7 +205,7 @@ func opAppend(yylex yyLexer, lval *yySymType, v1 *yySymType, v2 *yySymType) {
 	lval.op = OP_NONE
 	lval.value = nn1
 	if nn2, ok2 := n2.(*NodeN); ok2 {
-		if nn2.op == OP_BLOCK {
+		if op == OP_BLOCK && nn2.op == OP_BLOCK {
 			for _, cn := range nn2.Childs {
 				nn1.AddChild(cn)
 			}
@@ -258,29 +282,31 @@ func opValue(yylex yyLexer, lval *yySymType) {
 			lval.value = lval.token.image
 		case NUMBER:
 			s := lval.token.image
-			v32, err1 := strconv.ParseInt(s, 10, 32)
-			if err1 == nil {
-				lval.value = v32
-				break
-			}
-			nerr := err1.(*strconv.NumError)
-			if nerr.Err == strconv.ErrRange {
-				v64, err2 := strconv.ParseInt(s, 10, 64)
-				if err2 != nil {
-					return err2
+			if !strings.Contains(s, ".") {
+				v32, err1 := strconv.ParseInt(s, 10, 32)
+				if err1 == nil {
+					lval.value = int32(v32)
+					break
 				}
-				lval.value = v64
-				break
-			}
-			if nerr.Err == strconv.ErrSyntax {
-				f64, err3 := strconv.ParseFloat(s, 64)
-				if err3 != nil {
-					return err3
+				nerr := err1.(*strconv.NumError)
+				if nerr.Err == strconv.ErrRange {
+					v64, err2 := strconv.ParseInt(s, 10, 64)
+					if err2 != nil {
+						return err2
+					}
+					lval.value = v64
+					break
 				}
-				lval.value = f64
-				break
+				if nerr.Err != strconv.ErrSyntax {
+					return err1
+				}
 			}
-			return err1
+			f64, err3 := strconv.ParseFloat(s, 64)
+			if err3 != nil {
+				return err3
+			}
+			lval.value = f64
+			break
 		}
 		return nil
 	}()

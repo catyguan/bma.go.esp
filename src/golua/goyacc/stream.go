@@ -29,6 +29,9 @@ func newStream(str string) *Stream {
 }
 
 func (this *Stream) updateLineColumn(c rune) {
+	if this.bufline[this.bufpos] != 0 {
+		return
+	}
 	this.column++
 
 	if this.prevCharIsLF {

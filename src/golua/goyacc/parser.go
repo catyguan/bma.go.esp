@@ -112,15 +112,13 @@ func (this *Parser) firstChar() (rune, int) {
 	// 	}
 	// }
 	if ch == '-' {
-		c2, _ := this.stream.readChar()
-		if c2 == '-' {
+		if this.stream.checkNext('-') {
 			this.stream.skip1('\n')
 			return 0, -1
 		}
 	}
 	if ch == '[' {
-		c2, _ := this.stream.readChar()
-		if c2 == '[' {
+		if this.stream.checkNext('[') {
 			this.stream.skip2(']', ']')
 			return 0, -1
 		}
