@@ -58,6 +58,8 @@ func dumpNode(buf *bytes.Buffer, prefix string, n Node) {
 		cn := n.GetChild(i)
 		if cn != nil {
 			dumpNode(buf, prefix+" ", cn)
+		} else {
+			buf.WriteString(prefix + " <nil>")
 		}
 	}
 }
@@ -180,4 +182,82 @@ func (this *NodeLocal) GetNumChildren() int {
 		return 0
 	}
 	return 1
+}
+
+// NodeFunc
+type NodeFunc struct {
+	baseNode
+	Name   string
+	Params []string
+	CVars  []string
+	Block  Node
+}
+
+func (this *NodeFunc) String() string {
+	return fmt.Sprintf("func(%v, %v)", this.Name, this.Params)
+}
+
+func (this *NodeFunc) GetChild(i int) Node {
+	switch i {
+	case 0:
+		return this.Block
+	}
+	return nil
+}
+
+func (this *NodeFunc) GetNumChildren() int {
+	if this.Block == nil {
+		return 0
+	}
+	return 1
+}
+
+// NodeFor
+type NodeFor struct {
+	baseNode
+	Names  []string
+	ForExp Node
+}
+
+func (this *NodeFor) String() string {
+	return fmt.Sprintf("%s(%v)", OPNames[this.op], this.Names)
+}
+
+func (this *NodeFor) GetChild(i int) Node {
+	switch i {
+	case 0:
+		return this.ForExp
+	}
+	return nil
+}
+
+func (this *NodeFor) GetNumChildren() int {
+	if this.ForExp == nil {
+		return 0
+	}
+	return 1
+}
+
+// NodeIf
+type NodeIf struct {
+	baseNode
+	Exp       Node
+	Block     Node
+	ElseBlock Node
+}
+
+func (this *NodeIf) GetChild(i int) Node {
+	switch i {
+	case 0:
+		return this.Exp
+	case 1:
+		return this.Block
+	case 2:
+		return this.ElseBlock
+	}
+	return nil
+}
+
+func (this *NodeIf) GetNumChildren() int {
+	return 3
 }

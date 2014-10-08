@@ -44,6 +44,9 @@ const (
 	OP_FIELD   = OP(32)
 	OP_TABLE   = OP(33)
 	OP_ARRAY   = OP(34)
+	OP_FUNC    = OP(35)
+	OP_SELFM   = OP(36)
+	OP_CALL    = OP(37)
 )
 
 // type NILVALUE bool
@@ -64,7 +67,8 @@ var OPNames = []string{
 	"var", "and", "or", "=",
 	"if", "until", "while", "for", "for-in",
 	"not", "#", "-sign",
-	"member", "field", "table", "array",
+	"member", "field", "table", "array", "func",
+	"self-member", "call",
 }
 
 func toNode(yylex yyLexer, val *yySymType) (Node, error) {
@@ -151,6 +155,167 @@ func op2(yylex yyLexer, lval *yySymType, op OP, v1 *yySymType, v2 *yySymType) {
 	lval.value = r
 	if yyDebug >= 2 {
 		fmt.Println("op2 end: ", r, n1, n2)
+	}
+}
+
+func valNames(val *yySymType) string {
+	if val.value == nil {
+		return ""
+	}
+	return nodeNames(val.value.(Node))
+}
+
+func nodeNames(node Node) string {
+	if node == nil {
+		return ""
+	}
+	switch o := node.(type) {
+	case *Node0:
+		if o.op == OP_VAR || o.op == OP_VALUE {
+			if o.Value == nil {
+				return ""
+			}
+			return o.Value.(string)
+		}
+	case *Node2:
+		if o.op == OP_MEMBER {
+			n1 := nodeNames(o.Child1)
+			n2 := nodeNames(o.Child2)
+			return n1 + "." + n2
+		}
+		if o.op == OP_SELFM {
+			n1 := nodeNames(o.Child1)
+			n2 := nodeNames(o.Child2)
+			return n1 + ":" + n2
+		}
+	}
+	return ""
+}
+
+func bindFuncName(yylex yyLexer, fval *yySymType, n *yySymType, ns string) {
+	if fval.value == nil {
+		return
+	}
+	mname := ""
+	if n != nil {
+		ns = valNames(n)
+		if n.value != nil {
+			if node, ok := n.value.(*Node2); ok {
+				if node.op == OP_SELFM {
+					node.op = OP_MEMBER
+					mname = "self"
+				}
+			}
+		}
+	}
+	fnode := fval.value.(*NodeFunc)
+	fnode.Name = ns
+	if mname != "" {
+		tmp := fnode.Params
+		fnode.Params = make([]string, 1+len(tmp))
+		fnode.Params[0] = mname
+		for i, s := range tmp {
+			fnode.Params[i+1] = s
+		}
+	}
+}
+
+func opFunc(yylex yyLexer, lval *yySymType, par *yySymType, block *yySymType) {
+	var ns []string
+	if par.value != nil {
+		ns = par.value.([]string)
+	}
+
+	nb, err := toNode(yylex, block)
+	if err != nil {
+		yylex.Error(err.Error())
+		return
+	}
+
+	r := new(NodeFunc)
+	r.op = OP_FUNC
+	r.Params = ns
+	r.Block = nb
+
+	lval.op = OP_NONE
+	lval.value = r
+}
+
+func opFor(yylex yyLexer, lval *yySymType, op OP, v1 *yySymType, v2 *yySymType) {
+	n, err := toNode(yylex, v2)
+	if err != nil {
+		yylex.Error(err.Error())
+		return
+	}
+	var ns []string
+	if v1.value == nil {
+		ns = []string{v1.token.image}
+	} else {
+		ns = v1.value.([]string)
+	}
+	r := new(NodeFor)
+	r.op = op
+	r.Names = ns
+	r.ForExp = n
+	lval.op = OP_NONE
+	lval.value = r
+}
+
+func mergeIf(node *NodeIf, nes Node) {
+	if node.ElseBlock != nil {
+		cn := node.ElseBlock.(*NodeIf)
+		mergeIf(cn, nes)
+	} else {
+		node.ElseBlock = nes
+	}
+}
+
+func opIf(yylex yyLexer, lval *yySymType, exp *yySymType, x *yySymType, es *yySymType) {
+	if yyDebug >= 2 {
+		fmt.Println("opIf >> ", exp, x, es)
+	}
+	if exp != nil {
+		nexp, err1 := toNode(yylex, exp)
+		if err1 != nil {
+			yylex.Error(err1.Error())
+			return
+		}
+		nblock, err2 := toNode(yylex, x)
+		if err2 != nil {
+			yylex.Error(err2.Error())
+			return
+		}
+
+		r := new(NodeIf)
+		r.op = OP_IF
+		r.Exp = nexp
+		r.Block = nblock
+		lval.op = OP_NONE
+		lval.value = r
+		if yyDebug >= 2 {
+			fmt.Println("opIf end: ", "new if")
+		}
+	} else {
+		obj, err1 := toNode(yylex, x)
+		if err1 != nil {
+			yylex.Error(err1.Error())
+			return
+		}
+		nif, ok := obj.(*NodeIf)
+		if !ok {
+			return
+		}
+		nes, err2 := toNode(yylex, es)
+		if err2 != nil {
+			yylex.Error(err2.Error())
+			return
+		}
+		mergeIf(nif, nes)
+		lval.op = OP_NONE
+		lval.value = nif
+		if yyDebug >= 2 {
+			fmt.Println("opIf end: ", "merge else")
+		}
 	}
 }
 

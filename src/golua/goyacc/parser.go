@@ -65,7 +65,7 @@ const keywordStart = AND
 
 var keywords []string = []string{
 	"and", "break", "do",
-	"else", "elseif", "end",
+	"elseif", "else", "end",
 	"false", "for",
 	"function", "goto",
 	"if", "in", "local", "nil",
