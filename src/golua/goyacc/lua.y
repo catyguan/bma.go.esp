@@ -92,7 +92,7 @@ Cond:
 	Exp THEN Block { opIf(yylex, &$$, &$1, &$3, nil) }
 
 LastStat:
-	BREAK
+	BREAK { op0(yylex, &$$, OP_BREAK, &$1) }
 	| RETURN { op1(yylex, &$$, OP_RETURN, nil) }
 	| RETURN ExpList { op1(yylex, &$$,OP_RETURN, &$2) }
 
@@ -205,6 +205,7 @@ NameList:
 Arrayconstructor:
 	'[' ']' { op1(yylex, &$$, OP_ARRAY, nil) }
 	| '[' ExpList ']' { op1(yylex, &$$, OP_ARRAY, &$2) }
+	| '[' ExpList ',' ']' { op1(yylex, &$$, OP_ARRAY, &$2) }
 
 ExpList:
 	Exp { opExpList(yylex, &$$, &$1, nil) }
@@ -213,14 +214,12 @@ ExpList:
 Tableconstructor:
 	'{' '}' { op1(yylex, &$$, OP_TABLE, nil) }
 	| '{' FieldList '}' { op1(yylex, &$$, OP_TABLE, &$2) }
+	| '{' FieldList ',' '}' { op1(yylex, &$$, OP_TABLE, &$2) }
 
 FieldList:
 	Field
-	| FieldList FieldSP Field { opAppend(yylex, &$$, &$1, &$3) }
+	| FieldList ',' Field { opAppend(yylex, &$$, &$1, &$3) }
 
-FieldSP:
-	','
-            
 Field:
 	NAME '=' Exp { 
 		opValueExt(&$1, $1.token.image)

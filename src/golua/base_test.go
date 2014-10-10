@@ -26,7 +26,7 @@ func T2estVMAPI(t *testing.T) {
 		vm.API_push(1)
 		vm.API_push("hello world")
 		fmt.Println(vm.DumpStack())
-		err1 := vm.Call(2, 1)
+		_, err1 := vm.Call(2, 1)
 		if err1 != nil {
 			t.Error(err1)
 			return
@@ -46,7 +46,7 @@ func T2estVMAPI(t *testing.T) {
 		vm.API_push(f)
 		vm.API_push("test error")
 		fmt.Println(vm.DumpStack())
-		err1 := vm.Call(1, 0)
+		_, err1 := vm.Call(1, 0)
 		fmt.Println(vm.DumpStack())
 		fmt.Println(err1)
 	}

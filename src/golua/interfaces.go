@@ -5,22 +5,19 @@ type GoFunction interface {
 	String() string
 }
 
-type ACTRES int
+type supportFuncName interface {
+	FuncName() string
+}
+
+type ER int
 
 var (
-	ACTRES_ERROR    = ACTRES(0)
-	ACTRES_NEXT     = ACTRES(1)
-	ACTRES_BREAK    = ACTRES(2)
-	ACTRES_CONTINUE = ACTRES(3)
-	ACTRES_RETURN   = ACTRES(4)
+	ER_ERROR    = ER(0)
+	ER_NEXT     = ER(1)
+	ER_BREAK    = ER(2)
+	ER_CONTINUE = ER(3)
+	ER_RETURN   = ER(4)
 )
-
-type Action interface {
-	Line() int
-	Children() []Action
-	Process(vm *VM) (ACTRES, error)
-	String() string
-}
 
 type VMVar interface {
 	Get() (interface{}, error)

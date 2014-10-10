@@ -1,13 +1,6 @@
 package golua
 
-import (
-	"fmt"
-)
-
-func (this *VM) ActionError(act Action, err error) error {
-	this.stack.line = act.Line()
-	return err
-}
+import "fmt"
 
 func (this *VM) API_checkstack(n int) error {
 	st := this.stack
@@ -130,6 +123,21 @@ func (this *VM) API_pop1() (interface{}, error) {
 	return r1, nil
 }
 
+func (this *VM) API_pop1X(c int) interface{} {
+	st := this.stack
+	var r1 interface{}
+	for i := 0; i < c; i++ {
+		if st.stackTop >= 1 {
+			st.stackTop--
+			if i == 0 {
+				r1 = st.stack[st.stackTop]
+			}
+			st.stack[st.stackTop] = nil
+		}
+	}
+	return r1
+}
+
 func (this *VM) API_pop2() (interface{}, interface{}, error) {
 	st := this.stack
 	if 2 > st.stackTop {
@@ -209,6 +217,7 @@ func (this *VM) API_replace(idx int, v interface{}) error {
 	if err != nil {
 		return err
 	}
+	at--
 	this.stack.stack[at] = v
 	return nil
 }
@@ -229,13 +238,10 @@ func (this *VM) API_value(v interface{}) (interface{}, error) {
 
 func (this *VM) API_var(n string) VMVar {
 	st := this.stack
-	for st != nil {
-		if v, ok := st.local[n]; ok {
-			if vv, ok2 := v.(VMVar); ok2 {
-				return vv
-			}
+	if v, ok := st.local[n]; ok {
+		if vv, ok2 := v.(VMVar); ok2 {
+			return vv
 		}
-		st = st.parent
 	}
 	return &globalVar{this.vmg, n}
 }

@@ -46,7 +46,7 @@ func (this *VMG) CreateVM() (*VM, error) {
 		return nil, err
 	}
 	st := newVMStack(nil)
-	st.name = fmt.Sprintf("VM<%d>", vm.id)
+	st.chunkName = fmt.Sprintf("VM<%d>", vm.id)
 	vm.initStack(st)
 	logger.Debug(tag, "createVM -> %s", vm)
 	return vm, nil

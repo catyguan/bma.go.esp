@@ -2,7 +2,7 @@ package golua
 
 import (
 	"fmt"
-	"golua/goluaparser"
+	"golua/goyacc"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -33,41 +33,37 @@ func TestParserBuildRun(t *testing.T) {
 		// s = "a.b = 1 + 2 - 3"
 		// s = "function a(b, c) end"
 
-		p := goluaparser.NewLuaParser1(content)
-		fmt.Println("--------------- Parser ---------------")
-		node, err := p.Chunk()
-		if err != nil {
-			t.Error("ParseError", err)
-			return
-		}
-		goluaparser.DumpNode(node, "")
+		chunkName := f
 
-		builder := NewLuaBuilder()
-		builder.Tracable = true
-		fmt.Println("--------------- BUILD ---------------")
-		act, err2 := builder.Build(node, f)
-		if err2 != nil {
-			t.Error("BuildError", err2)
+		p := goyacc.NewParser(chunkName, content)
+		node, err := p.Parse()
+		if err != nil {
+			fmt.Println(content)
+			t.Error(err)
 			return
 		}
-		fmt.Println(">>> actions >>>>")
-		s2 := DumpActions(act, " ")
-		fmt.Println(s2)
+		fmt.Println("------------NODE---------------")
+		fmt.Println(goyacc.DumpNode("", node))
 
 		fmt.Println("--------------- RUN ---------------")
 		vmg := NewVMG("test")
 		vmg.SetGlobal("print", GOF_print(0))
 		vmg.SetGlobal("error", GOF_error(0))
 		defer vmg.Close()
+
+		chunk := NewChunk(chunkName, node)
+
 		vm, err3 := vmg.CreateVM()
 		if err3 != nil {
 			t.Error("create vm error", err3)
 			return
 		}
-		vm.API_push(act)
-		err4 := vm.Call(0, 1)
+		vm.EnableTrace(true)
+
+		vm.API_push(chunk)
+		_, err4 := vm.Call(0, 1)
 		if err4 != nil {
-			t.Error("call vm error", err4)
+			t.Error("vm call error", err4)
 			return
 		}
 		fmt.Println(vm.DumpStack())

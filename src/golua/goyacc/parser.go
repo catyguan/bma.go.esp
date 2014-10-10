@@ -25,7 +25,7 @@ func (this *Parser) Error3(err interface{}, l, c int) {
 	if this.err != nil {
 		return
 	}
-	this.err = fmt.Errorf("%s(%d:%d)", err, l, c)
+	this.err = fmt.Errorf("%s:%d,%d: %s", this.name, l, c, err)
 }
 
 func (this *Parser) Error2(err error, tk *yyToken) {
@@ -277,36 +277,25 @@ func (this *Parser) lex(lval *yySymType) int {
 		}
 		return this.fillToken(lval, int(ch), sp)
 	}
-	if ch < 0xFF {
-		for j, kw := range keywords {
-			if kw != "" && kw[0] == byte(ch) {
-				c1 := ch
-				m := true
-				for i, kch := range kw {
-					if c1 == kch {
-						c1, _ = this.stream.readChar()
-					} else {
-						m = false
-						this.stream.backup(i)
-						break
-					}
-				}
-				if m {
-					this.stream.backup(1)
-					return this.fillToken(lval, j+keywordStart, sp)
-				}
-			}
-		}
-	}
 
 	if isName(ch, true) {
 		for {
 			c1, _ := this.stream.readChar()
 			if !isName(c1, false) {
 				this.stream.backup(1)
-				return this.fillToken(lval, NAME, sp)
+				this.fillToken(lval, NAME, sp)
+				break
 			}
 		}
+		name := lval.token.image
+		for j, kw := range keywords {
+			if kw == name {
+				lval.token.kind = j + keywordStart
+				break
+			}
+		}
+		return lval.token.kind
 	}
+
 	return this.fillToken(lval, int(ch), sp)
 }

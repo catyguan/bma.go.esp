@@ -48,6 +48,7 @@ const (
 	OP_SELFM    = OP(36)
 	OP_CALL     = OP(37)
 	OPF_CLOSURE = OP(38)
+	OP_BREAK    = OP(39)
 )
 
 // type NILVALUE bool
@@ -70,6 +71,7 @@ var OPNames = []string{
 	"not", "#", "-sign",
 	"member", "field", "table", "array", "func",
 	"self-member", "call", "closure",
+	"break",
 }
 
 func toNode(yylex yyLexer, val *yySymType) (Node, error) {
@@ -98,6 +100,18 @@ func toNode(yylex yyLexer, val *yySymType) (Node, error) {
 	}
 	return nil, nil
 	// return nil, fmt.Errorf("unknow node(%d)", val.token.kind)
+}
+
+func op0(yylex yyLexer, lval *yySymType, op OP, v1 *yySymType) {
+	if yyDebug >= 2 {
+		fmt.Println("op0 >> ", op, v1)
+	}
+	r := new(Node0)
+	r.Bev(op, v1)
+	lval.Be(r)
+	if yyDebug >= 2 {
+		fmt.Println("op0 end: ", r)
+	}
 }
 
 func op1(yylex yyLexer, lval *yySymType, op OP, v1 *yySymType) {
