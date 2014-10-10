@@ -45,6 +45,7 @@ func (this *Parser) Parse() (Node, error) {
 	if this.err != nil {
 		return nil, this.err
 	}
+	execOptimize(this.chunk)
 	return this.chunk, nil
 }
 
@@ -71,7 +72,7 @@ var keywords []string = []string{
 	"if", "in", "local", "nil",
 	"not", "or", "return",
 	"repeat", "then", "true",
-	"until", "while",
+	"until", "while", "closure",
 }
 
 func (this *Parser) fillToken(lval *yySymType, k, p int) int {

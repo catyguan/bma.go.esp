@@ -9,44 +9,45 @@ import (
 type OP uint8
 
 const (
-	OP_NONE    = OP(0)
-	OP_VALUE   = OP(1)
-	OP_ADD     = OP(2)
-	OP_SUB     = OP(3)
-	OP_MUL     = OP(4)
-	OP_DIV     = OP(5)
-	OP_PMUL    = OP(6)
-	OP_MOD     = OP(7)
-	OP_LT      = OP(8)
-	OP_GT      = OP(9)
-	OP_LTEQ    = OP(10)
-	OP_GTEQ    = OP(11)
-	OP_EQ      = OP(12)
-	OP_NOTEQ   = OP(13)
-	OP_STRADD  = OP(14)
-	OP_RETURN  = OP(15)
-	OP_BLOCK   = OP(16)
-	OP_EXPLIST = OP(17)
-	OP_LOCAL   = OP(18)
-	OP_VAR     = OP(19)
-	OP_AND     = OP(20)
-	OP_OR      = OP(21)
-	OP_ASSIGN  = OP(22)
-	OP_IF      = OP(23)
-	OP_UNTIL   = OP(24)
-	OP_WHILE   = OP(25)
-	OP_FOR     = OP(26)
-	OP_FORIN   = OP(27)
-	OP_NOT     = OP(28)
-	OP_LEN     = OP(29)
-	OP_NSIGN   = OP(30)
-	OP_MEMBER  = OP(31)
-	OP_FIELD   = OP(32)
-	OP_TABLE   = OP(33)
-	OP_ARRAY   = OP(34)
-	OP_FUNC    = OP(35)
-	OP_SELFM   = OP(36)
-	OP_CALL    = OP(37)
+	OP_NONE     = OP(0)
+	OP_VALUE    = OP(1)
+	OP_ADD      = OP(2)
+	OP_SUB      = OP(3)
+	OP_MUL      = OP(4)
+	OP_DIV      = OP(5)
+	OP_PMUL     = OP(6)
+	OP_MOD      = OP(7)
+	OP_LT       = OP(8)
+	OP_GT       = OP(9)
+	OP_LTEQ     = OP(10)
+	OP_GTEQ     = OP(11)
+	OP_EQ       = OP(12)
+	OP_NOTEQ    = OP(13)
+	OP_STRADD   = OP(14)
+	OP_RETURN   = OP(15)
+	OP_BLOCK    = OP(16)
+	OP_EXPLIST  = OP(17)
+	OP_LOCAL    = OP(18)
+	OP_VAR      = OP(19)
+	OP_AND      = OP(20)
+	OP_OR       = OP(21)
+	OP_ASSIGN   = OP(22)
+	OP_IF       = OP(23)
+	OP_UNTIL    = OP(24)
+	OP_WHILE    = OP(25)
+	OP_FOR      = OP(26)
+	OP_FORIN    = OP(27)
+	OP_NOT      = OP(28)
+	OP_LEN      = OP(29)
+	OP_NSIGN    = OP(30)
+	OP_MEMBER   = OP(31)
+	OP_FIELD    = OP(32)
+	OP_TABLE    = OP(33)
+	OP_ARRAY    = OP(34)
+	OP_FUNC     = OP(35)
+	OP_SELFM    = OP(36)
+	OP_CALL     = OP(37)
+	OPF_CLOSURE = OP(38)
 )
 
 // type NILVALUE bool
@@ -68,7 +69,7 @@ var OPNames = []string{
 	"if", "until", "while", "for", "for-in",
 	"not", "#", "-sign",
 	"member", "field", "table", "array", "func",
-	"self-member", "call",
+	"self-member", "call", "closure",
 }
 
 func toNode(yylex yyLexer, val *yySymType) (Node, error) {
@@ -77,7 +78,7 @@ func toNode(yylex yyLexer, val *yySymType) (Node, error) {
 	}
 	if val.op == OP_VALUE {
 		r := new(Node0)
-		r.op = OP_VALUE
+		r.Bev(OP_VALUE, val)
 		r.Value = val.value
 		return r, nil
 	}
@@ -89,7 +90,7 @@ func toNode(yylex yyLexer, val *yySymType) (Node, error) {
 	if val.op == OP_NONE {
 		if val.token.kind == NAME {
 			r := new(Node0)
-			r.op = OP_VAR
+			r.Bev(OP_VAR, val)
 			r.Value = val.token.image
 			return r, nil
 		}
@@ -109,10 +110,9 @@ func op1(yylex yyLexer, lval *yySymType, op OP, v1 *yySymType) {
 		return
 	}
 	r := new(Node1)
-	r.op = op
+	r.Bev(op, v1)
 	r.Child = n1
-	lval.op = OP_NONE
-	lval.value = r
+	lval.Be(r)
 	if yyDebug >= 2 {
 		fmt.Println("op1 end: ", r)
 	}
@@ -148,11 +148,10 @@ func op2(yylex yyLexer, lval *yySymType, op OP, v1 *yySymType, v2 *yySymType) {
 		return
 	}
 	r := new(Node2)
-	r.op = op
+	r.Bev2(op, v1, v2)
 	r.Child1 = n1
 	r.Child2 = n2
-	lval.op = OP_NONE
-	lval.value = r
+	lval.Be(r)
 	if yyDebug >= 2 {
 		fmt.Println("op2 end: ", r, n1, n2)
 	}
@@ -222,8 +221,24 @@ func bindFuncName(yylex yyLexer, fval *yySymType, n *yySymType, ns string) {
 
 func opFunc(yylex yyLexer, lval *yySymType, par *yySymType, block *yySymType) {
 	var ns []string
+	var cs []string
 	if par.value != nil {
-		ns = par.value.([]string)
+		tmp := par.value.([]string)
+		for _, name := range tmp {
+			if strings.HasPrefix(name, "$") {
+				if cs == nil {
+					cs = []string{name[1:]}
+				} else {
+					cs = append(cs, name[1:])
+				}
+			} else {
+				if ns == nil {
+					ns = []string{name}
+				} else {
+					ns = append(ns, name)
+				}
+			}
+		}
 	}
 
 	nb, err := toNode(yylex, block)
@@ -233,12 +248,12 @@ func opFunc(yylex yyLexer, lval *yySymType, par *yySymType, block *yySymType) {
 	}
 
 	r := new(NodeFunc)
-	r.op = OP_FUNC
+	r.Bev2(OP_FUNC, par, block)
 	r.Params = ns
+	r.CVars = cs
 	r.Block = nb
 
-	lval.op = OP_NONE
-	lval.value = r
+	lval.Be(r)
 }
 
 func opFor(yylex yyLexer, lval *yySymType, op OP, v1 *yySymType, v2 *yySymType) {
@@ -254,11 +269,26 @@ func opFor(yylex yyLexer, lval *yySymType, op OP, v1 *yySymType, v2 *yySymType) 
 		ns = v1.value.([]string)
 	}
 	r := new(NodeFor)
-	r.op = op
+	r.Bev2(op, v1, v2)
 	r.Names = ns
 	r.ForExp = n
-	lval.op = OP_NONE
-	lval.value = r
+	lval.Be(r)
+}
+
+func opForBind(yylex yyLexer, lval *yySymType, v1 *yySymType, v2 *yySymType) {
+	n1, err1 := toNode(yylex, v1)
+	if err1 != nil {
+		yylex.Error(err1.Error())
+		return
+	}
+	n2, err2 := toNode(yylex, v2)
+	if err2 != nil {
+		yylex.Error(err2.Error())
+		return
+	}
+	n := n1.(*NodeFor)
+	n.Block = n2
+	lval.Be(n)
 }
 
 func mergeIf(node *NodeIf, nes Node) {
@@ -287,11 +317,10 @@ func opIf(yylex yyLexer, lval *yySymType, exp *yySymType, x *yySymType, es *yySy
 		}
 
 		r := new(NodeIf)
-		r.op = OP_IF
+		r.Bev(OP_IF, exp)
 		r.Exp = nexp
 		r.Block = nblock
-		lval.op = OP_NONE
-		lval.value = r
+		lval.Be(r)
 		if yyDebug >= 2 {
 			fmt.Println("opIf end: ", "new if")
 		}
@@ -311,8 +340,7 @@ func opIf(yylex yyLexer, lval *yySymType, exp *yySymType, x *yySymType, es *yySy
 			return
 		}
 		mergeIf(nif, nes)
-		lval.op = OP_NONE
-		lval.value = nif
+		lval.Be(nif)
 		if yyDebug >= 2 {
 			fmt.Println("opIf end: ", "merge else")
 		}
@@ -342,16 +370,14 @@ func doOpAppend(yylex yyLexer, lval *yySymType, v1 *yySymType, v2 *yySymType, op
 		return
 	}
 	if n1 == nil {
-		lval.op = OP_NONE
-		lval.value = n2
+		lval.Be(n2)
 		if yyDebug >= 2 {
 			fmt.Println("opAppend end: nil, n2", n2)
 		}
 		return
 	}
 	if n2 == nil {
-		lval.op = OP_NONE
-		lval.value = n1
+		lval.Be(n1)
 		if yyDebug >= 2 {
 			fmt.Println("opAppend end: n1, nil", n1)
 		}
@@ -360,15 +386,14 @@ func doOpAppend(yylex yyLexer, lval *yySymType, v1 *yySymType, v2 *yySymType, op
 	nn1, ok1 := n1.(*NodeN)
 	if !ok1 {
 		tmp := new(NodeN)
-		tmp.op = op
+		tmp.Be(op, n1.GetLine())
 		tmp.Childs = []Node{n1}
 		nn1 = tmp
 		if yyDebug >= 2 {
 			fmt.Println("opAppend new block")
 		}
 	}
-	lval.op = OP_NONE
-	lval.value = nn1
+	lval.Be(nn1)
 	if nn2, ok2 := n2.(*NodeN); ok2 {
 		if op == OP_BLOCK && nn2.op == OP_BLOCK {
 			for _, cn := range nn2.Childs {
@@ -402,7 +427,7 @@ func opLocal(yylex yyLexer, lval *yySymType, nsval *yySymType, expl *yySymType) 
 		ns = nsval.value.([]string)
 	}
 	r := new(NodeLocal)
-	r.op = OP_LOCAL
+	r.Bev(OP_LOCAL, nsval)
 	r.Names = ns
 	r.ExpList = n
 	lval.op = OP_NONE
@@ -412,16 +437,34 @@ func opLocal(yylex yyLexer, lval *yySymType, nsval *yySymType, expl *yySymType) 
 	}
 }
 
+func opClosure(yylex yyLexer, lval *yySymType, nsval *yySymType) {
+	if yyDebug >= 2 {
+		fmt.Println("opClosure", nsval)
+	}
+	var ns []string
+	if nsval.value == nil {
+		ns = []string{nsval.token.image}
+	} else {
+		ns = nsval.value.([]string)
+	}
+	r := new(Node0)
+	r.Bev(OPF_CLOSURE, nsval)
+	r.Value = ns
+	lval.Be(r)
+	if yyDebug >= 2 {
+		fmt.Println("opClosure end: ", r)
+	}
+}
+
 func opFlag(lval *yySymType, op OP) {
 	lval.op = op
 }
 
 func opVar(lval *yySymType, val1 *yySymType) {
 	r := new(Node0)
-	r.op = OP_VAR
+	r.Bev(OP_VAR, val1)
 	r.Value = val1.token.image
-	lval.op = OP_NONE
-	lval.value = r
+	lval.Be(r)
 }
 
 func opValueExt(lval *yySymType, v interface{}) {
@@ -429,8 +472,7 @@ func opValueExt(lval *yySymType, v interface{}) {
 	r.op = OP_VALUE
 	r.Value = v
 
-	lval.op = OP_NONE
-	lval.value = r
+	lval.Be(r)
 }
 
 func opValue(yylex yyLexer, lval *yySymType) {
@@ -503,8 +545,7 @@ func nameAppend(yylex yyLexer, lval *yySymType, val1 *yySymType, val2 *yySymType
 			}
 		}
 	}
-	lval.op = OP_NONE
-	lval.value = ns
+	lval.Be(ns)
 	if yyDebug >= 2 {
 		fmt.Println("nameAppend end: ", ns)
 	}
@@ -521,4 +562,50 @@ func endChunk(yylex yyLexer, lval *yySymType) {
 	}
 	p := yylex.(*Parser)
 	p.chunk = n
+}
+
+func walk(node Node, f func(n Node) bool) bool {
+	c := node.GetNumChildren()
+	for i := 0; i < c; i++ {
+		cn := node.GetChild(i)
+		if cn != nil {
+			if !f(cn) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func execOptimize(node Node) bool {
+	walk(node, execOptimize)
+
+	if node.GetOp() == OP_FUNC {
+		tmp := make(map[string]bool)
+		var wf func(n Node) bool
+		wf = func(cn Node) bool {
+			if cn.GetOp() == OP_FUNC {
+				return false
+			}
+			if cn.GetOp() == OPF_CLOSURE {
+				ns := cn.(*Node0).Value.([]string)
+				for _, name := range ns {
+					tmp[name] = true
+				}
+			}
+			return walk(cn, wf)
+		}
+		walk(node, wf)
+
+		fnode := node.(*NodeFunc)
+		for name, _ := range tmp {
+			if fnode.CVars == nil {
+				fnode.CVars = []string{name}
+			} else {
+				fnode.CVars = append(fnode.CVars, name)
+			}
+		}
+	}
+
+	return true
 }

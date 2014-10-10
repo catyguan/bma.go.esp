@@ -25,6 +25,7 @@ package goyacc
 %token TRUE
 %token UNTIL
 %token WHILE
+%token CLOSURE
 
 %token NUMBER
 %token STRING
@@ -65,7 +66,7 @@ Stat:
 	Binding
 	| DO Block END { $$ = $2 }
 	| WHILE Exp DO Block END { op2(yylex, &$$, OP_WHILE, &$2, &$4) }
-	| Repetition DO Block END
+	| Repetition DO Block END { opForBind(yylex, &$$, &$1, &$3) }
 	| REPEAT UBlock { $$ = $2 }
 	| IF Conds END { $$ = $2 }
 	| FUNCTION FuncName FuncBody {
@@ -104,6 +105,7 @@ Binding:
 		nameAppend(yylex, &tmp, &$3, nil)		
 		opLocal(yylex, &$$, &tmp, &$4)
 	}
+	| CLOSURE '(' NameList ')' { opClosure(yylex, &$$, &$3) }
 
 SetList:
 	Var

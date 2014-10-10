@@ -20,6 +20,11 @@ type yySymType struct {
 	value interface{}
 }
 
+func (this *yySymType) Be(val interface{}) {
+	this.op = OP_NONE
+	this.value = val
+}
+
 type Node interface {
 	/** This method returns a child node.  The children are numbered
 	  from zero, left to right. */
@@ -30,11 +35,39 @@ type Node interface {
 
 	GetOp() OP
 
+	GetLine() int
+
 	String() string
 }
 
 type baseNode struct {
-	op OP
+	op   OP
+	Line int
+}
+
+func (this *baseNode) Be(op OP, line int) {
+	this.op = op
+	this.Line = line
+}
+
+func (this *baseNode) Bev(op OP, v *yySymType) {
+	this.op = op
+	if v != nil {
+		this.Line = v.token.line
+	}
+}
+
+func (this *baseNode) Bev2(op OP, v1 *yySymType, v2 *yySymType) {
+	this.op = op
+	if v1 != nil {
+		this.Line = v1.token.line
+	} else if v2 != nil {
+		this.Line = v2.token.line
+	}
+}
+
+func (this *baseNode) GetLine() int {
+	return this.Line
 }
 
 func (this *baseNode) GetOp() OP {
@@ -194,7 +227,7 @@ type NodeFunc struct {
 }
 
 func (this *NodeFunc) String() string {
-	return fmt.Sprintf("func(%v, %v)", this.Name, this.Params)
+	return fmt.Sprintf("func(%v, %v, %v)", this.Name, this.Params, this.CVars)
 }
 
 func (this *NodeFunc) GetChild(i int) Node {
@@ -217,6 +250,7 @@ type NodeFor struct {
 	baseNode
 	Names  []string
 	ForExp Node
+	Block  Node
 }
 
 func (this *NodeFor) String() string {
@@ -227,15 +261,14 @@ func (this *NodeFor) GetChild(i int) Node {
 	switch i {
 	case 0:
 		return this.ForExp
+	case 1:
+		return this.Block
 	}
 	return nil
 }
 
 func (this *NodeFor) GetNumChildren() int {
-	if this.ForExp == nil {
-		return 0
-	}
-	return 1
+	return 2
 }
 
 // NodeIf
