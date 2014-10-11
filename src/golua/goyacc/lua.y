@@ -78,7 +78,7 @@ Stat:
 
 Repetition:
 	FOR NAME '=' ExpList { opFor(yylex, &$$, OP_FOR, &$2, &$4)	}
-	| FOR NameList IN ExpList { opFor(yylex, &$$, OP_FORIN, &$2, &$4)	}
+	| FOR Name2 IN ExpList { opFor(yylex, &$$, OP_FORIN, &$2, &$4)	}
 
 Conds:
  	CondList
@@ -173,6 +173,7 @@ PrefixExp:
 FuncCall:
 	PrefixExp Args { op2(yylex, &$$, OP_CALL, &$1, &$2) }
 	| PrefixExp ':' NAME Args {
+		opValueExt(&$3, $3.token.image)
 		var tmp yySymType
 		op2(yylex, &tmp, OP_SELFM, &$1, &$3)
 		op2(yylex, &$$, OP_CALL, &tmp, &$4)
@@ -197,6 +198,10 @@ ParDefList:
 	| NameList "," MORE { nameAppend(yylex, &$$, &$1, &$3) }
 	|
 	;
+
+Name2:
+	NAME { nameAppend(yylex, &$$, &$1, nil) }
+	| NAME "," NAME { nameAppend(yylex, &$$, &$1, &$3) }
 
 NameList:
 	NAME { nameAppend(yylex, &$$, &$1, nil) }

@@ -2,11 +2,11 @@ package golua
 
 type GoFunction interface {
 	Exec(vm *VM) (int, error)
-	String() string
+	IsNative() bool
 }
 
 type supportFuncName interface {
-	FuncName() string
+	FuncName() (string, string)
 }
 
 type ER int
@@ -20,6 +20,6 @@ var (
 )
 
 type VMVar interface {
-	Get() (interface{}, error)
-	Set(v interface{}) (bool, error)
+	Get(vm *VM) (interface{}, error)
+	Set(vm *VM, v interface{}) (bool, error)
 }

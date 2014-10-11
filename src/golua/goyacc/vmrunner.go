@@ -32,7 +32,7 @@ func ExecNumberType(val interface{}) NumberType {
 		return 128
 	case int64, uint64:
 		return 64
-	case int8, uint8, int16, uint16, int32, uint32:
+	case int8, uint8, int16, uint16, int32, uint32, int, uint:
 		return 32
 	default:
 		return 0
@@ -52,9 +52,9 @@ func ExecOp2(op OP, val1 interface{}, val2 interface{}) (bool, interface{}, erro
 		switch nt {
 		case 128:
 			return true, nt.ToFloat64(val1) + nt.ToFloat64(val2), nil
-		case 64:
-			return true, nt.ToInt32(val1) + nt.ToInt32(val2), nil
 		case 32:
+			return true, nt.ToInt32(val1) + nt.ToInt32(val2), nil
+		case 64:
 			return true, nt.ToInt64(val1) + nt.ToInt64(val2), nil
 		default:
 			return false, nil, fmt.Errorf("invalid %v + %v", val1, val2)
@@ -63,9 +63,9 @@ func ExecOp2(op OP, val1 interface{}, val2 interface{}) (bool, interface{}, erro
 		switch nt {
 		case 128:
 			return true, nt.ToFloat64(val1) - nt.ToFloat64(val2), nil
-		case 64:
-			return true, nt.ToInt32(val1) - nt.ToInt32(val2), nil
 		case 32:
+			return true, nt.ToInt32(val1) - nt.ToInt32(val2), nil
+		case 64:
 			return true, nt.ToInt64(val1) - nt.ToInt64(val2), nil
 		default:
 			return false, nil, fmt.Errorf("invalid %v - %v", val1, val2)
@@ -74,9 +74,9 @@ func ExecOp2(op OP, val1 interface{}, val2 interface{}) (bool, interface{}, erro
 		switch nt {
 		case 128:
 			return true, nt.ToFloat64(val1) * nt.ToFloat64(val2), nil
-		case 64:
-			return true, nt.ToInt32(val1) * nt.ToInt32(val2), nil
 		case 32:
+			return true, nt.ToInt32(val1) * nt.ToInt32(val2), nil
+		case 64:
 			return true, nt.ToInt64(val1) * nt.ToInt64(val2), nil
 		default:
 			return false, nil, fmt.Errorf("invalid %v * %v", val1, val2)
@@ -89,13 +89,13 @@ func ExecOp2(op OP, val1 interface{}, val2 interface{}) (bool, interface{}, erro
 				return false, nil, fmt.Errorf("div zero(%v)", val2)
 			}
 			return true, nt.ToFloat64(val1) + v, nil
-		case 64:
+		case 32:
 			v := nt.ToInt32(val2)
 			if v == 0 {
 				return false, nil, fmt.Errorf("div zero(%v)", val2)
 			}
 			return true, nt.ToInt32(val1) + v, nil
-		case 32:
+		case 64:
 			v := nt.ToInt64(val2)
 			if v == 0 {
 				return true, nil, fmt.Errorf("div zero(%v)", val2)
@@ -106,18 +106,18 @@ func ExecOp2(op OP, val1 interface{}, val2 interface{}) (bool, interface{}, erro
 		}
 	case OP_PMUL:
 		switch nt {
-		case 64:
-			return true, nt.ToInt32(val1) ^ nt.ToInt32(val2), nil
 		case 32:
+			return true, nt.ToInt32(val1) ^ nt.ToInt32(val2), nil
+		case 64:
 			return true, nt.ToInt64(val1) ^ nt.ToInt64(val2), nil
 		default:
 			return false, nil, fmt.Errorf("invalid %v ^ %v", val1, val2)
 		}
 	case OP_MOD:
 		switch nt {
-		case 64:
-			return true, nt.ToInt32(val1) % nt.ToInt32(val2), nil
 		case 32:
+			return true, nt.ToInt32(val1) % nt.ToInt32(val2), nil
+		case 64:
 			return true, nt.ToInt64(val1) % nt.ToInt64(val2), nil
 		default:
 			return false, nil, fmt.Errorf("invalid %v % %v", val1, val2)
@@ -152,9 +152,9 @@ func ExecOp2(op OP, val1 interface{}, val2 interface{}) (bool, interface{}, erro
 		switch nt {
 		case 128:
 			return true, nt.ToFloat64(val1) < nt.ToFloat64(val2), nil
-		case 64:
-			return true, nt.ToInt32(val1) < nt.ToInt32(val2), nil
 		case 32:
+			return true, nt.ToInt32(val1) < nt.ToInt32(val2), nil
+		case 64:
 			return true, nt.ToInt64(val1) < nt.ToInt64(val2), nil
 		default:
 			return false, nil, fmt.Errorf("invalid %v < %v", val1, val2)
@@ -163,9 +163,9 @@ func ExecOp2(op OP, val1 interface{}, val2 interface{}) (bool, interface{}, erro
 		switch nt {
 		case 128:
 			return true, nt.ToFloat64(val1) <= nt.ToFloat64(val2), nil
-		case 64:
-			return true, nt.ToInt32(val1) <= nt.ToInt32(val2), nil
 		case 32:
+			return true, nt.ToInt32(val1) <= nt.ToInt32(val2), nil
+		case 64:
 			return true, nt.ToInt64(val1) <= nt.ToInt64(val2), nil
 		default:
 			return false, nil, fmt.Errorf("invalid %v <= %v", val1, val2)
@@ -174,9 +174,9 @@ func ExecOp2(op OP, val1 interface{}, val2 interface{}) (bool, interface{}, erro
 		switch nt {
 		case 128:
 			return true, nt.ToFloat64(val1) > nt.ToFloat64(val2), nil
-		case 64:
-			return true, nt.ToInt32(val1) > nt.ToInt32(val2), nil
 		case 32:
+			return true, nt.ToInt32(val1) > nt.ToInt32(val2), nil
+		case 64:
 			return true, nt.ToInt64(val1) > nt.ToInt64(val2), nil
 		default:
 			return false, nil, fmt.Errorf("invalid %v > %v", val1, val2)
@@ -185,9 +185,9 @@ func ExecOp2(op OP, val1 interface{}, val2 interface{}) (bool, interface{}, erro
 		switch nt {
 		case 128:
 			return true, nt.ToFloat64(val1) >= nt.ToFloat64(val2), nil
-		case 64:
-			return true, nt.ToInt32(val1) >= nt.ToInt32(val2), nil
 		case 32:
+			return true, nt.ToInt32(val1) >= nt.ToInt32(val2), nil
+		case 64:
 			return true, nt.ToInt64(val1) >= nt.ToInt64(val2), nil
 		default:
 			return false, nil, fmt.Errorf("invalid %v >= %v", val1, val2)
@@ -218,9 +218,9 @@ func ExecOp2(op OP, val1 interface{}, val2 interface{}) (bool, interface{}, erro
 		switch nt {
 		case 128:
 			r = nt.ToFloat64(val1) == nt.ToFloat64(val2)
-		case 64:
-			r = nt.ToInt32(val1) == nt.ToInt32(val2)
 		case 32:
+			r = nt.ToInt32(val1) == nt.ToInt32(val2)
+		case 64:
 			r = nt.ToInt64(val1) == nt.ToInt64(val2)
 		default:
 			return false, nil, fmt.Errorf("invalid %v == %v", val1, val2)

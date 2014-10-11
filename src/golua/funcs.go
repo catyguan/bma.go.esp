@@ -30,6 +30,10 @@ func (this GOF_print) Exec(vm *VM) (int, error) {
 	return 0, nil
 }
 
+func (this GOF_print) IsNative() bool {
+	return true
+}
+
 func (this GOF_print) String() string {
 	return "GoFunc<print>"
 }
@@ -55,6 +59,10 @@ func (this GOF_error) Exec(vm *VM) (int, error) {
 	}
 	vm.API_pop(top)
 	return 0, errors.New(buf.String())
+}
+
+func (this GOF_error) IsNative() bool {
+	return true
 }
 
 func (this GOF_error) String() string {

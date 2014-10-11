@@ -231,7 +231,7 @@ func (this *VM) API_value(v interface{}) (interface{}, error) {
 		return nil, nil
 	}
 	if a, ok := v.(VMVar); ok {
-		return a.Get()
+		return a.Get(this)
 	}
 	return v, nil
 }
@@ -243,7 +243,7 @@ func (this *VM) API_var(n string) VMVar {
 			return vv
 		}
 	}
-	return &globalVar{this.vmg, n}
+	return &globalVar{n}
 }
 
 func (this *VM) API_peek(idx int) (interface{}, error) {
@@ -253,4 +253,19 @@ func (this *VM) API_peek(idx int) (interface{}, error) {
 	}
 	at--
 	return this.stack.stack[at], nil
+}
+
+func (this *VM) API_createLocal(n string, val interface{}) {
+	this.stack.createLocal(this, n, val)
+}
+
+func (this *VM) API_findVar(n string) VMVar {
+	st := this.stack
+	for st != nil {
+		if va, ok := st.local[n]; ok {
+			return va
+		}
+		st = st.parent
+	}
+	return nil
 }

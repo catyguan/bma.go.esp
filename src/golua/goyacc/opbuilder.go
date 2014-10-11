@@ -49,6 +49,7 @@ const (
 	OP_CALL     = OP(37)
 	OPF_CLOSURE = OP(38)
 	OP_BREAK    = OP(39)
+	OP_CONTINUE = OP(40)
 )
 
 // type NILVALUE bool
@@ -71,7 +72,7 @@ var OPNames = []string{
 	"not", "#", "-sign",
 	"member", "field", "table", "array", "func",
 	"self-member", "call", "closure",
-	"break",
+	"break", "continue",
 }
 
 func toNode(yylex yyLexer, val *yySymType) (Node, error) {

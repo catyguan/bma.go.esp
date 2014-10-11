@@ -37,6 +37,10 @@ func (this *VM) Id() uint32 {
 	return this.id
 }
 
+func (this *VM) GetVMG() *VMG {
+	return this.vmg
+}
+
 func (this *VM) String() string {
 	return fmt.Sprintf("VM(%s:%d)", this.vmg.name, this.id)
 }

@@ -26,19 +26,20 @@ func newVMStack(p *VMStack) *VMStack {
 
 func (this *VMStack) String() string {
 	buf := bytes.NewBuffer(make([]byte, 0, 64))
-	if this.chunkName != "" {
-		buf.WriteString(this.chunkName)
-		if this.line > 0 {
-			buf.WriteString(fmt.Sprintf(":%d", this.line))
-		}
-		if this.funcName != "" {
-			buf.WriteString(" ")
-			buf.WriteString(this.funcName)
-		}
-	} else if this.gof != nil {
-		buf.WriteString(this.gof.String())
+	if this.gof != nil && this.gof.IsNative() {
+		buf.WriteString(fmt.Sprintf("%v", this.gof))
 	} else {
-		buf.WriteString("<unknow>")
+		if this.chunkName != "" {
+			buf.WriteString(this.chunkName)
+			if this.line > 0 {
+				buf.WriteString(fmt.Sprintf(":%d", this.line))
+			}
+			if this.funcName != "" {
+				buf.WriteString(fmt.Sprintf(" %s(...)", this.funcName))
+			}
+		} else {
+			buf.WriteString("<unknow>")
+		}
 	}
 	return buf.String()
 }
@@ -67,11 +68,13 @@ func (this *VMStack) clear() {
 	this.local = nil
 }
 
-func (this *VMStack) createLocal(n string, val interface{}) {
+func (this *VMStack) createLocal(vm *VM, n string, val interface{}) {
 	va, ok := this.local[n]
 	if !ok {
-		va = new(localVar)
+		if va == nil {
+			va = new(localVar)
+		}
 		this.local[n] = va
 	}
-	va.Set(val)
+	va.Set(vm, val)
 }
