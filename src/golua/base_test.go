@@ -8,7 +8,7 @@ import (
 type GOF_test int
 
 func (this GOF_test) Exec(vm *VM) (int, error) {
-	v1, v2, err := vm.API_pop2()
+	v1, v2, err := vm.API_pop2(true)
 	if err != nil {
 		return 0, err
 	}
@@ -69,7 +69,7 @@ func T2estVMAPI(t *testing.T) {
 			return
 		}
 		fmt.Println(vm.DumpStack())
-		r, err2 := vm.API_pop1()
+		r, err2 := vm.API_pop1(true)
 		if err2 != nil {
 			t.Error(err2)
 			return

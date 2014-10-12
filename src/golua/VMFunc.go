@@ -22,7 +22,7 @@ func (this *VMFunc) IsNative() bool {
 
 func (this *VMFunc) Exec(vm *VM) (int, error) {
 	top := vm.API_gettop()
-	vs, _ := vm.API_popN(top)
+	vs, _ := vm.API_popN(top, true)
 	ns := this.node.Params
 
 	st := vm.stack

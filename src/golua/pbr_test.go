@@ -67,7 +67,7 @@ func TestParserBuildRun(t *testing.T) {
 			return
 		}
 		fmt.Println(vm.DumpStack())
-		rval, err5 := vm.API_pop1()
+		rval, err5 := vm.API_pop1(true)
 		if err5 != nil {
 			t.Error("pop error", err5)
 			return

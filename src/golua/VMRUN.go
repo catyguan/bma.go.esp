@@ -208,7 +208,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			if er1 != ER_NEXT {
 				return r1, er1, err1
 			}
-			v, err2 := this.API_value(this.API_pop1X(r1))
+			v, err2 := this.API_pop1X(r1, true)
 			if err2 != nil {
 				return 0, ER_ERROR, this.codeError(node, err2)
 			}
@@ -220,7 +220,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			if er1 != ER_NEXT {
 				return r1, er1, err1
 			}
-			v, err2 := this.API_value(this.API_pop1X(r1))
+			v, err2 := this.API_pop1X(r1, true)
 			if err2 != nil {
 				return 0, ER_ERROR, this.codeError(node, err2)
 			}
@@ -238,7 +238,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			if er1 != ER_NEXT {
 				return r1, er1, err1
 			}
-			v, err2 := this.API_value(this.API_pop1X(r1))
+			v, err2 := this.API_pop1X(r1, true)
 			if err2 != nil {
 				return 0, ER_ERROR, this.codeError(node, err2)
 			}
@@ -271,7 +271,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			if er1 != ER_NEXT {
 				return r1, er1, err1
 			}
-			val, err2 := this.API_popN(r1)
+			val, err2 := this.API_popN(r1, true)
 			if err2 != nil {
 				return 0, ER_ERROR, err2
 			}
@@ -285,10 +285,9 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			if r1 > 0 {
 				pos := this.API_absindex(-r1)
 				for i := 0; i < r1; i++ {
-					v, _ := this.API_peek(pos + i)
-					v, err1 = this.API_value(v)
-					if err1 != nil {
-						return r1, ER_ERROR, this.codeError(node, err1)
+					v, err2 := this.API_peek(pos+i, true)
+					if err2 != nil {
+						return r1, ER_ERROR, this.codeError(node, err2)
 					}
 					this.API_replace(pos+i, v)
 				}
@@ -305,7 +304,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			if er1 != ER_NEXT {
 				return r1, er1, err1
 			}
-			v1, err12 := this.API_value(this.API_pop1X(r1))
+			v1, err12 := this.API_pop1X(r1, true)
 			if err12 != nil {
 				return 0, ER_ERROR, this.codeError(node, err12)
 			}
@@ -314,7 +313,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			if er2 != ER_NEXT {
 				return r2, er2, err2
 			}
-			v2, err22 := this.API_value(this.API_pop1X(r2))
+			v2, err22 := this.API_pop1X(r2, true)
 			if err22 != nil {
 				return 0, ER_ERROR, this.codeError(node, err22)
 			}
@@ -349,11 +348,11 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 				return r1 + r2, er2, err2
 			}
 
-			vs, err3 := this.API_popN(r2)
+			vs, err3 := this.API_popN(r2, true)
 			if err3 != nil {
 				return 0, ER_ERROR, this.codeError(node, err3)
 			}
-			vas, err4 := this.API_popN(r1)
+			vas, err4 := this.API_popN(r1, false)
 			if err4 != nil {
 				return 0, ER_ERROR, this.codeError(node, err4)
 			}
@@ -387,13 +386,13 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 				default:
 					return r1, er1, err1
 				}
-				this.API_popN(r1)
+				this.API_pop(r1)
 
 				r2, er2, err2 := this.runCode(n.Child2)
 				if er2 != ER_NEXT {
 					return r2, er2, err2
 				}
-				v2, err22 := this.API_value(this.API_pop1X(r2))
+				v2, err22 := this.API_pop1X(r2, true)
 				if err22 != nil {
 					return 0, ER_ERROR, this.codeError(node, err22)
 				}
@@ -408,7 +407,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 				if er1 != ER_NEXT {
 					return r1, er1, err1
 				}
-				v1, err12 := this.API_value(this.API_pop1X(r1))
+				v1, err12 := this.API_pop1X(r1, true)
 				if err12 != nil {
 					return 0, ER_ERROR, this.codeError(node, err12)
 				}
@@ -424,7 +423,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 				default:
 					return r2, er1, err2
 				}
-				this.API_popN(r2)
+				this.API_pop(r2)
 			}
 			return 0, ER_NEXT, nil
 		case goyacc.OP_FIELD:
@@ -432,7 +431,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			if er1 != ER_NEXT {
 				return r1, er1, err1
 			}
-			v1, err12 := this.API_value(this.API_pop1X(r1))
+			v1, err12 := this.API_pop1X(r1, true)
 			if err12 != nil {
 				return 0, ER_ERROR, this.codeError(node, err12)
 			}
@@ -442,12 +441,12 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			if er2 != ER_NEXT {
 				return r2, er2, err2
 			}
-			v2, err22 := this.API_value(this.API_pop1X(r2))
+			v2, err22 := this.API_pop1X(r2, true)
 			if err22 != nil {
 				return 0, ER_ERROR, this.codeError(node, err22)
 			}
 
-			tb, err3 := this.API_peek(-1)
+			tb, err3 := this.API_peek(-1, true)
 			if err3 != nil {
 				return 0, ER_ERROR, this.codeError(node, err3)
 			}
@@ -458,7 +457,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			if er1 != ER_NEXT {
 				return r1, er1, err1
 			}
-			v1, err12 := this.API_value(this.API_pop1X(r1))
+			v1, err12 := this.API_pop1X(r1, true)
 			if err12 != nil {
 				return 0, ER_ERROR, this.codeError(node, err12)
 			}
@@ -470,7 +469,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			if er2 != ER_NEXT {
 				return r2, er2, err2
 			}
-			v2, err22 := this.API_value(this.API_pop1X(r2))
+			v2, err22 := this.API_pop1X(r2, true)
 			if err22 != nil {
 				return 0, ER_ERROR, this.codeError(node, err22)
 			}
@@ -486,7 +485,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			if er1 != ER_NEXT {
 				return r1, er1, err1
 			}
-			v1, err12 := this.API_value(this.API_pop1X(r1))
+			v1, err12 := this.API_pop1X(r1, true)
 			if err12 != nil {
 				return 0, ER_ERROR, this.codeError(node, err12)
 			}
@@ -498,7 +497,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			if er2 != ER_NEXT {
 				return r2, er2, err2
 			}
-			v2, err22 := this.API_value(this.API_pop1X(r2))
+			v2, err22 := this.API_pop1X(r2, true)
 			if err22 != nil {
 				return 0, ER_ERROR, this.codeError(node, err22)
 			}
@@ -529,18 +528,13 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			if r1 < 2 {
 				return r1, ER_ERROR, this.codeErr(node, "miss exp1 or exp2(for var=exp1,exp2[,exp3])")
 			}
-			expl, _ := this.API_popN(r1)
-			v1, err21 := this.API_value(expl[0])
-			if err21 != nil {
-				return 0, ER_ERROR, this.codeError(node, err21)
-			}
-			v2, err22 := this.API_value(expl[1])
-			if err22 != nil {
-				return 0, ER_ERROR, this.codeError(node, err22)
-			}
+			expl, _ := this.API_popN(r1, true)
+			v1 := expl[0]
+			v2 := expl[1]
+
 			var v3 interface{}
 			if len(expl) > 2 {
-				v3, err22 = this.API_value(expl[2])
+				v3 = expl[2]
 			} else {
 				v3 = 1
 			}
@@ -585,7 +579,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 				default:
 					return r5, er5, err5
 				}
-				this.API_popN(r5)
+				this.API_pop(r5)
 
 				ok6, nval, err6 := goyacc.ExecOp2(goyacc.OP_ADD, val1, v3)
 				if err6 != nil {
@@ -615,7 +609,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			var vlist []interface{}
 			var mlist map[string]interface{}
 			if r1 == 1 {
-				v1, err2 := this.API_pop1()
+				v1, err2 := this.API_pop1(true)
 				if err2 != nil {
 					return 0, ER_ERROR, this.codeError(node, err2)
 				}
@@ -630,7 +624,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 					}
 				}
 			} else {
-				vlist, err1 = this.API_popN(r1)
+				vlist, err1 = this.API_popN(r1, true)
 				if err1 != nil {
 					return 0, ER_ERROR, this.codeError(node, err1)
 				}
@@ -663,7 +657,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 					default:
 						return r5, er5, err5
 					}
-					this.API_popN(r5)
+					this.API_pop(r5)
 				}
 			} else {
 				for i, val := range vlist {
@@ -686,7 +680,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 					default:
 						return r5, er5, err5
 					}
-					this.API_popN(r5)
+					this.API_pop(r5)
 				}
 			}
 			return 0, ER_NEXT, nil
@@ -711,7 +705,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 		if er1 != ER_NEXT {
 			return r1, er1, err1
 		}
-		v1, err12 := this.API_value(this.API_pop1X(r1))
+		v1, err12 := this.API_pop1X(r1, true)
 		if err12 != nil {
 			return 0, ER_ERROR, this.codeError(node, err12)
 		}
@@ -733,7 +727,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 		}
 		var vs []interface{}
 		if r0 > 0 {
-			vs, _ = this.API_popN(r0)
+			vs, _ = this.API_popN(r0, true)
 		}
 		st := this.stack
 		for i, name := range ns {

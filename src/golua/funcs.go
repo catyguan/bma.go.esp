@@ -12,7 +12,7 @@ func (this GOF_print) Exec(vm *VM) (int, error) {
 	buf := bytes.NewBuffer(make([]byte, 0, 32))
 	top := vm.API_gettop()
 	for i := 1; i <= top; i++ {
-		v, err := vm.API_peek(i)
+		v, err := vm.API_peek(i, true)
 		if err != nil {
 			return 0, err
 		}
@@ -44,7 +44,7 @@ func (this GOF_error) Exec(vm *VM) (int, error) {
 	buf := bytes.NewBuffer(make([]byte, 0, 32))
 	top := vm.API_gettop()
 	for i := 1; i <= top; i++ {
-		v, err := vm.API_peek(i)
+		v, err := vm.API_peek(i, true)
 		if err != nil {
 			return 0, err
 		}

@@ -102,7 +102,7 @@ func (this *VM) API_popto(pos int) {
 	}
 }
 
-func (this *VM) API_popN(n int) ([]interface{}, error) {
+func (this *VM) API_popN(n int, popval bool) ([]interface{}, error) {
 	st := this.stack
 	if n > st.stackTop {
 		return nil, fmt.Errorf("pop %d overflow", n)
@@ -113,12 +113,19 @@ func (this *VM) API_popN(n int) ([]interface{}, error) {
 		pos := st.stackBegin + st.stackTop
 		r := this.sdata[pos]
 		this.sdata[pos] = nil
+		if popval {
+			nv, err := this.API_value(r)
+			if err != nil {
+				return nil, err
+			}
+			r = nv
+		}
 		ra[n-1-i] = r
 	}
 	return ra, nil
 }
 
-func (this *VM) API_pop1() (interface{}, error) {
+func (this *VM) API_pop1(popval bool) (interface{}, error) {
 	st := this.stack
 	if 1 > st.stackTop {
 		return nil, fmt.Errorf("pop %d overflow", 1)
@@ -127,10 +134,13 @@ func (this *VM) API_pop1() (interface{}, error) {
 	pos := st.stackBegin + st.stackTop
 	r1 := this.sdata[pos]
 	this.sdata[pos] = nil
+	if popval {
+		return this.API_value(r1)
+	}
 	return r1, nil
 }
 
-func (this *VM) API_pop1X(c int) interface{} {
+func (this *VM) API_pop1X(c int, popval bool) (interface{}, error) {
 	st := this.stack
 	var r1 interface{}
 	for i := 0; i < c; i++ {
@@ -143,10 +153,13 @@ func (this *VM) API_pop1X(c int) interface{} {
 			this.sdata[pos] = nil
 		}
 	}
-	return r1
+	if popval {
+		return this.API_value(r1)
+	}
+	return r1, nil
 }
 
-func (this *VM) API_pop2() (interface{}, interface{}, error) {
+func (this *VM) API_pop2(popval bool) (interface{}, interface{}, error) {
 	st := this.stack
 	if 2 > st.stackTop {
 		return nil, nil, fmt.Errorf("pop %d overflow", 2)
@@ -159,10 +172,23 @@ func (this *VM) API_pop2() (interface{}, interface{}, error) {
 	pos = st.stackBegin + st.stackTop
 	r1 := this.sdata[pos]
 	this.sdata[pos] = nil
+
+	if popval {
+		var err error
+		r1, err = this.API_value(r1)
+		if err != nil {
+			return nil, nil, err
+		}
+		r2, err = this.API_value(r2)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
 	return r1, r2, nil
 }
 
-func (this *VM) API_pop3() (interface{}, interface{}, interface{}, error) {
+func (this *VM) API_pop3(popval bool) (interface{}, interface{}, interface{}, error) {
 	st := this.stack
 	if 3 > st.stackTop {
 		return nil, nil, nil, fmt.Errorf("pop %d overflow", 3)
@@ -179,10 +205,26 @@ func (this *VM) API_pop3() (interface{}, interface{}, interface{}, error) {
 	pos = st.stackBegin + st.stackTop
 	r1 := this.sdata[pos]
 	this.sdata[pos] = nil
+
+	if popval {
+		var err error
+		r1, err = this.API_value(r1)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		r2, err = this.API_value(r2)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		r3, err = this.API_value(r3)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	}
 	return r1, r2, r3, nil
 }
 
-func (this *VM) API_pop4() (interface{}, interface{}, interface{}, interface{}, error) {
+func (this *VM) API_pop4(popval bool) (interface{}, interface{}, interface{}, interface{}, error) {
 	st := this.stack
 	if 4 > st.stackTop {
 		return nil, nil, nil, nil, fmt.Errorf("pop %d overflow", 4)
@@ -203,6 +245,27 @@ func (this *VM) API_pop4() (interface{}, interface{}, interface{}, interface{}, 
 	pos = st.stackBegin + st.stackTop
 	r1 := this.sdata[pos]
 	this.sdata[pos] = nil
+
+	if popval {
+		var err error
+		r1, err = this.API_value(r1)
+		if err != nil {
+			return nil, nil, nil, nil, err
+		}
+		r2, err = this.API_value(r2)
+		if err != nil {
+			return nil, nil, nil, nil, err
+		}
+		r3, err = this.API_value(r3)
+		if err != nil {
+			return nil, nil, nil, nil, err
+		}
+		r4, err = this.API_value(r4)
+		if err != nil {
+			return nil, nil, nil, nil, err
+		}
+	}
+
 	return r1, r2, r3, r4, nil
 }
 
@@ -272,13 +335,17 @@ func (this *VM) API_var(n string) VMVar {
 	return &globalVar{n}
 }
 
-func (this *VM) API_peek(idx int) (interface{}, error) {
+func (this *VM) API_peek(idx int, peekval bool) (interface{}, error) {
 	at, err := this.API_validindex(idx)
 	if err != nil {
 		return nil, err
 	}
 	at = this.stack.stackBegin + at - 1
-	return this.sdata[at], nil
+	v := this.sdata[at]
+	if peekval {
+		return this.API_value(v)
+	}
+	return v, nil
 }
 
 func (this *VM) API_createLocal(n string, val interface{}) {
