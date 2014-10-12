@@ -6,21 +6,26 @@ import (
 )
 
 type VMStack struct {
-	parent    *VMStack
-	chunkName string
-	funcName  string
-	line      int
-	gof       GoFunction
-	local     map[string]VMVar
-	stack     []interface{}
-	stackTop  int
+	parent     *VMStack
+	chunkName  string
+	funcName   string
+	line       int
+	gof        GoFunction
+	local      map[string]VMVar
+	stackBegin int
+	stackTop   int
 }
 
 func newVMStack(p *VMStack) *VMStack {
 	r := new(VMStack)
 	r.parent = p
 	r.local = make(map[string]VMVar)
-	r.stack = make([]interface{}, 0, 8)
+	if p != nil {
+		r.stackBegin = p.stackBegin + p.stackTop
+	} else {
+		r.stackBegin = 0
+	}
+	r.stackTop = 0
 	return r
 }
 
@@ -44,13 +49,13 @@ func (this *VMStack) String() string {
 	return buf.String()
 }
 
-func (this *VMStack) Dump() string {
+func (this *VMStack) Dump(sdata []interface{}) string {
 	buf := bytes.NewBuffer([]byte{})
 	st := this
 	for st != nil {
 		buf.WriteString(fmt.Sprintf("%s\n", st.String()))
 		buf.WriteString(fmt.Sprintf("\tLOCAL: %v\n", st.local))
-		buf.WriteString(fmt.Sprintf("\tSTACK: %d, %v\n", st.stackTop, st.stack))
+		buf.WriteString(fmt.Sprintf("\tSTACK: %d, %v\n", st.stackTop, sdata[st.stackBegin:st.stackBegin+st.stackTop]))
 		st = st.parent
 	}
 	return buf.String()
@@ -58,10 +63,6 @@ func (this *VMStack) Dump() string {
 
 func (this *VMStack) clear() {
 	this.parent = nil
-	for i := 0; i < len(this.stack); i++ {
-		this.stack[i] = nil
-	}
-	this.stack = nil
 	for k, _ := range this.local {
 		delete(this.local, k)
 	}

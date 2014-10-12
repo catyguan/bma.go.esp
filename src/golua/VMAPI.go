@@ -65,12 +65,17 @@ func (this *VM) API_insert(idx int, v interface{}) error {
 		this.API_push(v)
 		return nil
 	}
-	at--
-	result := make([]interface{}, st.stackTop+1, 8)
-	copy(result, st.stack[:at])
-	result[at] = v
-	copy(result[at+1:], st.stack[at:st.stackTop])
-	st.stack = result
+	at = st.stackBegin + at - 1
+	for i := st.stackBegin + st.stackTop - 1; i >= at; i-- {
+		old := this.sdata[i]
+		ni := i + 1
+		if ni < len(this.sdata) {
+			this.sdata[ni] = old
+		} else {
+			this.sdata = append(this.sdata, old)
+		}
+	}
+	this.sdata[at] = v
 	st.stackTop++
 
 	return nil
@@ -83,7 +88,7 @@ func (this *VM) API_pop(n int) error {
 	}
 	for i := 0; i < n; i++ {
 		st.stackTop--
-		st.stack[st.stackTop] = nil
+		this.sdata[st.stackBegin+st.stackTop] = nil
 	}
 	return nil
 }
@@ -93,7 +98,7 @@ func (this *VM) API_popto(pos int) {
 	at := this.API_absindex(pos)
 	for st.stackTop > at {
 		st.stackTop--
-		st.stack[st.stackTop] = nil
+		this.sdata[st.stackBegin+st.stackTop] = nil
 	}
 }
 
@@ -105,8 +110,9 @@ func (this *VM) API_popN(n int) ([]interface{}, error) {
 	ra := make([]interface{}, n)
 	for i := 0; i < n; i++ {
 		st.stackTop--
-		r := st.stack[st.stackTop]
-		st.stack[st.stackTop] = nil
+		pos := st.stackBegin + st.stackTop
+		r := this.sdata[pos]
+		this.sdata[pos] = nil
 		ra[n-1-i] = r
 	}
 	return ra, nil
@@ -118,8 +124,9 @@ func (this *VM) API_pop1() (interface{}, error) {
 		return nil, fmt.Errorf("pop %d overflow", 1)
 	}
 	st.stackTop--
-	r1 := st.stack[st.stackTop]
-	st.stack[st.stackTop] = nil
+	pos := st.stackBegin + st.stackTop
+	r1 := this.sdata[pos]
+	this.sdata[pos] = nil
 	return r1, nil
 }
 
@@ -129,10 +136,11 @@ func (this *VM) API_pop1X(c int) interface{} {
 	for i := 0; i < c; i++ {
 		if st.stackTop >= 1 {
 			st.stackTop--
+			pos := st.stackBegin + st.stackTop
 			if i == 0 {
-				r1 = st.stack[st.stackTop]
+				r1 = this.sdata[pos]
 			}
-			st.stack[st.stackTop] = nil
+			this.sdata[pos] = nil
 		}
 	}
 	return r1
@@ -144,11 +152,13 @@ func (this *VM) API_pop2() (interface{}, interface{}, error) {
 		return nil, nil, fmt.Errorf("pop %d overflow", 2)
 	}
 	st.stackTop--
-	r2 := st.stack[st.stackTop]
-	st.stack[st.stackTop] = nil
+	pos := st.stackBegin + st.stackTop
+	r2 := this.sdata[pos]
+	this.sdata[pos] = nil
 	st.stackTop--
-	r1 := st.stack[st.stackTop]
-	st.stack[st.stackTop] = nil
+	pos = st.stackBegin + st.stackTop
+	r1 := this.sdata[pos]
+	this.sdata[pos] = nil
 	return r1, r2, nil
 }
 
@@ -158,14 +168,17 @@ func (this *VM) API_pop3() (interface{}, interface{}, interface{}, error) {
 		return nil, nil, nil, fmt.Errorf("pop %d overflow", 3)
 	}
 	st.stackTop--
-	r3 := st.stack[st.stackTop]
-	st.stack[st.stackTop] = nil
+	pos := st.stackBegin + st.stackTop
+	r3 := this.sdata[pos]
+	this.sdata[pos] = nil
 	st.stackTop--
-	r2 := st.stack[st.stackTop]
-	st.stack[st.stackTop] = nil
+	pos = st.stackBegin + st.stackTop
+	r2 := this.sdata[pos]
+	this.sdata[pos] = nil
 	st.stackTop--
-	r1 := st.stack[st.stackTop]
-	st.stack[st.stackTop] = nil
+	pos = st.stackBegin + st.stackTop
+	r1 := this.sdata[pos]
+	this.sdata[pos] = nil
 	return r1, r2, r3, nil
 }
 
@@ -175,26 +188,31 @@ func (this *VM) API_pop4() (interface{}, interface{}, interface{}, interface{}, 
 		return nil, nil, nil, nil, fmt.Errorf("pop %d overflow", 4)
 	}
 	st.stackTop--
-	r4 := st.stack[st.stackTop]
-	st.stack[st.stackTop] = nil
+	pos := st.stackBegin + st.stackTop
+	r4 := this.sdata[pos]
+	this.sdata[pos] = nil
 	st.stackTop--
-	r3 := st.stack[st.stackTop]
-	st.stack[st.stackTop] = nil
+	pos = st.stackBegin + st.stackTop
+	r3 := this.sdata[pos]
+	this.sdata[pos] = nil
 	st.stackTop--
-	r2 := st.stack[st.stackTop]
-	st.stack[st.stackTop] = nil
+	pos = st.stackBegin + st.stackTop
+	r2 := this.sdata[pos]
+	this.sdata[pos] = nil
 	st.stackTop--
-	r1 := st.stack[st.stackTop]
-	st.stack[st.stackTop] = nil
+	pos = st.stackBegin + st.stackTop
+	r1 := this.sdata[pos]
+	this.sdata[pos] = nil
 	return r1, r2, r3, r4, nil
 }
 
 func (this *VM) API_push(v interface{}) {
 	st := this.stack
-	if st.stackTop < len(st.stack) {
-		st.stack[st.stackTop] = v
+	pos := st.stackBegin + st.stackTop
+	if pos < len(this.sdata) {
+		this.sdata[pos] = v
 	} else {
-		st.stack = append(st.stack, v)
+		this.sdata = append(this.sdata, v)
 	}
 	st.stackTop++
 }
@@ -204,11 +222,11 @@ func (this *VM) API_remove(idx int) error {
 	if err != nil {
 		return err
 	}
-	at--
 	st := this.stack
-	copy(st.stack[at:], st.stack[at+1:st.stackTop])
+	at = st.stackBegin + at - 1
+	copy(this.sdata[at:], this.sdata[at+1:st.stackBegin+st.stackTop])
 	st.stackTop--
-	st.stack[st.stackTop] = nil
+	this.sdata[st.stackBegin+st.stackTop] = nil
 	return nil
 }
 
@@ -217,8 +235,8 @@ func (this *VM) API_replace(idx int, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	at--
-	this.stack.stack[at] = v
+	at = this.stack.stackBegin + at - 1
+	this.sdata[at] = v
 	return nil
 }
 
@@ -227,13 +245,21 @@ func (this *VM) API_setglobal(n string, v interface{}) {
 }
 
 func (this *VM) API_value(v interface{}) (interface{}, error) {
-	if v == nil {
-		return nil, nil
+	nv := v
+	for {
+		if nv == nil {
+			return nil, nil
+		}
+		if a, ok := nv.(VMVar); ok {
+			var err error
+			nv, err = a.Get(this)
+			if err != nil {
+				return nil, err
+			}
+			continue
+		}
+		return nv, nil
 	}
-	if a, ok := v.(VMVar); ok {
-		return a.Get(this)
-	}
-	return v, nil
 }
 
 func (this *VM) API_var(n string) VMVar {
@@ -251,8 +277,8 @@ func (this *VM) API_peek(idx int) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	at--
-	return this.stack.stack[at], nil
+	at = this.stack.stackBegin + at - 1
+	return this.sdata[at], nil
 }
 
 func (this *VM) API_createLocal(n string, val interface{}) {

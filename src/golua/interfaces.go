@@ -23,3 +23,12 @@ type VMVar interface {
 	Get(vm *VM) (interface{}, error)
 	Set(vm *VM, v interface{}) (bool, error)
 }
+
+type VMTable interface {
+	Get(vm *VM, key string) (interface{}, error)
+	Rawget(key string) interface{}
+	Set(key string, val interface{})
+	Delete(key string)
+	Len() int
+	ToMap() map[string]interface{}
+}

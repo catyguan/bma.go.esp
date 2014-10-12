@@ -78,7 +78,7 @@ func (this *memberVar) Get(vm *VM) (interface{}, error) {
 		s := valutil.ToString(this.key, "")
 		v := o[s]
 		return v, nil
-	case *VMTable:
+	case VMTable:
 		s := valutil.ToString(this.key, "")
 		return o.Get(vm, s)
 	}
@@ -101,7 +101,7 @@ func (this *memberVar) Set(vm *VM, v interface{}) (bool, error) {
 		s := valutil.ToString(this.key, "")
 		o[s] = v
 		return true, nil
-	case *VMTable:
+	case VMTable:
 		s := valutil.ToString(this.key, "")
 		o.Set(s, v)
 		return true, nil

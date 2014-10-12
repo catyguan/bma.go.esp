@@ -57,14 +57,13 @@ func (this *VM) Call(nargs int, nresults int) (rint int, rerr error) {
 		if err1 != nil {
 			return 0, err1
 		}
+		// function
 		at := this.API_absindex(-n)
-		f, err5 := this.API_peek(at)
-		if err5 != nil {
-			return 0, err5
-		}
-		f, err5 = this.API_value(f)
-		if err5 != nil {
-			return 0, err5
+		at = this.stack.stackBegin + at - 1
+		f := this.sdata[at]
+		f, err1 = this.API_value(f)
+		if err1 != nil {
+			return 0, err1
 		}
 		var self interface{}
 		if sm, ok := f.(*selfm); ok {
@@ -74,23 +73,30 @@ func (this *VM) Call(nargs int, nresults int) (rint int, rerr error) {
 		if !this.API_canCall(f) {
 			return 0, fmt.Errorf("can't call at '%v'", f)
 		}
+		this.sdata[at] = nil
+
 		nst = newVMStack(st)
-		// if tt, ok := f.(StackTracable); ok {
-		// 	nst.name = tt.StackInfo()
-		// }
 		if self != nil {
-			nst.stack = append(nst.stack, self)
-			nst.stackTop++
-		}
-		for i := 1; i <= nargs; i++ {
-			v, err2 := this.API_peek(at + i)
-			if err2 != nil {
-				return 0, err2
+			if nst.stackBegin < len(this.sdata) {
+				this.sdata[nst.stackBegin] = self
+			} else {
+				this.sdata = append(this.sdata, self)
 			}
-			nst.stack = append(nst.stack, v)
 			nst.stackTop++
 		}
-		this.API_pop(n)
+		pos := at + 1
+		for i := 0; i < nargs; i++ {
+			v := this.sdata[pos+i]
+			this.sdata[pos+i] = nil
+			npos := nst.stackBegin + i
+			if npos < len(this.sdata) {
+				this.sdata[npos] = v
+			} else {
+				this.sdata = append(this.sdata, v)
+			}
+			nst.stackTop++
+		}
+		this.stack.stackTop -= n
 		this.stack = nst
 
 		if gof, ok := f.(GoFunction); ok {
@@ -103,27 +109,28 @@ func (this *VM) Call(nargs int, nresults int) (rint int, rerr error) {
 				return rc, err3
 			}
 			at = this.API_absindex(-rc)
+			at = this.stack.stackBegin + at - 1
 			nres := nresults
 			if nres < 0 {
 				nres = rc
 			}
 			for i := 0; i < nres; i++ {
 				var r interface{}
+				pos := at + i
 				if i < rc {
-					v, err4 := this.API_peek(at + i)
-					if err4 != nil {
-						return 0, err4
-					}
-					r = v
+					r = this.sdata[pos]
 				} else {
 					r = nil
 				}
-				if st.stackTop < len(st.stack) {
-					st.stack[st.stackTop] = r
-				} else {
-					st.stack = append(st.stack, r)
-				}
+				npos := st.stackBegin + st.stackTop + i
+				this.sdata[npos] = r
 				st.stackTop++
+			}
+			sttop := st.stackBegin + st.stackTop
+			for i := nst.stackBegin; i < nst.stackBegin+nst.stackTop; i++ {
+				if i >= sttop {
+					this.sdata[i] = nil
+				}
 			}
 			logger.Debug(tag, "Call %s(%d,%d) -> %d", gof, nargs, nresults, rc)
 			return nres, nil
@@ -245,8 +252,8 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 					nv = len(rv)
 				case map[string]interface{}:
 					nv = len(rv)
-				case *VMTable:
-					nv = len(rv.Data)
+				case VMTable:
+					nv = rv.Len()
 				}
 			}
 			this.API_push(nv)
@@ -444,7 +451,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			if err3 != nil {
 				return 0, ER_ERROR, this.codeError(node, err3)
 			}
-			tb.(*VMTable).Data[s1] = v2
+			tb.(VMTable).Set(s1, v2)
 			return 0, ER_NEXT, nil
 		case goyacc.OP_MEMBER:
 			r1, er1, err1 := this.runCode(n.Child1)
@@ -619,7 +626,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 					if tb == nil {
 						vlist = []interface{}{v1}
 					} else {
-						mlist = tb.Data
+						mlist = tb.ToMap()
 					}
 				}
 			} else {
@@ -682,6 +689,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 					this.API_popN(r5)
 				}
 			}
+			return 0, ER_NEXT, nil
 		}
 	case *goyacc.NodeFunc:
 		fo := new(VMFunc)

@@ -19,6 +19,7 @@ type VM struct {
 	stack   *VMStack
 	syncutil.CloseState
 	trace bool
+	sdata []interface{}
 }
 
 func newVM(vmg *VMG, id uint32) *VM {
@@ -26,6 +27,7 @@ func newVM(vmg *VMG, id uint32) *VM {
 	vm.id = id
 	vm.vmg = vmg
 	vm.InitCloseState()
+	vm.sdata = make([]interface{}, 0, 16)
 	return vm
 }
 
@@ -116,5 +118,6 @@ func (this *VM) Trace(format string, args ...interface{}) {
 }
 
 func (this *VM) DumpStack() string {
-	return this.stack.Dump()
+	s := this.stack.Dump(this.sdata)
+	return fmt.Sprintf("%sSDATA: %v\n", s, this.sdata)
 }

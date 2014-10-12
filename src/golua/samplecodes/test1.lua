@@ -45,12 +45,12 @@ local vr, v2
 -- 	a = b
 -- end
 
-local c = 3
-local function f1(a, b)
-	closure(c)
-	return a + b + c
-end
-vr = f1(1, 2)
+-- local c = 3
+-- local function f1(a, b)
+-- 	closure(c)
+-- 	return a + b + c
+-- end
+-- vr = f1(1, 2)
 -- local o = {}
 -- function o:f2(a,b)
 -- 	b = 2
@@ -60,9 +60,9 @@ vr = f1(1, 2)
 -- for i = 1,5,"a" do
 -- 	print(i)
 -- end
--- for i,v in 1,2,4,7 do
--- 	print(i, v)
--- end
+for i,v in 1,2,4,7 do
+	print(i, v)
+end
 
 -- print(not false)
 -- print(not false, #"abc" , -120)
