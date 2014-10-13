@@ -1,11 +1,13 @@
 package golua
 
 import (
+	"bmautil/valutil"
 	"bytes"
 	"errors"
 	"fmt"
 )
 
+// print(...)
 type GOF_print int
 
 func (this GOF_print) Exec(vm *VM) (int, error) {
@@ -38,6 +40,7 @@ func (this GOF_print) String() string {
 	return "GoFunc<print>"
 }
 
+// error(...)
 type GOF_error int
 
 func (this GOF_error) Exec(vm *VM) (int, error) {
@@ -67,4 +70,152 @@ func (this GOF_error) IsNative() bool {
 
 func (this GOF_error) String() string {
 	return "GoFunc<error>"
+}
+
+// setmetatable(table, metatable)
+type GOF_setmetatable int
+
+func (this GOF_setmetatable) Exec(vm *VM) (int, error) {
+	t1, mt, err0 := vm.API_pop2(true)
+	if err0 != nil {
+		return 0, err0
+	}
+	err0 = AssertNil("table", t1)
+	if err0 != nil {
+		return 0, err0
+	}
+	err0 = AssertNil("metatable", mt)
+	if err0 != nil {
+		return 0, err0
+	}
+	vt, ok := t1.(*CommonVMTable)
+	if !ok {
+		return 0, fmt.Errorf("invalid table for setmetatable")
+	}
+	vmt := vm.API_table(mt)
+	if vmt == nil {
+		return 0, fmt.Errorf("invalid metatable for setmetatable")
+	}
+	vt.SetMetaTable(vmt)
+	return 0, nil
+}
+
+func (this GOF_setmetatable) IsNative() bool {
+	return true
+}
+
+func (this GOF_setmetatable) String() string {
+	return "GoFunc<setmetatable>"
+}
+
+// getmetatable(table) metatable
+type GOF_getmetatable int
+
+func (this GOF_getmetatable) Exec(vm *VM) (int, error) {
+	t1, err0 := vm.API_pop1(true)
+	if err0 != nil {
+		return 0, err0
+	}
+	err0 = AssertNil("table", t1)
+	if err0 != nil {
+		return 0, err0
+	}
+	vt, ok := t1.(*CommonVMTable)
+	if !ok {
+		return 0, fmt.Errorf("invalid table for setmetatable")
+	}
+	vmt := vt.GetMetaTable()
+	vm.API_push(vmt)
+	return 1, nil
+}
+
+func (this GOF_getmetatable) IsNative() bool {
+	return true
+}
+
+func (this GOF_getmetatable) String() string {
+	return "GoFunc<getmetatable>"
+}
+
+// rawget(table, key) value
+type GOF_rawget int
+
+func (this GOF_rawget) Exec(vm *VM) (int, error) {
+	t1, key, err0 := vm.API_pop2(true)
+	if err0 != nil {
+		return 0, err0
+	}
+	err0 = AssertNil("table", t1)
+	if err0 != nil {
+		return 0, err0
+	}
+	err0 = AssertNil("key", key)
+	if err0 != nil {
+		return 0, err0
+	}
+	vt := vm.API_table(t1)
+	if vt == nil {
+		return 0, fmt.Errorf("invalid table for rawget")
+	}
+	k2 := valutil.ToString(key, "")
+	r := vt.Rawget(k2)
+	vm.API_push(r)
+	return 1, nil
+}
+
+func (this GOF_rawget) IsNative() bool {
+	return true
+}
+
+func (this GOF_rawget) String() string {
+	return "GoFunc<rawget>"
+}
+
+// rawset(table, key, value)
+type GOF_rawset int
+
+func (this GOF_rawset) Exec(vm *VM) (int, error) {
+	t1, key, val, err0 := vm.API_pop3(true)
+	if err0 != nil {
+		return 0, err0
+	}
+	err0 = AssertNil("table", t1)
+	if err0 != nil {
+		return 0, err0
+	}
+	err0 = AssertNil("key", key)
+	if err0 != nil {
+		return 0, err0
+	}
+	err0 = AssertNil("key", val)
+	if err0 != nil {
+		return 0, err0
+	}
+
+	vt := vm.API_table(t1)
+	if vt == nil {
+		return 0, fmt.Errorf("invalid table for rawget")
+	}
+	k2 := valutil.ToString(key, "")
+	vt.Rawset(k2, val)
+
+	return 0, nil
+}
+
+func (this GOF_rawset) IsNative() bool {
+	return true
+}
+
+func (this GOF_rawset) String() string {
+	return "GoFunc<rawset>"
+}
+
+// core module
+func CoreModule(vmg *VMG) {
+	vmg.SetGlobal("print", GOF_print(0))
+	vmg.SetGlobal("error", GOF_error(0))
+	vmg.SetGlobal("setmetatable", GOF_setmetatable(0))
+	vmg.SetGlobal("getmetatable", GOF_getmetatable(0))
+	vmg.SetGlobal("rawget", GOF_rawget(0))
+	vmg.SetGlobal("rawset", GOF_rawset(0))
 }

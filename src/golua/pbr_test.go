@@ -47,8 +47,7 @@ func TestParserBuildRun(t *testing.T) {
 
 		fmt.Println("--------------- RUN ---------------")
 		vmg := NewVMG("test")
-		vmg.SetGlobal("print", GOF_print(0))
-		vmg.SetGlobal("error", GOF_error(0))
+		CoreModule(vmg)
 		defer vmg.Close()
 
 		chunk := NewChunk(chunkName, node)

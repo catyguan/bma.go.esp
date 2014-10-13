@@ -1,4 +1,6 @@
 1. closure var
 2. multithread & sync
+	for in -- BUG
 3. max stack & timelimit
 4. for ... in array/table
+5. metatable __index & __newindex rawget/set

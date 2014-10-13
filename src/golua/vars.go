@@ -103,7 +103,10 @@ func (this *memberVar) Set(vm *VM, v interface{}) (bool, error) {
 		return true, nil
 	case VMTable:
 		s := valutil.ToString(this.key, "")
-		o.Set(s, v)
+		err := o.Set(vm, s, v)
+		if err != nil {
+			return false, err
+		}
 		return true, nil
 	}
 	return false, fmt.Errorf("unknow memberVar(%t)", this.obj)

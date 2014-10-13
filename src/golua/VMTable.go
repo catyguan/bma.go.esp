@@ -6,37 +6,114 @@ import (
 )
 
 type CommonVMTable struct {
-	Data map[string]interface{}
-	mux  *sync.RWMutex
+	mux       *sync.RWMutex
+	data      map[string]interface{}
+	metaTable VMTable
 }
 
 func (this *CommonVMTable) String() string {
-	return fmt.Sprintf("@%v", this.Data)
+	return fmt.Sprintf("@%v", this.data)
 }
 
-func (this *CommonVMTable) Get(vm *VM, key string) (interface{}, error) {
-	v := this.Rawget(key)
-	return v, nil
-}
-
-func (this *CommonVMTable) Rawget(key string) interface{} {
+func (this *CommonVMTable) GetMetaTable() VMTable {
 	if this.mux != nil {
 		this.mux.RLock()
 		defer this.mux.RUnlock()
 	}
-	return this.Data[key]
+	return this.metaTable
 }
 
-func (this *CommonVMTable) Set(key string, val interface{}) {
+func (this *CommonVMTable) SetMetaTable(mt VMTable) {
+	if this.mux != nil {
+		this.mux.Lock()
+		defer this.mux.Unlock()
+	}
+	this.metaTable = mt
+}
+
+func (this *CommonVMTable) Get(vm *VM, key string) (interface{}, error) {
+	v, mt := this._rawget(key)
+	if v == nil {
+		if mt != nil {
+			f := mt.Rawget(METATABLE_INDEX)
+			if f != nil {
+				vm.API_push(f)
+				vm.API_push(this)
+				vm.API_push(key)
+				r0, err := vm.Call(2, 1)
+				if err != nil {
+					return nil, err
+				}
+				v, err = vm.API_pop1X(r0, false)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+	return v, nil
+}
+
+func (this *CommonVMTable) _rawget(key string) (interface{}, VMTable) {
+	if this.mux != nil {
+		this.mux.RLock()
+		defer this.mux.RUnlock()
+	}
+	return this.data[key], this.metaTable
+}
+
+func (this *CommonVMTable) Rawget(key string) interface{} {
+	v, _ := this._rawget(key)
+	return v
+}
+
+func (this *CommonVMTable) Set(vm *VM, key string, val interface{}) error {
+	ok, mt := this._rawset(key, val, false)
+	if !ok {
+		if mt != nil {
+			f := mt.Rawget(METATABLE_NEWINDEX)
+			if f != nil {
+				vm.API_push(f)
+				vm.API_push(this)
+				vm.API_push(key)
+				vm.API_push(val)
+				_, err := vm.Call(3, 0)
+				if err != nil {
+					return err
+				}
+				return nil
+			}
+		}
+		this._rawset(key, val, true)
+	}
+	return nil
+}
+
+func (this *CommonVMTable) _rawset(key string, val interface{}, force bool) (bool, VMTable) {
 	if this.mux != nil {
 		this.mux.Lock()
 		defer this.mux.Unlock()
 	}
 	if val == nil {
-		delete(this.Data, key)
+		delete(this.data, key)
+		return true, nil
 	} else {
-		this.Data[key] = val
+		if force {
+			this.data[key] = val
+			return true, nil
+		} else {
+			_, ok := this.data[key]
+			if ok {
+				this.data[key] = val
+				return true, nil
+			}
+			return false, this.metaTable
+		}
 	}
+}
+
+func (this *CommonVMTable) Rawset(key string, val interface{}) {
+	this._rawset(key, val, true)
 }
 
 func (this *CommonVMTable) Delete(key string) {
@@ -44,15 +121,15 @@ func (this *CommonVMTable) Delete(key string) {
 		this.mux.Lock()
 		defer this.mux.Unlock()
 	}
-	delete(this.Data, key)
+	delete(this.data, key)
 }
 
 func (this *CommonVMTable) Len() int {
-	return len(this.Data)
+	return len(this.data)
 }
 
 func (this *CommonVMTable) ToMap() map[string]interface{} {
-	return this.Data
+	return this.data
 }
 
 func (this *VM) API_table(v interface{}) VMTable {
@@ -64,7 +141,7 @@ func (this *VM) API_table(v interface{}) VMTable {
 	}
 	if o, ok := v.(map[string]interface{}); ok {
 		r := new(CommonVMTable)
-		r.Data = o
+		r.data = o
 		return r
 	}
 	return nil
@@ -72,7 +149,7 @@ func (this *VM) API_table(v interface{}) VMTable {
 
 func (this *VM) API_newtable() VMTable {
 	r := new(CommonVMTable)
-	r.Data = make(map[string]interface{})
+	r.data = make(map[string]interface{})
 	return r
 }
 

@@ -1,5 +1,10 @@
 package golua
 
+import (
+	"errors"
+	"fmt"
+)
+
 type GoFunction interface {
 	Exec(vm *VM) (int, error)
 	IsNative() bool
@@ -24,11 +29,27 @@ type VMVar interface {
 	Set(vm *VM, v interface{}) (bool, error)
 }
 
+const (
+	METATABLE_INDEX    = "__index"
+	METATABLE_NEWINDEX = "__newindex"
+)
+
 type VMTable interface {
 	Get(vm *VM, key string) (interface{}, error)
 	Rawget(key string) interface{}
-	Set(key string, val interface{})
+	Set(vm *VM, key string, val interface{}) error
+	Rawset(key string, val interface{})
 	Delete(key string)
 	Len() int
 	ToMap() map[string]interface{}
+}
+
+func AssertNil(n string, v interface{}) error {
+	if v == nil {
+		if n != "" {
+			return fmt.Errorf("%s null pointer", n)
+		}
+		return errors.New("null pointer")
+	}
+	return nil
 }

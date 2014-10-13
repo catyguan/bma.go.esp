@@ -467,7 +467,10 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			if err3 != nil {
 				return 0, ER_ERROR, this.codeError(node, err3)
 			}
-			tb.(VMTable).Set(s1, v2)
+			err4 := tb.(VMTable).Set(this, s1, v2)
+			if err4 != nil {
+				return 0, ER_ERROR, err4
+			}
 			return 0, ER_NEXT, nil
 		case goyacc.OP_MEMBER:
 			r1, er1, err1 := this.runCode(n.Child1)

@@ -82,8 +82,23 @@ local vr, v2
 -- 	f()
 -- end
 -- f()
-while true do
-end
+-- while true do
+-- end
+
+-- metatable
+local mt = { 
+	__index = function(t, k)
+		return 123
+	end,
+	__newindex = function(t, k, v)
+		print("newindex", k, v)
+		rawset(t, k, v+123)
+	end
+}
+local o = {}
+setmetatable(o, mt)
+o.ab = o.abc *1000
+vr = o.ab
 
 return vr
 -- return 1 + 2
