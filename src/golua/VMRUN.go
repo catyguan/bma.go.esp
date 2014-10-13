@@ -7,6 +7,7 @@ import (
 	"golua/goyacc"
 	"logger"
 	"sync/atomic"
+	"time"
 )
 
 type ChunkCode struct {
@@ -36,6 +37,10 @@ func (this *ChunkCode) String() string {
 func (this *VM) Call(nargs int, nresults int) (rint int, rerr error) {
 	if this.IsClosing() {
 		return 0, fmt.Errorf("%s closed", this)
+	}
+	this.numOfStack++
+	if this.numOfStack >= this.config.MaxStack {
+		return 0, fmt.Errorf("stack overflow %d", this.numOfStack)
 	}
 	st := this.stack
 	var nst *VMStack
@@ -138,6 +143,7 @@ func (this *VM) Call(nargs int, nresults int) (rint int, rerr error) {
 			panic(fmt.Errorf("unknow callable '%v'", f))
 		}
 	}(nargs, nresults)
+	this.numOfStack--
 
 	if err != nil {
 		if _, ok := err.(*StackTraceError); !ok {
@@ -178,6 +184,16 @@ func (this *VM) runChunk(cc *ChunkCode) (int, error) {
 }
 
 func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
+	this.numOfTime++
+	if this.numOfTime > this.config.TimeCheck {
+		this.numOfTime = 0
+		now := time.Now()
+		du := now.Sub(this.executeTime).Seconds()
+		if int(du*1000) > this.GetMaxExecutionTime() {
+			return 0, ER_ERROR, fmt.Errorf("max execute time(%f)", du)
+		}
+	}
+
 	if node == nil {
 		return 0, ER_NEXT, nil
 	}
@@ -332,6 +348,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			if er2 != ER_NEXT {
 				return r1 + r2, er2, err2
 			}
+			this.stack.line = node.GetLine()
 			r0, err0 := this.Call(r2, -1)
 			if err0 != nil {
 				return r0, ER_ERROR, err0

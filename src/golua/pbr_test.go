@@ -59,6 +59,8 @@ func TestParserBuildRun(t *testing.T) {
 			return
 		}
 		vm.EnableTrace(true)
+		vm.ResetExecutionTime()
+		vm.SetMaxExecutionTime(100)
 
 		vm.API_push(chunk)
 		_, err4 := vm.Call(0, 1)

@@ -1,0 +1,4 @@
+1. closure var
+2. multithread & sync
+3. max stack & timelimit
+4. for ... in array/table

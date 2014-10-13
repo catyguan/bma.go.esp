@@ -60,9 +60,9 @@ local vr, v2
 -- for i = 1,5,"a" do
 -- 	print(i)
 -- end
-for i,v in 1,2,4,7 do
-	print(i, v)
-end
+-- for i,v in 1,2,4,7 do
+-- 	print(i, v)
+-- end
 
 -- print(not false)
 -- print(not false, #"abc" , -120)
@@ -76,6 +76,14 @@ end
 -- 	c = 3
 -- end
 -- print("hello",a,b,c)
+
+-- stack overflow
+-- function f()
+-- 	f()
+-- end
+-- f()
+while true do
+end
 
 return vr
 -- return 1 + 2

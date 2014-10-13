@@ -92,7 +92,7 @@ func dumpNode(buf *bytes.Buffer, prefix string, n Node) {
 		if cn != nil {
 			dumpNode(buf, prefix+" ", cn)
 		} else {
-			buf.WriteString(prefix + " <nil>")
+			buf.WriteString(prefix + " <nil>\n")
 		}
 	}
 }

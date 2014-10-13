@@ -6,20 +6,56 @@ import (
 	"fmt"
 	"logger"
 	"sync/atomic"
+	"time"
 )
 
 const (
 	tag = "golua"
 )
 
+type VMConfig struct {
+	MaxStack  int
+	TimeLimit int // MS, 0 = nolimit
+	TimeCheck int
+}
+
+func (this *VMConfig) Valid() error {
+	if this.MaxStack <= 0 {
+		return fmt.Errorf("MaxStack invalid")
+	}
+	if this.TimeLimit < 0 {
+		return fmt.Errorf("TimeLimit invalid")
+	}
+	if this.TimeCheck <= 0 {
+		return fmt.Errorf("TimeCheck invalid")
+	}
+	return nil
+}
+
+var (
+	defaultConfig VMConfig
+)
+
+func init() {
+	defaultConfig.MaxStack = 128
+	defaultConfig.TimeLimit = 30 * 1000
+	defaultConfig.TimeCheck = 1000
+}
+
 type VM struct {
-	id      uint32
-	running int32
-	vmg     *VMG
-	stack   *VMStack
+	id         uint32
+	running    int32
+	vmg        *VMG
+	stack      *VMStack
+	numOfStack int
+	trace      bool
+	sdata      []interface{}
 	syncutil.CloseState
-	trace bool
-	sdata []interface{}
+
+	config           *VMConfig
+	maxExecutionTime int
+	numOfTime        int
+	executeTime      time.Time
 }
 
 func newVM(vmg *VMG, id uint32) *VM {
@@ -28,11 +64,33 @@ func newVM(vmg *VMG, id uint32) *VM {
 	vm.vmg = vmg
 	vm.InitCloseState()
 	vm.sdata = make([]interface{}, 0, 16)
+	vm.config = &defaultConfig
+	vm.maxExecutionTime = -1
+	vm.executeTime = time.Now()
 	return vm
+}
+
+func (this *VM) SetMaxExecutionTime(v int) {
+	this.maxExecutionTime = v
+}
+func (this *VM) GetMaxExecutionTime() int {
+	if this.maxExecutionTime < 0 {
+		return this.config.TimeLimit
+	}
+	return this.maxExecutionTime
+}
+func (this *VM) ResetExecutionTime() {
+	this.maxExecutionTime = -1
+	this.executeTime = time.Now()
+}
+
+func (this *VM) Setup(cfg *VMConfig) {
+	this.config = cfg
 }
 
 func (this *VM) initStack(st *VMStack) {
 	this.stack = st
+	this.numOfStack = 1
 }
 
 func (this *VM) Id() uint32 {
@@ -79,6 +137,10 @@ func (this *VM) Destroy() {
 		st = p
 	}
 	this.stack = nil
+	for i := 0; i < len(this.sdata); i++ {
+		this.sdata[i] = nil
+	}
+	this.sdata = nil
 	this.DoneClose()
 }
 
