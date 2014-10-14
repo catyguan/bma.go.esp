@@ -129,7 +129,17 @@ func (this *CommonVMTable) Len() int {
 }
 
 func (this *CommonVMTable) ToMap() map[string]interface{} {
-	return this.data
+	if this.mux != nil {
+		this.mux.RLock()
+		defer this.mux.RUnlock()
+		r := make(map[string]interface{})
+		for k, v := range this.data {
+			r[k] = v
+		}
+		return r
+	} else {
+		return this.data
+	}
 }
 
 func (this *VM) API_table(v interface{}) VMTable {

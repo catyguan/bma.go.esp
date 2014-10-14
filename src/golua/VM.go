@@ -44,6 +44,7 @@ func init() {
 
 type VM struct {
 	id         uint32
+	name       string
 	running    int32
 	vmg        *VMG
 	stack      *VMStack
@@ -102,7 +103,7 @@ func (this *VM) GetVMG() *VMG {
 }
 
 func (this *VM) String() string {
-	return fmt.Sprintf("VM(%s:%d)", this.vmg.name, this.id)
+	return fmt.Sprintf("VM(%s)", this.name)
 }
 
 func (this *VM) Spawn(n string) (*VM, error) {
@@ -110,7 +111,12 @@ func (this *VM) Spawn(n string) (*VM, error) {
 	if err != nil {
 		return nil, err
 	}
+	vm2.name = fmt.Sprintf("%s-%d", this.name, vm2.id)
+	vm2.config = this.config
 	st := newVMStack(this.stack)
+	if n == "" {
+		n = fmt.Sprintf("VM<%s>", vm2.name)
+	}
 	st.chunkName = n
 	vm2.initStack(st)
 	logger.Debug(tag, "%s spawn -> %s", this, vm2)

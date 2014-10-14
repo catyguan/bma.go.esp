@@ -2,7 +2,6 @@ package golua
 
 import (
 	"bmautil/valutil"
-	"errors"
 	"fmt"
 	"golua/goyacc"
 	"logger"
@@ -137,7 +136,7 @@ func (this *VM) Call(nargs int, nresults int) (rint int, rerr error) {
 					this.sdata[i] = nil
 				}
 			}
-			logger.Debug(tag, "Call %s(%d,%d) -> %d", gof, nargs, nresults, rc)
+			this.Trace("Call %s(%d,%d) -> %d", gof, nargs, nresults, rc)
 			return nres, nil
 		} else {
 			panic(fmt.Errorf("unknow callable '%v'", f))
@@ -167,15 +166,6 @@ func (this *VM) Call(nargs int, nresults int) (rint int, rerr error) {
 	return r, err
 }
 
-func (this *VM) codeErr(node goyacc.Node, msg string) error {
-	return this.codeError(node, errors.New(msg))
-}
-
-func (this *VM) codeError(node goyacc.Node, err error) error {
-	this.stack.line = node.GetLine()
-	return err
-}
-
 func (this *VM) runChunk(cc *ChunkCode) (int, error) {
 	st := this.stack
 	st.chunkName = cc.name
@@ -183,7 +173,10 @@ func (this *VM) runChunk(cc *ChunkCode) (int, error) {
 	return r, err
 }
 
-func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
+func (this *VM) runCode(node goyacc.Node) (int, ER, error) {
+	if this.trace {
+		this.Trace(">>> %v", node)
+	}
 	this.numOfTime++
 	if this.numOfTime > this.config.TimeCheck {
 		this.numOfTime = 0
@@ -198,6 +191,10 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 		return 0, ER_NEXT, nil
 	}
 	op := node.GetOp()
+	vline := node.GetLine()
+	if vline > 0 {
+		this.stack.line = vline
+	}
 	switch n := node.(type) {
 	case *goyacc.Node0:
 		switch op {
@@ -226,7 +223,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			}
 			v, err2 := this.API_pop1X(r1, true)
 			if err2 != nil {
-				return 0, ER_ERROR, this.codeError(node, err2)
+				return 0, ER_ERROR, err2
 			}
 			nv := !valutil.ToBool(v, false)
 			this.API_push(nv)
@@ -238,14 +235,14 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			}
 			v, err2 := this.API_pop1X(r1, true)
 			if err2 != nil {
-				return 0, ER_ERROR, this.codeError(node, err2)
+				return 0, ER_ERROR, err2
 			}
 			ok3, val3, err3 := goyacc.ExecOp2(goyacc.OP_SUB, 0, v)
 			if err3 != nil {
-				return 0, ER_ERROR, this.codeError(node, err3)
+				return 0, ER_ERROR, err3
 			}
 			if !ok3 {
-				return 0, ER_ERROR, this.codeErr(node, fmt.Sprintf("invalid -%v", v))
+				return 0, ER_ERROR, fmt.Errorf("invalid -%v", v)
 			}
 			this.API_push(val3)
 			return 1, ER_NEXT, nil
@@ -256,7 +253,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			}
 			v, err2 := this.API_pop1X(r1, true)
 			if err2 != nil {
-				return 0, ER_ERROR, this.codeError(node, err2)
+				return 0, ER_ERROR, err2
 			}
 			var nv interface{}
 			nv = 0
@@ -303,7 +300,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 				for i := 0; i < r1; i++ {
 					v, err2 := this.API_peek(pos+i, true)
 					if err2 != nil {
-						return r1, ER_ERROR, this.codeError(node, err2)
+						return r1, ER_ERROR, err2
 					}
 					this.API_replace(pos+i, v)
 				}
@@ -322,7 +319,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			}
 			v1, err12 := this.API_pop1X(r1, true)
 			if err12 != nil {
-				return 0, ER_ERROR, this.codeError(node, err12)
+				return 0, ER_ERROR, err12
 			}
 
 			r2, er2, err2 := this.runCode(n.Child2)
@@ -331,11 +328,11 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			}
 			v2, err22 := this.API_pop1X(r2, true)
 			if err22 != nil {
-				return 0, ER_ERROR, this.codeError(node, err22)
+				return 0, ER_ERROR, err22
 			}
 			_, rv, err := goyacc.ExecOp2(op, v1, v2)
 			if err != nil {
-				return 0, ER_ERROR, this.codeError(node, err)
+				return 0, ER_ERROR, err
 			}
 			this.API_push(rv)
 			return 1, ER_NEXT, nil
@@ -367,11 +364,11 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 
 			vs, err3 := this.API_popN(r2, true)
 			if err3 != nil {
-				return 0, ER_ERROR, this.codeError(node, err3)
+				return 0, ER_ERROR, err3
 			}
 			vas, err4 := this.API_popN(r1, false)
 			if err4 != nil {
-				return 0, ER_ERROR, this.codeError(node, err4)
+				return 0, ER_ERROR, err4
 			}
 
 			for i, va := range vas {
@@ -385,10 +382,10 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 					if vao, ok := va.(VMVar); ok {
 						_, err5 := vao.Set(this, v)
 						if err5 != nil {
-							return 0, ER_ERROR, this.codeError(node, err5)
+							return 0, ER_ERROR, err5
 						}
 					} else {
-						return 0, ER_ERROR, this.codeErr(node, fmt.Sprintf("invalid var(%T)", va))
+						return 0, ER_ERROR, fmt.Errorf("invalid var(%T)", va)
 					}
 				}
 			}
@@ -411,7 +408,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 				}
 				v2, err22 := this.API_pop1X(r2, true)
 				if err22 != nil {
-					return 0, ER_ERROR, this.codeError(node, err22)
+					return 0, ER_ERROR, err22
 				}
 				if valutil.ToBool(v2, true) {
 					break
@@ -426,7 +423,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 				}
 				v1, err12 := this.API_pop1X(r1, true)
 				if err12 != nil {
-					return 0, ER_ERROR, this.codeError(node, err12)
+					return 0, ER_ERROR, err12
 				}
 				if !valutil.ToBool(v1, false) {
 					break
@@ -450,7 +447,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			}
 			v1, err12 := this.API_pop1X(r1, true)
 			if err12 != nil {
-				return 0, ER_ERROR, this.codeError(node, err12)
+				return 0, ER_ERROR, err12
 			}
 			s1 := valutil.ToString(v1, "")
 
@@ -460,12 +457,12 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			}
 			v2, err22 := this.API_pop1X(r2, true)
 			if err22 != nil {
-				return 0, ER_ERROR, this.codeError(node, err22)
+				return 0, ER_ERROR, err22
 			}
 
 			tb, err3 := this.API_peek(-1, true)
 			if err3 != nil {
-				return 0, ER_ERROR, this.codeError(node, err3)
+				return 0, ER_ERROR, err3
 			}
 			err4 := tb.(VMTable).Set(this, s1, v2)
 			if err4 != nil {
@@ -479,10 +476,10 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			}
 			v1, err12 := this.API_pop1X(r1, true)
 			if err12 != nil {
-				return 0, ER_ERROR, this.codeError(node, err12)
+				return 0, ER_ERROR, err12
 			}
 			if v1 == nil {
-				return 0, ER_ERROR, this.codeError(node, fmt.Errorf("null pointer"))
+				return 0, ER_ERROR, fmt.Errorf("null pointer")
 			}
 
 			r2, er2, err2 := this.runCode(n.Child2)
@@ -491,7 +488,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			}
 			v2, err22 := this.API_pop1X(r2, true)
 			if err22 != nil {
-				return 0, ER_ERROR, this.codeError(node, err22)
+				return 0, ER_ERROR, err22
 			}
 
 			mvar := new(memberVar)
@@ -507,10 +504,10 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			}
 			v1, err12 := this.API_pop1X(r1, true)
 			if err12 != nil {
-				return 0, ER_ERROR, this.codeError(node, err12)
+				return 0, ER_ERROR, err12
 			}
 			if v1 == nil {
-				return 0, ER_ERROR, this.codeError(node, fmt.Errorf("null pointer"))
+				return 0, ER_ERROR, fmt.Errorf("null pointer")
 			}
 
 			r2, er2, err2 := this.runCode(n.Child2)
@@ -519,14 +516,14 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			}
 			v2, err22 := this.API_pop1X(r2, true)
 			if err22 != nil {
-				return 0, ER_ERROR, this.codeError(node, err22)
+				return 0, ER_ERROR, err22
 			}
 			mvar := new(memberVar)
 			mvar.obj = v1
 			mvar.key = v2
 			mval, err3 := mvar.Get(this)
 			if err3 != nil {
-				return 0, ER_ERROR, this.codeError(node, err3)
+				return 0, ER_ERROR, err3
 			}
 
 			o := new(selfm)
@@ -546,7 +543,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 				return r1, er1, err1
 			}
 			if r1 < 2 {
-				return r1, ER_ERROR, this.codeErr(node, "miss exp1 or exp2(for var=exp1,exp2[,exp3])")
+				return r1, ER_ERROR, fmt.Errorf("miss exp1 or exp2(for var=exp1,exp2[,exp3])")
 			}
 			expl, _ := this.API_popN(r1, true)
 			v1 := expl[0]
@@ -565,10 +562,10 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			opx := goyacc.OP_LTEQ
 			ok7, expv7, err7 := goyacc.ExecOp2(goyacc.OP_LT, v3, 0)
 			if err7 != nil {
-				return 0, ER_ERROR, this.codeError(node, err7)
+				return 0, ER_ERROR, err7
 			}
 			if !ok7 {
-				return 0, ER_ERROR, this.codeErr(node, fmt.Sprintf("invalid for exp3(%v)", v3))
+				return 0, ER_ERROR, fmt.Errorf("invalid for exp3(%v)", v3)
 			}
 			if valutil.ToBool(expv7, false) {
 				opx = goyacc.OP_GTEQ
@@ -578,14 +575,14 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 				va := st.local[name]
 				val1, err3 := va.Get(this)
 				if err3 != nil {
-					return 0, ER_ERROR, this.codeError(node, err3)
+					return 0, ER_ERROR, err3
 				}
 				ok, expv, err4 := goyacc.ExecOp2(opx, val1, v2)
 				if err4 != nil {
-					return 0, ER_ERROR, this.codeError(node, err4)
+					return 0, ER_ERROR, err4
 				}
 				if !ok {
-					return 0, ER_ERROR, this.codeErr(node, fmt.Sprintf("invalid exp(%v == %v)", val1, v2))
+					return 0, ER_ERROR, fmt.Errorf("invalid exp(%v == %v)", val1, v2)
 				}
 				if !valutil.ToBool(expv, false) {
 					return 0, ER_NEXT, nil
@@ -603,14 +600,14 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 
 				ok6, nval, err6 := goyacc.ExecOp2(goyacc.OP_ADD, val1, v3)
 				if err6 != nil {
-					return 0, ER_ERROR, this.codeError(node, err6)
+					return 0, ER_ERROR, err6
 				}
 				if !ok6 {
-					return 0, ER_ERROR, this.codeErr(node, fmt.Sprintf("invalid exp(%v + %v)", val1, v3))
+					return 0, ER_ERROR, fmt.Errorf("invalid exp(%v + %v)", val1, v3)
 				}
 				_, same, _ := goyacc.ExecOp2(goyacc.OP_EQ, val1, nval)
 				if valutil.ToBool(same, true) {
-					return 0, ER_ERROR, this.codeErr(node, fmt.Sprintf("deadloop exp3(%v + %v)", val1, v3))
+					return 0, ER_ERROR, fmt.Errorf("deadloop exp3(%v + %v)", val1, v3)
 				}
 				va.Set(this, nval)
 			}
@@ -631,7 +628,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			if r1 == 1 {
 				v1, err2 := this.API_pop1(true)
 				if err2 != nil {
-					return 0, ER_ERROR, this.codeError(node, err2)
+					return 0, ER_ERROR, err2
 				}
 				if tmp, ok := v1.([]interface{}); ok {
 					vlist = tmp
@@ -646,7 +643,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			} else {
 				vlist, err1 = this.API_popN(r1, true)
 				if err1 != nil {
-					return 0, ER_ERROR, this.codeError(node, err1)
+					return 0, ER_ERROR, err1
 				}
 			}
 
@@ -727,7 +724,7 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 		}
 		v1, err12 := this.API_pop1X(r1, true)
 		if err12 != nil {
-			return 0, ER_ERROR, this.codeError(node, err12)
+			return 0, ER_ERROR, err12
 		}
 		b := valutil.ToBool(v1, false)
 		if b {
@@ -798,12 +795,12 @@ func (this *VM) _runCode(node goyacc.Node) (int, ER, error) {
 			return r0, ER_NEXT, nil
 		}
 	}
-	return 0, ER_ERROR, this.codeError(node, fmt.Errorf("unknow op(%d, %s)", op, node))
+	return 0, ER_ERROR, fmt.Errorf("unknow op(%d, %s)", op, node)
 }
 
-func (this *VM) runCode(node goyacc.Node) (int, ER, error) {
-	// this.Trace(">>> %v", node)
-	r1, r2, r3 := this._runCode(node)
-	this.Trace(">>> %v -> %d, %d, %v", node, r1, r2, r3)
-	return r1, r2, r3
-}
+// func (this *VM) runCode(node goyacc.Node) (int, ER, error) {
+// 	// this.Trace(">>> %v", node)
+// 	r1, r2, r3 := this._runCode(node)
+// 	this.Trace(">>> %v -> %d, %d, %v", node, r1, r2, r3)
+// 	return r1, r2, r3
+// }

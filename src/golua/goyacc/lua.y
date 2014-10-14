@@ -131,7 +131,7 @@ Exp:
 	| FALSE { opValue(yylex, &$$) }
 	| NUMBER { opValue(yylex, &$$) }
 	| STRING { opValue(yylex, &$$) }
-	| MORE
+	| MORE { opVar(&$$, &$1) }
 	| FuncDef
 	| PrefixExp
 	| Tableconstructor

@@ -681,6 +681,11 @@ yydefault:
 		{
 			opValue(yylex, &yyVAL)
 		}
+	case 42:
+		//line lua.y:134
+		{
+			opVar(&yyVAL, &yyS[yypt-0])
+		}
 	case 47:
 		//line lua.y:139
 		{

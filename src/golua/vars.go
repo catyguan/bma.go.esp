@@ -6,6 +6,27 @@ import (
 	"sync"
 )
 
+// voidVar
+type voidVar struct {
+	name string
+}
+
+func (this *voidVar) Get(vm *VM) (interface{}, error) {
+	return nil, nil
+}
+
+func (this *voidVar) Set(vm *VM, v interface{}) (bool, error) {
+	return true, nil
+}
+
+func (this *voidVar) String() string {
+	return "voidVar"
+}
+
+var (
+	VoidVar voidVar
+)
+
 // globalVar
 type globalVar struct {
 	name string

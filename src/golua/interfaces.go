@@ -32,6 +32,7 @@ type VMVar interface {
 const (
 	METATABLE_INDEX    = "__index"
 	METATABLE_NEWINDEX = "__newindex"
+	KEYWORD_MORE       = "..."
 )
 
 type VMTable interface {

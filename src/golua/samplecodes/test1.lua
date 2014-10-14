@@ -36,15 +36,8 @@ local vr, v2
 -- obj:p("hello world")
 -- obj.parent:print(1 + 2, true, a.b)
 -- a.b = 1 + 2 - 3
--- local function f1(b, c)
--- 	closure(a,b)
---  	a = 1
--- 	for i = 1,2,3 do
--- 		a = 1
--- 	end
--- 	a = b
--- end
 
+-- functions
 -- local c = 3
 -- local function f1(a, b)
 -- 	closure(c)
@@ -55,6 +48,10 @@ local vr, v2
 -- function o:f2(a,b)
 -- 	b = 2
 -- end
+local function f3(a,b,...)
+	print(a,b,...)
+end
+f3(1,2,3,4,5)
 -- vr = o
 
 -- for i = 1,5,"a" do
@@ -62,6 +59,9 @@ local vr, v2
 -- end
 -- for i,v in 1,2,4,7 do
 -- 	print(i, v)
+-- end
+-- for _,v in v2 do
+-- 	print(_, v)
 -- end
 
 -- print(not false)
@@ -86,19 +86,19 @@ local vr, v2
 -- end
 
 -- metatable
-local mt = { 
-	__index = function(t, k)
-		return 123
-	end,
-	__newindex = function(t, k, v)
-		print("newindex", k, v)
-		rawset(t, k, v+123)
-	end
-}
-local o = {}
-setmetatable(o, mt)
-o.ab = o.abc *1000
-vr = o.ab
+-- local mt = { 
+-- 	__index = function(t, k)
+-- 		return 123
+-- 	end,
+-- 	__newindex = function(t, k, v)
+-- 		print("newindex", k, v)
+-- 		rawset(t, k, v+123)
+-- 	end
+-- }
+-- local o = {}
+-- setmetatable(o, mt)
+-- o.ab = o.abc *1000
+-- vr = o.ab
 
 return vr
 -- return 1 + 2

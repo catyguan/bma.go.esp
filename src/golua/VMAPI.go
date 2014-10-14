@@ -326,6 +326,9 @@ func (this *VM) API_value(v interface{}) (interface{}, error) {
 }
 
 func (this *VM) API_var(n string) VMVar {
+	if n == "_" {
+		return &VoidVar
+	}
 	st := this.stack
 	if v, ok := st.local[n]; ok {
 		if vv, ok2 := v.(VMVar); ok2 {
