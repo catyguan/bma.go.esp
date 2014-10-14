@@ -365,3 +365,18 @@ func (this *VM) API_findVar(n string) VMVar {
 	}
 	return nil
 }
+
+func (this *VM) API_defer(f interface{}, parentStack bool) error {
+	if !this.API_canCall(f) {
+		return fmt.Errorf("param1(%T) can't call", f)
+	}
+	st := this.stack
+	if parentStack {
+		st = st.parent
+		if st == nil {
+			return fmt.Errorf("parent stack nil when defer")
+		}
+	}
+	st.defers = append(st.defers, f)
+	return nil
+}

@@ -236,24 +236,8 @@ func bindFuncName(yylex yyLexer, fval *yySymType, n *yySymType, ns string) {
 
 func opFunc(yylex yyLexer, lval *yySymType, par *yySymType, block *yySymType) {
 	var ns []string
-	var cs []string
 	if par.value != nil {
-		tmp := par.value.([]string)
-		for _, name := range tmp {
-			if strings.HasPrefix(name, "$") {
-				if cs == nil {
-					cs = []string{name[1:]}
-				} else {
-					cs = append(cs, name[1:])
-				}
-			} else {
-				if ns == nil {
-					ns = []string{name}
-				} else {
-					ns = append(ns, name)
-				}
-			}
-		}
+		ns = par.value.([]string)
 	}
 
 	nb, err := toNode(yylex, block)
@@ -265,7 +249,7 @@ func opFunc(yylex yyLexer, lval *yySymType, par *yySymType, block *yySymType) {
 	r := new(NodeFunc)
 	r.Bev2(OP_FUNC, par, block)
 	r.Params = ns
-	r.CVars = cs
+	// r.CVars = cs
 	r.Block = nb
 
 	lval.Be(r)
@@ -544,11 +528,16 @@ func nameAppend(yylex yyLexer, lval *yySymType, val1 *yySymType, val2 *yySymType
 	if yyDebug >= 2 {
 		fmt.Println("nameAppend", val1, val2)
 	}
-	var ns []string
-	if val1.value == nil {
-		ns = []string{val1.token.image}
-	} else {
-		ns, _ = val1.value.([]string)
+	ns := make([]string, 0)
+	if val1 != nil {
+		if val1.value == nil {
+			ns = append(ns, val1.token.image)
+		} else {
+			lt, _ := val1.value.([]string)
+			for _, s := range lt {
+				ns = append(ns, s)
+			}
+		}
 	}
 	if val2 != nil {
 		if val2.value == nil {

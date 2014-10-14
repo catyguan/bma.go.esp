@@ -4,3 +4,4 @@
 3. max stack & timelimit
 4. for ... in array/table
 5. metatable __index & __newindex rawget/set
+6. ... = array

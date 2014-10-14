@@ -5,6 +5,7 @@ import (
 	"golua/goyacc"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -18,9 +19,12 @@ func safeCall() {
 
 func TestParserBuildRun(t *testing.T) {
 	if true {
+		runtime.GOMAXPROCS(5)
 		safeCall()
 
+		trace := true
 		f := "test1.lua"
+		// f := "test_go_syn.lua"
 		bs, err0 := ioutil.ReadFile("samplecodes/" + f)
 		if err0 != nil {
 			t.Error(err0)
@@ -48,6 +52,7 @@ func TestParserBuildRun(t *testing.T) {
 		fmt.Println("--------------- RUN ---------------")
 		vmg := NewVMG("test")
 		CoreModule(vmg)
+		GoModule().Bind(vmg)
 		defer vmg.Close()
 
 		chunk := NewChunk(chunkName, node)
@@ -57,7 +62,7 @@ func TestParserBuildRun(t *testing.T) {
 			t.Error("create vm error", err3)
 			return
 		}
-		vm.EnableTrace(true)
+		vm.EnableTrace(trace)
 		vm.ResetExecutionTime()
 		vm.SetMaxExecutionTime(100)
 
@@ -80,5 +85,6 @@ func TestParserBuildRun(t *testing.T) {
 		}
 		fmt.Println("Call => ", rval)
 		fmt.Println(vmg.globals)
+		time.Sleep(100 * time.Millisecond)
 	}
 }

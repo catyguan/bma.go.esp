@@ -49,7 +49,6 @@ type VM struct {
 	vmg        *VMG
 	stack      *VMStack
 	numOfStack int
-	trace      bool
 	sdata      []interface{}
 	syncutil.CloseState
 
@@ -57,6 +56,7 @@ type VM struct {
 	maxExecutionTime int
 	numOfTime        int
 	executeTime      time.Time
+	trace            bool
 }
 
 func newVM(vmg *VMG, id uint32) *VM {
@@ -106,14 +106,19 @@ func (this *VM) String() string {
 	return fmt.Sprintf("VM(%s)", this.name)
 }
 
-func (this *VM) Spawn(n string) (*VM, error) {
+func (this *VM) Spawn(n string, childStack bool) (*VM, error) {
 	vm2, err := this.vmg.newVM()
 	if err != nil {
 		return nil, err
 	}
 	vm2.name = fmt.Sprintf("%s-%d", this.name, vm2.id)
 	vm2.config = this.config
-	st := newVMStack(this.stack)
+	vm2.trace = this.trace
+	pst := this.stack
+	if !childStack {
+		pst = nil
+	}
+	st := newVMStack(pst)
 	if n == "" {
 		n = fmt.Sprintf("VM<%s>", vm2.name)
 	}
@@ -154,6 +159,14 @@ func (this *VM) IsRunning() bool {
 	return atomic.LoadInt32(&this.running) > 0
 }
 
+func (this *VM) PrepareRun(b bool) {
+	if b {
+		atomic.AddInt32(&this.running, 1)
+	} else {
+		atomic.AddInt32(&this.running, -1)
+	}
+}
+
 type StackTraceError struct {
 	s []string
 }
@@ -181,7 +194,7 @@ func (this *VM) EnableTrace(b bool) bool {
 
 func (this *VM) Trace(format string, args ...interface{}) {
 	if this.trace {
-		logger.Info(tag, format, args...)
+		logger.Info(tag, this.name+": "+format, args...)
 	}
 }
 

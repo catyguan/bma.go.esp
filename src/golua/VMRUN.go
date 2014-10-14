@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"golua/goyacc"
 	"logger"
+	"runtime"
 	"sync/atomic"
 	"time"
 )
@@ -46,15 +47,30 @@ func (this *VM) Call(nargs int, nresults int) (rint int, rerr error) {
 	r, err := func(nargs int, nresults int) (rint int, rerr error) {
 		atomic.AddInt32(&this.running, 1)
 		defer func() {
-			atomic.AddInt32(&this.running, -1)
 			if x := recover(); x != nil {
-				logger.Warn(tag, "runtime panic: %v", x)
+				trace := make([]byte, 1024)
+				runtime.Stack(trace, true)
+				logger.Warn(tag, "runtime panic: %v\n%s", x, trace)
 				if err, ok := x.(error); ok {
 					rerr = err
 				} else {
 					rerr = fmt.Errorf("%v", x)
 				}
 			}
+			if this.stack.defers != nil {
+				l := len(this.stack.defers)
+				for i := l - 1; i >= 0; i-- {
+					f := this.stack.defers[i]
+					this.API_push(f)
+					_, errX := this.Call(0, 0)
+					if errX != nil {
+						if errX != nil {
+							logger.Debug(tag, "%s defer %s fail - %s", this, f, errX)
+						}
+					}
+				}
+			}
+			atomic.AddInt32(&this.running, -1)
 		}()
 		n := nargs + 1
 		err1 := this.API_checkstack(n)
@@ -126,9 +142,10 @@ func (this *VM) Call(nargs int, nresults int) (rint int, rerr error) {
 				} else {
 					r = nil
 				}
-				npos := st.stackBegin + st.stackTop + i
+				npos := st.stackBegin + st.stackTop
 				this.sdata[npos] = r
 				st.stackTop++
+				// fmt.Println("KKKK", i, rc, this.sdata)
 			}
 			sttop := st.stackBegin + st.stackTop
 			for i := nst.stackBegin; i < nst.stackBegin+nst.stackTop; i++ {

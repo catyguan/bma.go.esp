@@ -60,7 +60,7 @@ UBlock:
 StatList:
 	Stat
 	| StatList Stat { opAppend(yylex, &$$, &$1, &$2) }
-	|
+	| { $$.value = nil }
 
 Stat:
 	Binding
@@ -196,7 +196,7 @@ ParDefList:
 	NameList
 	| MORE { nameAppend(yylex, &$$, &$1, nil) }
 	| NameList "," MORE { nameAppend(yylex, &$$, &$1, &$3) }
-	|
+	| { nameAppend(yylex, &$$, nil, nil) }
 	;
 
 Name2:

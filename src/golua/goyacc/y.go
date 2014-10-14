@@ -535,6 +535,11 @@ yydefault:
 		{
 			opAppend(yylex, &yyVAL, &yyS[yypt-1], &yyS[yypt-0])
 		}
+	case 7:
+		//line lua.y:63
+		{
+			yyVAL.value = nil
+		}
 	case 9:
 		//line lua.y:67
 		{
@@ -839,6 +844,11 @@ yydefault:
 		//line lua.y:198
 		{
 			nameAppend(yylex, &yyVAL, &yyS[yypt-2], &yyS[yypt-0])
+		}
+	case 81:
+		//line lua.y:199
+		{
+			nameAppend(yylex, &yyVAL, nil, nil)
 		}
 	case 82:
 		//line lua.y:203

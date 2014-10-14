@@ -26,7 +26,9 @@ func loadFile(f string) (string, error) {
 func TestP1(t *testing.T) {
 	safeCall()
 	yyDebug = 0
-	content, err0 := loadFile("test1.lua")
+	f := "test1.lua"
+	// f := "test_go_syn.lua"
+	content, err0 := loadFile(f)
 	if err0 != nil {
 		t.Error(err0)
 		return

@@ -14,6 +14,7 @@ type VMStack struct {
 	local      map[string]VMVar
 	stackBegin int
 	stackTop   int
+	defers     []interface{}
 }
 
 func newVMStack(p *VMStack) *VMStack {
@@ -67,6 +68,10 @@ func (this *VMStack) clear() {
 		delete(this.local, k)
 	}
 	this.local = nil
+	for i, _ := range this.defers {
+		this.defers[i] = nil
+	}
+	this.defers = nil
 }
 
 func (this *VMStack) createLocal(vm *VM, n string, val interface{}) {

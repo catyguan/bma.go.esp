@@ -48,10 +48,10 @@ local vr, v2
 -- function o:f2(a,b)
 -- 	b = 2
 -- end
-local function f3(a,b,...)
-	print(a,b,...)
-end
-f3(1,2,3,4,5)
+-- local function f3(a,b,...)
+-- 	print(a,b,...)
+-- end
+-- f3(1,2,3,4,5)
 -- vr = o
 
 -- for i = 1,5,"a" do
@@ -99,6 +99,25 @@ f3(1,2,3,4,5)
 -- setmetatable(o, mt)
 -- o.ab = o.abc *1000
 -- vr = o.ab
+
+-- go module
+-- local function f()
+-- 	print("run in go")
+-- end
+-- go.run(f, "test")
+-- go.defer(function()
+-- 	print("run in defer")
+-- end)
+
+local ch = go.chan(1)
+go.deferClose(ch)
+local ch2 = go.chan(1)
+go.deferClose(ch2)
+
+-- go.write(ch2, 123)
+print(go.read([ch, ch2], 50))
+-- vr = go.read(ch, 50)
+-- go.close(ch)
 
 return vr
 -- return 1 + 2
