@@ -100,24 +100,7 @@ local vr, v2
 -- o.ab = o.abc *1000
 -- vr = o.ab
 
--- go module
--- local function f()
--- 	print("run in go")
--- end
--- go.run(f, "test")
--- go.defer(function()
--- 	print("run in defer")
--- end)
 
-local ch = go.chan(1)
-go.deferClose(ch)
-local ch2 = go.chan(1)
-go.deferClose(ch2)
-
--- go.write(ch2, 123)
-print(go.read([ch, ch2], 50))
--- vr = go.read(ch, 50)
--- go.close(ch)
 
 return vr
 -- return 1 + 2

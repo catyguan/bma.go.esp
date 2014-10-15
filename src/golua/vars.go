@@ -47,6 +47,10 @@ func (this *globalVar) Set(vm *VM, v interface{}) (bool, error) {
 	return true, nil
 }
 
+func (this *globalVar) EnableSafe() {
+
+}
+
 func (this *globalVar) String() string {
 	return fmt.Sprintf("globalVar(%s)", this.name)
 }
@@ -72,6 +76,12 @@ func (this *localVar) Set(vm *VM, v interface{}) (bool, error) {
 	}
 	this.value = v
 	return true, nil
+}
+
+func (this *localVar) EnableSafe() {
+	if this.mux == nil {
+		this.mux = new(sync.RWMutex)
+	}
 }
 
 func (this *localVar) String() string {

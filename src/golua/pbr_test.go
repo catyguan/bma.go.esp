@@ -22,9 +22,10 @@ func TestParserBuildRun(t *testing.T) {
 		runtime.GOMAXPROCS(5)
 		safeCall()
 
-		trace := true
-		f := "test1.lua"
+		trace := false
+		// f := "test1.lua"
 		// f := "test_go_syn.lua"
+		f := "test_vvmGo.lua"
 		bs, err0 := ioutil.ReadFile("samplecodes/" + f)
 		if err0 != nil {
 			t.Error(err0)
@@ -69,18 +70,18 @@ func TestParserBuildRun(t *testing.T) {
 		vm.API_push(chunk)
 		_, err4 := vm.Call(0, 1)
 		if err4 != nil {
-			t.Error("vm call error", err4)
+			t.Error("vm call error:", err4)
 			return
 		}
 		fmt.Println(vm.DumpStack())
-		rval, err5 := vm.API_pop1(true)
+		rval, err5 := vm.API_pop1X(-1, true)
 		if err5 != nil {
-			t.Error("pop error", err5)
+			t.Error("pop error:", err5)
 			return
 		}
 		rval, err5 = vm.API_value(rval)
 		if err5 != nil {
-			t.Error("value", err5)
+			t.Error("value error:", err5)
 			return
 		}
 		fmt.Println("Call => ", rval)

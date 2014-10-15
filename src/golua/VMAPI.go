@@ -102,6 +102,10 @@ func (this *VM) API_popto(pos int) {
 	}
 }
 
+func (this *VM) API_popAll() {
+	this.API_popto(0)
+}
+
 func (this *VM) API_popN(n int, popval bool) ([]interface{}, error) {
 	st := this.stack
 	if n > st.stackTop {
@@ -125,28 +129,17 @@ func (this *VM) API_popN(n int, popval bool) ([]interface{}, error) {
 	return ra, nil
 }
 
-func (this *VM) API_pop1(popval bool) (interface{}, error) {
-	st := this.stack
-	if 1 > st.stackTop {
-		return nil, fmt.Errorf("pop %d overflow", 1)
-	}
-	st.stackTop--
-	pos := st.stackBegin + st.stackTop
-	r1 := this.sdata[pos]
-	this.sdata[pos] = nil
-	if popval {
-		return this.API_value(r1)
-	}
-	return r1, nil
-}
-
 func (this *VM) API_pop1X(c int, popval bool) (interface{}, error) {
 	st := this.stack
+	if c == -1 {
+		c = st.stackTop
+	}
 	var r1 interface{}
-	for i := 0; i < c; i++ {
+	for i := c - 1; i >= 0; i-- {
 		if st.stackTop >= 1 {
 			st.stackTop--
 			pos := st.stackBegin + st.stackTop
+			// fmt.Println(st.stackBegin, st.stackTop, len(this.sdata), pos, i)
 			if i == 0 {
 				r1 = this.sdata[pos]
 			}
@@ -154,25 +147,35 @@ func (this *VM) API_pop1X(c int, popval bool) (interface{}, error) {
 		}
 	}
 	if popval {
-		return this.API_value(r1)
+		var err error
+		r1, err = this.API_value(r1)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return r1, nil
 }
 
-func (this *VM) API_pop2(popval bool) (interface{}, interface{}, error) {
+func (this *VM) API_pop2X(c int, popval bool) (interface{}, interface{}, error) {
 	st := this.stack
-	if 2 > st.stackTop {
-		return nil, nil, fmt.Errorf("pop %d overflow", 2)
+	if c == -1 {
+		c = st.stackTop
 	}
-	st.stackTop--
-	pos := st.stackBegin + st.stackTop
-	r2 := this.sdata[pos]
-	this.sdata[pos] = nil
-	st.stackTop--
-	pos = st.stackBegin + st.stackTop
-	r1 := this.sdata[pos]
-	this.sdata[pos] = nil
-
+	var r1 interface{}
+	var r2 interface{}
+	for i := c - 1; i >= 0; i-- {
+		if st.stackTop >= 1 {
+			st.stackTop--
+			pos := st.stackBegin + st.stackTop
+			switch i {
+			case 0:
+				r1 = this.sdata[pos]
+			case 1:
+				r2 = this.sdata[pos]
+			}
+			this.sdata[pos] = nil
+		}
+	}
 	if popval {
 		var err error
 		r1, err = this.API_value(r1)
@@ -184,28 +187,32 @@ func (this *VM) API_pop2(popval bool) (interface{}, interface{}, error) {
 			return nil, nil, err
 		}
 	}
-
 	return r1, r2, nil
 }
 
-func (this *VM) API_pop3(popval bool) (interface{}, interface{}, interface{}, error) {
+func (this *VM) API_pop3X(c int, popval bool) (interface{}, interface{}, interface{}, error) {
 	st := this.stack
-	if 3 > st.stackTop {
-		return nil, nil, nil, fmt.Errorf("pop %d overflow", 3)
+	if c == -1 {
+		c = st.stackTop
 	}
-	st.stackTop--
-	pos := st.stackBegin + st.stackTop
-	r3 := this.sdata[pos]
-	this.sdata[pos] = nil
-	st.stackTop--
-	pos = st.stackBegin + st.stackTop
-	r2 := this.sdata[pos]
-	this.sdata[pos] = nil
-	st.stackTop--
-	pos = st.stackBegin + st.stackTop
-	r1 := this.sdata[pos]
-	this.sdata[pos] = nil
-
+	var r1 interface{}
+	var r2 interface{}
+	var r3 interface{}
+	for i := c - 1; i >= 0; i-- {
+		if st.stackTop >= 1 {
+			st.stackTop--
+			pos := st.stackBegin + st.stackTop
+			switch i {
+			case 0:
+				r1 = this.sdata[pos]
+			case 1:
+				r2 = this.sdata[pos]
+			case 2:
+				r3 = this.sdata[pos]
+			}
+			this.sdata[pos] = nil
+		}
+	}
 	if popval {
 		var err error
 		r1, err = this.API_value(r1)
@@ -224,28 +231,32 @@ func (this *VM) API_pop3(popval bool) (interface{}, interface{}, interface{}, er
 	return r1, r2, r3, nil
 }
 
-func (this *VM) API_pop4(popval bool) (interface{}, interface{}, interface{}, interface{}, error) {
+func (this *VM) API_pop4X(c int, popval bool) (interface{}, interface{}, interface{}, interface{}, error) {
 	st := this.stack
-	if 4 > st.stackTop {
-		return nil, nil, nil, nil, fmt.Errorf("pop %d overflow", 4)
+	if c == -1 {
+		c = st.stackTop
 	}
-	st.stackTop--
-	pos := st.stackBegin + st.stackTop
-	r4 := this.sdata[pos]
-	this.sdata[pos] = nil
-	st.stackTop--
-	pos = st.stackBegin + st.stackTop
-	r3 := this.sdata[pos]
-	this.sdata[pos] = nil
-	st.stackTop--
-	pos = st.stackBegin + st.stackTop
-	r2 := this.sdata[pos]
-	this.sdata[pos] = nil
-	st.stackTop--
-	pos = st.stackBegin + st.stackTop
-	r1 := this.sdata[pos]
-	this.sdata[pos] = nil
-
+	var r1 interface{}
+	var r2 interface{}
+	var r3 interface{}
+	var r4 interface{}
+	for i := c - 1; i >= 0; i-- {
+		if st.stackTop >= 1 {
+			st.stackTop--
+			pos := st.stackBegin + st.stackTop
+			switch i {
+			case 0:
+				r1 = this.sdata[pos]
+			case 1:
+				r2 = this.sdata[pos]
+			case 2:
+				r3 = this.sdata[pos]
+			case 3:
+				r4 = this.sdata[pos]
+			}
+			this.sdata[pos] = nil
+		}
+	}
 	if popval {
 		var err error
 		r1, err = this.API_value(r1)
@@ -265,7 +276,6 @@ func (this *VM) API_pop4(popval bool) (interface{}, interface{}, interface{}, in
 			return nil, nil, nil, nil, err
 		}
 	}
-
 	return r1, r2, r3, r4, nil
 }
 

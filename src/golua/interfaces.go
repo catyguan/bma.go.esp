@@ -10,8 +10,18 @@ type GoFunction interface {
 	IsNative() bool
 }
 
+type GoObject interface {
+	Get(vm *VM, o interface{}, key string) (interface{}, error)
+	Set(vm *VM, o interface{}, key string, val interface{}) error
+	ToMap(o interface{}) map[string]interface{}
+}
+
 type supportFuncName interface {
 	FuncName() (string, string)
+}
+
+type supportSafe interface {
+	EnableSafe()
 }
 
 type ER int
@@ -53,4 +63,30 @@ func AssertNil(n string, v interface{}) error {
 		return errors.New("null pointer")
 	}
 	return nil
+}
+
+// gofCommon
+type GoFunc func(vm *VM) (int, error)
+type gofCommon struct {
+	name string
+	f    GoFunc
+}
+
+func NewGOF(n string, f GoFunc) GoFunction {
+	r := new(gofCommon)
+	r.name = n
+	r.f = f
+	return r
+}
+
+func (this *gofCommon) Exec(vm *VM) (int, error) {
+	return this.f(vm)
+}
+
+func (this *gofCommon) IsNative() bool {
+	return true
+}
+
+func (this *gofCommon) String() string {
+	return fmt.Sprintf("GOF<%s>", this.name)
 }

@@ -106,6 +106,7 @@ Binding:
 		opLocal(yylex, &$$, &tmp, &$4)
 	}
 	| CLOSURE '(' NameList ')' { opClosure(yylex, &$$, &$3) }
+	| CLOSURE NameList { opClosure(yylex, &$$, &$2) }
 
 SetList:
 	Var

@@ -212,6 +212,20 @@ func ExecOp2(op OP, val1 interface{}, val2 interface{}) (bool, interface{}, erro
 				return true, r, nil
 			}
 		}
+		if val1 == nil {
+			r = val2 == nil
+			if op == OP_NOTEQ {
+				r = !r
+			}
+			return true, r, nil
+		}
+		if val2 == nil {
+			r = val1 == nil
+			if op == OP_NOTEQ {
+				r = !r
+			}
+			return true, r, nil
+		}
 		if nt1 == 0 || nt2 == 0 {
 			return false, nil, fmt.Errorf("invalid %v,%T == %v,%T", val1, val1, val2, val2)
 		}

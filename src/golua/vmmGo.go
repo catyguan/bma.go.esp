@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"logger"
 	"reflect"
+	"sync"
 	"time"
 )
 
@@ -17,26 +18,27 @@ func GoModule() *VMModule {
 	m.Init("read", GOF_go_read(0))
 	m.Init("select", GOF_go_select(0))
 	m.Init("close", GOF_go_close(0))
-	m.Init("deferClose", GOF_go_deferClose(0))
+	m.Init("enableSafe", GOF_go_enableSafe(0))
+	m.Init("mutex", GOF_go_mutex(0))
+	m.Init("sleep", GOF_go_sleep(0))
 	return m
 }
 
-// go.run(func)
+// go.run(func() [,vmname string])
 type GOF_go_run int
 
 func (this GOF_go_run) Exec(vm *VM) (int, error) {
-	n := ""
-	c := vm.API_gettop()
-	if c > 1 {
-		v, err1 := vm.API_pop1(true)
-		if err1 != nil {
-			return 0, err1
-		}
-		n = valutil.ToString(v, "")
+	err0 := vm.API_checkstack(1)
+	if err0 != nil {
+		return 0, err0
 	}
-	f, err2 := vm.API_pop1(true)
-	if err2 != nil {
-		return 0, err2
+	n := ""
+	f, nv, err1 := vm.API_pop2X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	if nv != nil {
+		n = valutil.ToString(nv, "")
 	}
 	if !vm.API_canCall(f) {
 		return 0, fmt.Errorf("param1(%T) can't call", f)
@@ -67,13 +69,25 @@ func (this GOF_go_run) String() string {
 	return "GoFunc<go.run>"
 }
 
-// go.defer(func)
+// go.defer(xxx)
+//	xxx -- func(), ClosableObject(chan,)
 type GOF_go_defer int
 
 func (this GOF_go_defer) Exec(vm *VM) (int, error) {
-	f, err2 := vm.API_pop1(true)
+	err0 := vm.API_checkstack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	f, err2 := vm.API_pop1X(-1, true)
 	if err2 != nil {
 		return 0, err2
+	}
+	if canClose(f) {
+		o := f
+		f = NewGOF("deferClose", func(vm *VM) (int, error) {
+			doClose(o)
+			return 0, nil
+		})
 	}
 	err3 := vm.API_defer(f, true)
 	return 0, err3
@@ -91,7 +105,11 @@ func (this GOF_go_defer) String() string {
 type GOF_go_chan int
 
 func (this GOF_go_chan) Exec(vm *VM) (int, error) {
-	sz, err2 := vm.API_pop1(true)
+	err0 := vm.API_checkstack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	sz, err2 := vm.API_pop1X(-1, true)
 	if err2 != nil {
 		return 0, err2
 	}
@@ -116,7 +134,11 @@ func (this GOF_go_chan) String() string {
 type GOF_go_write int
 
 func (this GOF_go_write) Exec(vm *VM) (int, error) {
-	ch, val, err1 := vm.API_pop2(true)
+	err0 := vm.API_checkstack(2)
+	if err0 != nil {
+		return 0, err0
+	}
+	ch, val, err1 := vm.API_pop2X(-1, true)
 	if err1 != nil {
 		return 0, err1
 	}
@@ -151,18 +173,17 @@ func (this GOF_go_write) String() string {
 type GOF_go_read int
 
 func (this GOF_go_read) Exec(vm *VM) (int, error) {
-	c := vm.API_gettop()
-	vtm := 0
-	if c > 1 {
-		tm, err0 := vm.API_pop1(true)
-		if err0 != nil {
-			return 0, err0
-		}
-		vtm = valutil.ToInt(tm, 0)
+	err0 := vm.API_checkstack(1)
+	if err0 != nil {
+		return 0, err0
 	}
-	ch, err1 := vm.API_pop1(true)
+	vtm := 0
+	ch, tm, err1 := vm.API_pop2X(-1, true)
 	if err1 != nil {
 		return 0, err1
+	}
+	if tm != nil {
+		vtm = valutil.ToInt(tm, 0)
 	}
 	if vch, ok := ch.(chan interface{}); ok {
 		if vtm <= 0 {
@@ -224,11 +245,15 @@ func (this GOF_go_read) String() string {
 	return "GoFunc<go.read>"
 }
 
-// go.select(...) (bool, value)
+// go.select(ch) (bool, value)
 type GOF_go_select int
 
 func (this GOF_go_select) Exec(vm *VM) (int, error) {
-	ch, err1 := vm.API_pop1(true)
+	err0 := vm.API_checkstack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	ch, err1 := vm.API_pop1X(-1, true)
 	if err1 != nil {
 		return 0, err1
 	}
@@ -255,23 +280,52 @@ func (this GOF_go_select) String() string {
 	return "GoFunc<go.select>"
 }
 
-// go.close(obj)
-//		obj - chan
-type GOF_go_close int
+// close func
+func canClose(o interface{}) bool {
+	if o == nil {
+		return true
+	}
+	switch ro := o.(type) {
+	case chan interface{}:
+		return true
+	case *objectVMTable:
+		obj := ro.o
+		switch obj.(type) {
+		case sync.Locker:
+			return true
+		}
+	}
+	return false
+}
 
 func doClose(o interface{}) bool {
 	if o == nil {
 		return true
 	}
-	if vch, ok := o.(chan interface{}); ok {
-		close(vch)
-		return true
+	switch ro := o.(type) {
+	case chan interface{}:
+		close(ro)
+	case *objectVMTable:
+		obj := ro.o
+		switch robj := obj.(type) {
+		case sync.Locker:
+			robj.Unlock()
+			return true
+		}
 	}
 	return false
 }
 
+// go.close(obj)
+//		obj - chan
+type GOF_go_close int
+
 func (this GOF_go_close) Exec(vm *VM) (int, error) {
-	ch, err1 := vm.API_pop1(true)
+	err0 := vm.API_checkstack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	ch, err1 := vm.API_pop1X(-1, true)
 	if err1 != nil {
 		return 0, err1
 	}
@@ -290,40 +344,90 @@ func (this GOF_go_close) String() string {
 	return "GoFunc<go.close>"
 }
 
-// obj4deferClose
-type obj4deferClose struct {
-	o interface{}
-}
+// go.enableSafe(obj[, val bool])
+//		obj - var
+type GOF_go_enableSafe int
 
-func (this *obj4deferClose) Exec(vm *VM) (int, error) {
-	doClose(this.o)
-	return 0, nil
-}
-
-func (this *obj4deferClose) IsNative() bool {
-	return true
-}
-
-func (this *obj4deferClose) String() string {
-	return "GoFunc<obj4deferClose>"
-}
-
-// go.deferClose(obj)
-type GOF_go_deferClose int
-
-func (this GOF_go_deferClose) Exec(vm *VM) (int, error) {
-	o, err1 := vm.API_pop1(true)
+func (this GOF_go_enableSafe) Exec(vm *VM) (int, error) {
+	err0 := vm.API_checkstack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	o, ival, err1 := vm.API_pop2X(-1, false)
 	if err1 != nil {
 		return 0, err1
 	}
-	vm.API_defer(&obj4deferClose{o}, true)
-	return 0, nil
+	if valutil.ToBool(ival, false) {
+		o, err1 = vm.API_value(o)
+		if err1 != nil {
+			return 0, err1
+		}
+	}
+	if so, ok := o.(supportSafe); ok {
+		so.EnableSafe()
+		return 0, nil
+	} else {
+		return 0, fmt.Errorf("invalid safe(%T)", o)
+	}
 }
 
-func (this GOF_go_deferClose) IsNative() bool {
+func (this GOF_go_enableSafe) IsNative() bool {
 	return true
 }
 
-func (this GOF_go_deferClose) String() string {
-	return "GoFunc<go.deferClose>"
+func (this GOF_go_enableSafe) String() string {
+	return "GoFunc<go.enableSafe>"
+}
+
+// go.mutex([rw:bool])
+type GOF_go_mutex int
+
+func (this GOF_go_mutex) Exec(vm *VM) (int, error) {
+	rw, err2 := vm.API_pop1X(-1, true)
+	if err2 != nil {
+		return 0, err2
+	}
+	vrw := valutil.ToBool(rw, false)
+	var r interface{}
+	if vrw {
+		o := new(sync.RWMutex)
+		r = NewGOO(o, gooRMutex(0))
+	} else {
+		o := new(sync.Mutex)
+		r = NewGOO(o, gooLocker(0))
+	}
+	vm.API_push(r)
+	return 1, nil
+}
+
+func (this GOF_go_mutex) IsNative() bool {
+	return true
+}
+
+func (this GOF_go_mutex) String() string {
+	return "GoFunc<go.mutex>"
+}
+
+// go.sleep(timeMS:int)
+type GOF_go_sleep int
+
+func (this GOF_go_sleep) Exec(vm *VM) (int, error) {
+	tm, err2 := vm.API_pop1X(-1, true)
+	if err2 != nil {
+		return 0, err2
+	}
+	vtm := valutil.ToInt(tm, -1)
+	if vtm < 0 {
+		return 0, fmt.Errorf("invalid sleep time(%v)", tm)
+	}
+	time.Sleep(time.Duration(vtm) * time.Millisecond)
+	return 0, nil
+}
+
+func (this GOF_go_sleep) IsNative() bool {
+	return true
+}
+
+func (this GOF_go_sleep) String() string {
+	return "GoFunc<go.sleep>"
 }

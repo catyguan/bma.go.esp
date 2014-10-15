@@ -5,6 +5,7 @@ import (
 	"sync"
 )
 
+// CommonVMTable
 type CommonVMTable struct {
 	mux       *sync.RWMutex
 	data      map[string]interface{}
@@ -13,6 +14,12 @@ type CommonVMTable struct {
 
 func (this *CommonVMTable) String() string {
 	return fmt.Sprintf("@%v", this.data)
+}
+
+func (this *CommonVMTable) EnableSafe() {
+	if this.mux == nil {
+		this.mux = new(sync.RWMutex)
+	}
 }
 
 func (this *CommonVMTable) GetMetaTable() VMTable {
@@ -165,4 +172,51 @@ func (this *VM) API_newtable() VMTable {
 
 func (this *VM) API_newarray() []interface{} {
 	return make([]interface{}, 0)
+}
+
+// objectVMTable
+type objectVMTable struct {
+	o interface{}
+	p GoObject
+}
+
+func NewGOO(o interface{}, p GoObject) VMTable {
+	r := new(objectVMTable)
+	r.o = o
+	r.p = p
+	return r
+}
+
+func (this *objectVMTable) String() string {
+	return fmt.Sprintf("@%v", this.o)
+}
+
+func (this *objectVMTable) Get(vm *VM, key string) (interface{}, error) {
+	r, err := this.p.Get(vm, this.o, key)
+	// fmt.Println("objectVMTable:Get", this.o, key, r, err)
+	return r, err
+}
+
+func (this *objectVMTable) Rawget(key string) interface{} {
+	return nil
+}
+
+func (this *objectVMTable) Set(vm *VM, key string, val interface{}) error {
+	return this.p.Set(vm, this.o, key, val)
+}
+
+func (this *objectVMTable) Rawset(key string, val interface{}) {
+
+}
+
+func (this *objectVMTable) Delete(key string) {
+
+}
+
+func (this *objectVMTable) Len() int {
+	return 0
+}
+
+func (this *objectVMTable) ToMap() map[string]interface{} {
+	return this.p.ToMap(this.o)
 }

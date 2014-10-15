@@ -8,7 +8,7 @@ import (
 type GOF_test int
 
 func (this GOF_test) Exec(vm *VM) (int, error) {
-	v1, v2, err := vm.API_pop2(true)
+	v1, v2, err := vm.API_pop2X(-1, true)
 	if err != nil {
 		return 0, err
 	}
@@ -57,6 +57,18 @@ func T2estVMAPI(t *testing.T) {
 		fmt.Println(vm.DumpStack())
 	}
 
+	if true {
+		vm.API_push(1)
+		vm.API_push(2)
+		vm.API_push(3)
+		vm.API_push(4)
+		vm.API_push(5)
+		fmt.Println(vm.DumpStack())
+		r1, r2, r3, r4, err := vm.API_pop4X(-1, true)
+		fmt.Println(vm.DumpStack())
+		fmt.Println("result", r1, r2, r3, r4, err)
+	}
+
 	if false {
 		f := GOF_print(0)
 		vm.API_push(f)
@@ -69,7 +81,7 @@ func T2estVMAPI(t *testing.T) {
 			return
 		}
 		fmt.Println(vm.DumpStack())
-		r, err2 := vm.API_pop1(true)
+		r, err2 := vm.API_pop1X(-1, true)
 		if err2 != nil {
 			t.Error(err2)
 			return
@@ -88,7 +100,7 @@ func T2estVMAPI(t *testing.T) {
 		fmt.Println(err1)
 	}
 
-	if true {
+	if false {
 		f := GOF_test(0)
 		vm.API_push(f)
 		vm.API_push(1)

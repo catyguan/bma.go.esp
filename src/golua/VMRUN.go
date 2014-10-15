@@ -108,7 +108,7 @@ func (this *VM) Call(nargs int, nresults int) (rint int, rerr error) {
 		for i := 0; i < nargs; i++ {
 			v := this.sdata[pos+i]
 			this.sdata[pos+i] = nil
-			npos := nst.stackBegin + i
+			npos := nst.stackBegin + nst.stackTop + i
 			if npos < len(this.sdata) {
 				this.sdata[npos] = v
 			} else {
@@ -643,7 +643,7 @@ func (this *VM) runCode(node goyacc.Node) (int, ER, error) {
 			var vlist []interface{}
 			var mlist map[string]interface{}
 			if r1 == 1 {
-				v1, err2 := this.API_pop1(true)
+				v1, err2 := this.API_pop1X(1, true)
 				if err2 != nil {
 					return 0, ER_ERROR, err2
 				}

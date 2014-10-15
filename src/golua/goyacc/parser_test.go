@@ -23,7 +23,19 @@ func loadFile(f string) (string, error) {
 	return string(bs), nil
 }
 
-func TestP1(t *testing.T) {
+func TestExecOp(t *testing.T) {
+	safeCall()
+
+	var v1, v2 interface{}
+
+	op := OP_EQ
+	v1 = 1
+	v2 = nil
+	ok, r, err := ExecOp2(op, v1, v2)
+	fmt.Println("result", ok, r, err)
+}
+
+func T2estP1(t *testing.T) {
 	safeCall()
 	yyDebug = 0
 	f := "test1.lua"
