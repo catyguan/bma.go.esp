@@ -56,7 +56,7 @@ func (this *VMStack) Dump(sdata []interface{}) string {
 	for st != nil {
 		buf.WriteString(fmt.Sprintf("%s\n", st.String()))
 		buf.WriteString(fmt.Sprintf("\tLOCAL: %v\n", st.local))
-		buf.WriteString(fmt.Sprintf("\tSTACK: %d, %v\n", st.stackTop, sdata[st.stackBegin:st.stackBegin+st.stackTop]))
+		buf.WriteString(fmt.Sprintf("\tSTACK: %d:%d, %v\n", st.stackBegin, st.stackTop, sdata[st.stackBegin:st.stackBegin+st.stackTop]))
 		st = st.parent
 	}
 	return buf.String()

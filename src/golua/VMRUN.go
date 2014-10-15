@@ -108,7 +108,7 @@ func (this *VM) Call(nargs int, nresults int) (rint int, rerr error) {
 		for i := 0; i < nargs; i++ {
 			v := this.sdata[pos+i]
 			this.sdata[pos+i] = nil
-			npos := nst.stackBegin + nst.stackTop + i
+			npos := nst.stackBegin + nst.stackTop
 			if npos < len(this.sdata) {
 				this.sdata[npos] = v
 			} else {
@@ -134,6 +134,9 @@ func (this *VM) Call(nargs int, nresults int) (rint int, rerr error) {
 			if nres < 0 {
 				nres = rc
 			}
+			// if nres > 0 {
+			// 	fmt.Printf("BeforeReturn %v AT=%d, OB=%d, OTOP=%d\n", this.sdata, at, st.stackBegin, st.stackTop)
+			// }
 			for i := 0; i < nres; i++ {
 				var r interface{}
 				pos := at + i
@@ -145,7 +148,7 @@ func (this *VM) Call(nargs int, nresults int) (rint int, rerr error) {
 				npos := st.stackBegin + st.stackTop
 				this.sdata[npos] = r
 				st.stackTop++
-				// fmt.Println("KKKK", i, rc, this.sdata)
+				// fmt.Printf("Return%d %v AT=%d, OB=%d, OTOP=%d\n", i+1, this.sdata, pos, st.stackBegin, st.stackTop)
 			}
 			sttop := st.stackBegin + st.stackTop
 			for i := nst.stackBegin; i < nst.stackBegin+nst.stackTop; i++ {
@@ -153,6 +156,9 @@ func (this *VM) Call(nargs int, nresults int) (rint int, rerr error) {
 					this.sdata[i] = nil
 				}
 			}
+			// if nres > 0 {
+			// 	fmt.Printf("AfterReturn %v AT=%d, OB=%d, OTOP=%d\n", this.sdata, at, st.stackBegin, st.stackTop)
+			// }
 			this.Trace("Call %s(%d,%d) -> %d", gof, nargs, nresults, rc)
 			return nres, nil
 		} else {
@@ -358,34 +364,36 @@ func (this *VM) runCode(node goyacc.Node) (int, ER, error) {
 			if er1 != ER_NEXT {
 				return r1, er1, err1
 			}
+			// fmt.Println("CALL 1", r1, this.DumpStack())
 			r2, er2, err2 := this.runCode(n.Child2)
 			if er2 != ER_NEXT {
 				return r1 + r2, er2, err2
 			}
+			// fmt.Println("CALL 2", r1, this.DumpStack())
 			this.stack.line = node.GetLine()
 			r0, err0 := this.Call(r2, -1)
 			if err0 != nil {
 				return r0, ER_ERROR, err0
 			}
+			// fmt.Println("CALL End", r1, this.DumpStack())
 			return r0, ER_NEXT, nil
 		case goyacc.OP_ASSIGN:
 			r1, er1, err1 := this.runCode(n.Child1)
 			if er1 != ER_NEXT {
 				return r1, er1, err1
 			}
-
-			r2, er2, err2 := this.runCode(n.Child2)
-			if er2 != ER_NEXT {
-				return r1 + r2, er2, err2
-			}
-
-			vs, err3 := this.API_popN(r2, true)
-			if err3 != nil {
-				return 0, ER_ERROR, err3
-			}
 			vas, err4 := this.API_popN(r1, false)
 			if err4 != nil {
 				return 0, ER_ERROR, err4
+			}
+
+			r2, er2, err2 := this.runCode(n.Child2)
+			if er2 != ER_NEXT {
+				return r2, er2, err2
+			}
+			vs, err3 := this.API_popN(r2, true)
+			if err3 != nil {
+				return 0, ER_ERROR, err3
 			}
 
 			for i, va := range vas {

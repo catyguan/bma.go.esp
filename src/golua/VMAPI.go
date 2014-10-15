@@ -378,7 +378,7 @@ func (this *VM) API_findVar(n string) VMVar {
 
 func (this *VM) API_defer(f interface{}, parentStack bool) error {
 	if !this.API_canCall(f) {
-		return fmt.Errorf("param1(%T) can't call", f)
+		return fmt.Errorf("defer func(%T) can't call", f)
 	}
 	st := this.stack
 	if parentStack {

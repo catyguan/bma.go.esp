@@ -21,6 +21,8 @@ func GoModule() *VMModule {
 	m.Init("enableSafe", GOF_go_enableSafe(0))
 	m.Init("mutex", GOF_go_mutex(0))
 	m.Init("sleep", GOF_go_sleep(0))
+	m.Init("timer", GOF_go_timer(0))
+	m.Init("ticker", GOF_go_ticker(0))
 	return m
 }
 
@@ -48,14 +50,14 @@ func (this GOF_go_run) Exec(vm *VM) (int, error) {
 		return 0, err3
 	}
 	vm.Trace("go.run %s", vm2)
-	vm2.PrepareRun(true)
+	// vm2.PrepareRun(true)
 	go func() {
 		vm2.API_push(f)
 		_, errX := vm2.Call(0, 0)
 		if errX != nil {
 			logger.Debug(tag, "go.run %s fail - %s", vm2, errX)
 		}
-		vm2.PrepareRun(false)
+		// vm2.PrepareRun(false)
 		vm2.Destroy()
 	}()
 	return 0, nil
@@ -293,6 +295,10 @@ func canClose(o interface{}) bool {
 		switch obj.(type) {
 		case sync.Locker:
 			return true
+		case *time.Timer:
+			return true
+		case *time.Ticker:
+			return true
 		}
 	}
 	return false
@@ -310,6 +316,12 @@ func doClose(o interface{}) bool {
 		switch robj := obj.(type) {
 		case sync.Locker:
 			robj.Unlock()
+			return true
+		case *time.Timer:
+			robj.Stop()
+			return true
+		case *time.Ticker:
+			robj.Stop()
 			return true
 		}
 	}
@@ -430,4 +442,105 @@ func (this GOF_go_sleep) IsNative() bool {
 
 func (this GOF_go_sleep) String() string {
 	return "GoFunc<go.sleep>"
+}
+
+// go.timer(timeMS:int, func())
+type GOF_go_timer int
+
+func (this GOF_go_timer) Exec(vm *VM) (int, error) {
+	err1 := vm.API_checkstack(2)
+	if err1 != nil {
+		return 0, err1
+	}
+	tm, f, err2 := vm.API_pop2X(-1, true)
+	if err2 != nil {
+		return 0, err2
+	}
+	vtm := valutil.ToInt(tm, -1)
+	if vtm < 0 {
+		return 0, fmt.Errorf("invalid timer time(%v)", tm)
+	}
+	if !vm.API_canCall(f) {
+		return 0, fmt.Errorf("timer func(%T) can't call", f)
+	}
+	vm2, err3 := vm.Spawn("", false)
+	if err3 != nil {
+		return 0, err3
+	}
+	timer := time.AfterFunc(time.Duration(vtm)*time.Millisecond, func() {
+		if vm2.IsClosing() {
+			return
+		}
+		vm2.API_push(f)
+		_, errX := vm2.Call(0, 0)
+		if errX != nil {
+			logger.Debug(tag, "go.timer %s fail - %s", vm2, errX)
+		}
+		vm2.Destroy()
+	})
+	r := NewGOO(timer, gooTimer(0))
+	vm.API_push(r)
+	return 1, nil
+}
+
+func (this GOF_go_timer) IsNative() bool {
+	return true
+}
+
+func (this GOF_go_timer) String() string {
+	return "GoFunc<go.timer>"
+}
+
+// go.ticker(timeMS:int, func())
+type GOF_go_ticker int
+
+func (this GOF_go_ticker) Exec(vm *VM) (int, error) {
+	err1 := vm.API_checkstack(2)
+	if err1 != nil {
+		return 0, err1
+	}
+	tm, f, err2 := vm.API_pop2X(-1, true)
+	if err2 != nil {
+		return 0, err2
+	}
+	vtm := valutil.ToInt(tm, -1)
+	if vtm < 0 {
+		return 0, fmt.Errorf("invalid timer time(%v)", tm)
+	}
+	if !vm.API_canCall(f) {
+		return 0, fmt.Errorf("timer func(%T) can't call", f)
+	}
+	vm2, err3 := vm.Spawn("", false)
+	if err3 != nil {
+		return 0, err3
+	}
+	ticker := time.NewTicker(time.Duration(vtm) * time.Millisecond)
+	go func() {
+		defer vm2.Destroy()
+		for {
+			_, ok := <-ticker.C
+			if !ok {
+				break
+			}
+			if vm2.IsClosing() {
+				break
+			}
+			vm2.API_push(f)
+			_, errX := vm2.Call(0, 0)
+			if errX != nil {
+				logger.Debug(tag, "go.ticker %s fail - %s", vm2, errX)
+			}
+		}
+	}()
+	r := NewGOO(ticker, gooTicker(0))
+	vm.API_push(r)
+	return 1, nil
+}
+
+func (this GOF_go_ticker) IsNative() bool {
+	return true
+}
+
+func (this GOF_go_ticker) String() string {
+	return "GoFunc<go.ticker>"
 }

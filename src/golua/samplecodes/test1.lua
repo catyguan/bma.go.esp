@@ -100,7 +100,5 @@ local vr, v2
 -- o.ab = o.abc *1000
 -- vr = o.ab
 
-
-
 return vr
 -- return 1 + 2

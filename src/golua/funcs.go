@@ -11,6 +11,7 @@ import (
 type GOF_print int
 
 func (this GOF_print) Exec(vm *VM) (int, error) {
+	// fmt.Println("PRINT", vm.DumpStack())
 	buf := bytes.NewBuffer(make([]byte, 0, 32))
 	top := vm.API_gettop()
 	for i := 1; i <= top; i++ {
@@ -28,7 +29,7 @@ func (this GOF_print) Exec(vm *VM) (int, error) {
 		buf.WriteString(fmt.Sprintf("%v", v))
 	}
 	fmt.Println(buf.String())
-	vm.API_pop(top)
+	vm.API_popAll()
 	return 0, nil
 }
 
@@ -57,6 +58,14 @@ func (this GOF_error) Exec(vm *VM) (int, error) {
 		}
 		if i != 1 {
 			buf.WriteString(",")
+		} else {
+			if top == 1 {
+				if err, ok := v.(error); ok {
+					vm.API_pop(top)
+					// fmt.Println("ReError %T", err)
+					return 0, err
+				}
+			}
 		}
 		buf.WriteString(fmt.Sprintf("%v", v))
 	}
@@ -222,6 +231,53 @@ func (this GOF_rawset) String() string {
 	return "GoFunc<rawset>"
 }
 
+// pcall(f, ...) true, ... | false, error
+type GOF_pcall int
+
+func (this GOF_pcall) Exec(vm *VM) (int, error) {
+	top := vm.API_gettop()
+	if top == 0 {
+		vm.API_push(true)
+		return 1, nil
+	}
+	f, err0 := vm.API_peek(-top, true)
+	if err0 != nil {
+		vm.API_popAll()
+		vm.API_push(false)
+		vm.API_push(err0)
+		return 2, nil
+	}
+	if !vm.API_canCall(f) {
+		err1 := fmt.Errorf("pcall func(%T) can't call", f)
+		vm.API_popAll()
+		vm.API_push(false)
+		vm.API_push(err1)
+		return 2, nil
+	}
+	r, err2 := vm.Call(top-1, -1)
+	if err2 != nil {
+		vm.API_popAll()
+		vm.API_push(false)
+		vm.API_push(err2)
+		return 2, nil
+	}
+	if r == 0 {
+		vm.API_push(true)
+		return 1, nil
+	} else {
+		vm.API_insert(-r, true)
+		return r + 1, nil
+	}
+}
+
+func (this GOF_pcall) IsNative() bool {
+	return true
+}
+
+func (this GOF_pcall) String() string {
+	return "GoFunc<pcall>"
+}
+
 // core module
 func CoreModule(vmg *VMG) {
 	vmg.SetGlobal("print", GOF_print(0))
@@ -230,4 +286,5 @@ func CoreModule(vmg *VMG) {
 	vmg.SetGlobal("getmetatable", GOF_getmetatable(0))
 	vmg.SetGlobal("rawget", GOF_rawget(0))
 	vmg.SetGlobal("rawset", GOF_rawset(0))
+	vmg.SetGlobal("pcall", GOF_pcall(0))
 }

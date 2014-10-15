@@ -5,3 +5,4 @@ golua API:
 funcs.go
 vmmGo
 gooMutex
+gooTimer
