@@ -25,8 +25,8 @@ func TestParserBuildRun(t *testing.T) {
 		trace := false
 		// f := "test1.lua"
 		// f := "test_go_syn.lua"
-		f := "test_vmmGo.lua"
-		// f := "test_vmmTypes.lua"
+		// f := "test_vmmGo.lua"
+		f := "test_vmmTypes.lua"
 		bs, err0 := ioutil.ReadFile("samplecodes/" + f)
 		if err0 != nil {
 			t.Error(err0)

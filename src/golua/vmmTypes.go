@@ -17,7 +17,7 @@ func TypesModule() *VMModule {
 	return m
 }
 
-// types.name(v)
+// types.name(v[, extInfo:bool])
 type GOF_types_name int
 
 func (this GOF_types_name) Exec(vm *VM) (int, error) {
@@ -25,14 +25,56 @@ func (this GOF_types_name) Exec(vm *VM) (int, error) {
 	if err0 != nil {
 		return 0, err0
 	}
-	v, err1 := vm.API_pop1X(-1, true)
+	v, ext, err1 := vm.API_pop2X(-1, true)
 	if err1 != nil {
 		return 0, err1
 	}
+	vext := valutil.ToBool(ext, false)
 	n := "<unknow>"
-	n = fmt.Sprintf("%T", v)
+	einfo := ""
+
+	if v == nil {
+		n = "nil"
+	} else {
+		switch ro := v.(type) {
+		case bool:
+			n = "bool"
+		case int, uint, int8, uint8, int16, uint16, int32, uint32:
+			n = "int32"
+		case int64, uint64:
+			n = "int64"
+		case float32, float64:
+			n = "float"
+		case string:
+			n = "string"
+		case map[string]interface{}:
+			n = "table"
+		case VMTable:
+			n = "table"
+			if tmp, ok := ro.(*objectVMTable); ok {
+				n = "object"
+				if vext {
+					einfo = fmt.Sprintf("%T", tmp.o)
+				}
+			}
+		case []interface{}:
+			n = "array"
+		case VMArray:
+			n = "array"
+			einfo = "VMArray"
+		}
+	}
+	if einfo == "" && vext {
+		einfo = fmt.Sprintf("%T", v)
+	}
+
+	r := 1
 	vm.API_push(n)
-	return 1, nil
+	if vext {
+		vm.API_push(einfo)
+		r = 2
+	}
+	return r, nil
 }
 
 func (this GOF_types_name) IsNative() bool {
