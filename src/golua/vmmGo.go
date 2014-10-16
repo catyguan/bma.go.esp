@@ -45,7 +45,7 @@ func (this GOF_go_run) Exec(vm *VM) (int, error) {
 	if !vm.API_canCall(f) {
 		return 0, fmt.Errorf("param1(%T) can't call", f)
 	}
-	vm2, err3 := vm.Spawn(n, false)
+	vm2, err3 := vm.Spawn(n)
 	if err3 != nil {
 		return 0, err3
 	}
@@ -291,15 +291,7 @@ func canClose(o interface{}) bool {
 	case chan interface{}:
 		return true
 	case *objectVMTable:
-		obj := ro.o
-		switch obj.(type) {
-		case sync.Locker:
-			return true
-		case *time.Timer:
-			return true
-		case *time.Ticker:
-			return true
-		}
+		return ro.p.CanClose()
 	}
 	return false
 }
@@ -312,18 +304,7 @@ func doClose(o interface{}) bool {
 	case chan interface{}:
 		close(ro)
 	case *objectVMTable:
-		obj := ro.o
-		switch robj := obj.(type) {
-		case sync.Locker:
-			robj.Unlock()
-			return true
-		case *time.Timer:
-			robj.Stop()
-			return true
-		case *time.Ticker:
-			robj.Stop()
-			return true
-		}
+		ro.p.Close(ro.o)
 	}
 	return false
 }
@@ -463,7 +444,7 @@ func (this GOF_go_timer) Exec(vm *VM) (int, error) {
 	if !vm.API_canCall(f) {
 		return 0, fmt.Errorf("timer func(%T) can't call", f)
 	}
-	vm2, err3 := vm.Spawn("", false)
+	vm2, err3 := vm.Spawn("")
 	if err3 != nil {
 		return 0, err3
 	}
@@ -510,7 +491,7 @@ func (this GOF_go_ticker) Exec(vm *VM) (int, error) {
 	if !vm.API_canCall(f) {
 		return 0, fmt.Errorf("timer func(%T) can't call", f)
 	}
-	vm2, err3 := vm.Spawn("", false)
+	vm2, err3 := vm.Spawn("")
 	if err3 != nil {
 		return 0, err3
 	}

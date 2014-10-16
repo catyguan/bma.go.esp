@@ -48,6 +48,16 @@ func (gooTimer) ToMap(o interface{}) map[string]interface{} {
 	return r
 }
 
+func (gooTimer) CanClose() bool {
+	return true
+}
+
+func (gooTimer) Close(o interface{}) {
+	if obj, ok := o.(*time.Timer); ok {
+		obj.Stop()
+	}
+}
+
 type gooTicker int
 
 func (gooTicker) Get(vm *VM, o interface{}, key string) (interface{}, error) {
@@ -70,4 +80,14 @@ func (gooTicker) Set(vm *VM, o interface{}, key string, val interface{}) error {
 func (gooTicker) ToMap(o interface{}) map[string]interface{} {
 	r := make(map[string]interface{})
 	return r
+}
+
+func (gooTicker) CanClose() bool {
+	return true
+}
+
+func (gooTicker) Close(o interface{}) {
+	if obj, ok := o.(*time.Ticker); ok {
+		obj.Stop()
+	}
 }

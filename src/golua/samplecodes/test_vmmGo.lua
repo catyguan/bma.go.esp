@@ -27,11 +27,11 @@ local vr
 -- 	return 1
 -- end)
 
--- local timer = go.ticker(40, function()
--- 	print("i'm in timer")
--- end)
--- go.sleep(100)
--- timer:Stop()
+local timer = go.ticker(40, function()
+	print("i'm in timer")
+end)
+-- go.defer(timer)
+go.sleep(100)
 
 -- local v1, v2
 -- v1, v2 = pcall(function(a,b)

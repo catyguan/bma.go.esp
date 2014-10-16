@@ -30,6 +30,16 @@ func (gooRMutex) ToMap(o interface{}) map[string]interface{} {
 	return r
 }
 
+func (gooRMutex) CanClose() bool {
+	return true
+}
+
+func (gooRMutex) Close(o interface{}) {
+	if mux, ok := o.(sync.RWMutex); ok {
+		mux.Unlock()
+	}
+}
+
 type gooLocker int
 
 func (gooLocker) Get(vm *VM, o interface{}, key string) (interface{}, error) {
@@ -76,4 +86,14 @@ func (gooLocker) Set(vm *VM, o interface{}, key string, val interface{}) error {
 func (gooLocker) ToMap(o interface{}) map[string]interface{} {
 	r := make(map[string]interface{})
 	return r
+}
+
+func (gooLocker) CanClose() bool {
+	return true
+}
+
+func (gooLocker) Close(o interface{}) {
+	if mux, ok := o.(sync.Locker); ok {
+		mux.Unlock()
+	}
 }

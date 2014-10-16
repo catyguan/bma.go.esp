@@ -14,6 +14,8 @@ type GoObject interface {
 	Get(vm *VM, o interface{}, key string) (interface{}, error)
 	Set(vm *VM, o interface{}, key string, val interface{}) error
 	ToMap(o interface{}) map[string]interface{}
+	CanClose() bool
+	Close(o interface{})
 }
 
 type supportFuncName interface {

@@ -106,7 +106,7 @@ func (this *VM) String() string {
 	return fmt.Sprintf("VM(%s)", this.name)
 }
 
-func (this *VM) Spawn(n string, childStack bool) (*VM, error) {
+func (this *VM) Spawn(n string) (*VM, error) {
 	vm2, err := this.vmg.newVM()
 	if err != nil {
 		return nil, err
@@ -114,11 +114,7 @@ func (this *VM) Spawn(n string, childStack bool) (*VM, error) {
 	vm2.name = fmt.Sprintf("%s-%d", this.name, vm2.id)
 	vm2.config = this.config
 	vm2.trace = this.trace
-	pst := this.stack
-	if !childStack {
-		pst = nil
-	}
-	st := newVMStack(pst)
+	st := newVMStack(nil)
 	if n == "" {
 		n = fmt.Sprintf("VM<%s>", vm2.name)
 	}
