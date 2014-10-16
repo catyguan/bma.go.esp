@@ -33,12 +33,12 @@ local vr
 -- go.sleep(100)
 -- timer:Stop()
 
-local v1, v2
-v1, v2 = pcall(function(a,b)
-	error("test")
-	return a+b
-end, 1,2)
-print("pcall =>", v1, v2,"\n-------\n")
-error(v2)
+-- local v1, v2
+-- v1, v2 = pcall(function(a,b)
+-- 	error("test")
+-- 	return a+b
+-- end, 1,2)
+-- print("pcall =>", v1, v2,"\n-------\n")
+-- error(v2)
 
 return vr

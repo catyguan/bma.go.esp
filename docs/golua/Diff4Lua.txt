@@ -6,3 +6,5 @@
 5. metatable __index & __newindex rawget/set
 6. ... = array
 7. pcall & error(...)
+8. table & array
+9. array index start at 0

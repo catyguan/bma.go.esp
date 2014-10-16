@@ -3,7 +3,10 @@
 -- print("helloWorld = ", v1, v2)
 -- v3 = o["e"]
 local vr, v2
--- vr = [1,2,3,4,5]
+vr = [1,2,3,4,5]
+print(vr[2])
+vr[3] = nil
+vr[5] = "add"
 -- v2 = {a=1,b=2.0,c=true,d="hello",["e"]=3}
 -- vr = v2["e"]
 
@@ -99,6 +102,12 @@ local vr, v2
 -- setmetatable(o, mt)
 -- o.ab = o.abc *1000
 -- vr = o.ab
+
+-- local n = 123
+-- pcall(function()
+-- 	closure(n)
+-- 	print("here", n)
+-- end)
 
 return vr
 -- return 1 + 2

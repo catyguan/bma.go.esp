@@ -105,6 +105,9 @@ func (this *memberVar) Get(vm *VM) (interface{}, error) {
 			return nil, fmt.Errorf("index(%d) out of range(%d)", i, len(o))
 		}
 		return o[i], nil
+	case VMArray:
+		i := valutil.ToInt(this.key, -1)
+		return o.Get(vm, i)
 	case map[string]interface{}:
 		s := valutil.ToString(this.key, "")
 		v := o[s]
@@ -112,6 +115,7 @@ func (this *memberVar) Get(vm *VM) (interface{}, error) {
 	case VMTable:
 		s := valutil.ToString(this.key, "")
 		return o.Get(vm, s)
+
 	}
 	return nil, fmt.Errorf("unknow memberVar(%t)", this.obj)
 }
@@ -127,6 +131,13 @@ func (this *memberVar) Set(vm *VM, v interface{}) (bool, error) {
 			return false, fmt.Errorf("index(%d) out of range(%d)", i, len(o))
 		}
 		o[i] = v
+		return true, nil
+	case VMArray:
+		i := valutil.ToInt(this.key, -1)
+		err := o.Set(vm, i, v)
+		if err != nil {
+			return false, err
+		}
 		return true, nil
 	case map[string]interface{}:
 		s := valutil.ToString(this.key, "")

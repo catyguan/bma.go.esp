@@ -170,10 +170,6 @@ func (this *VM) API_newtable() VMTable {
 	return r
 }
 
-func (this *VM) API_newarray() []interface{} {
-	return make([]interface{}, 0)
-}
-
 // objectVMTable
 type objectVMTable struct {
 	o interface{}

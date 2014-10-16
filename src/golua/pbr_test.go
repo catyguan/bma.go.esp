@@ -23,9 +23,10 @@ func TestParserBuildRun(t *testing.T) {
 		safeCall()
 
 		trace := false
-		// f := "test1.lua"
+		f := "test1.lua"
 		// f := "test_go_syn.lua"
-		f := "test_vvmGo.lua"
+		// f := "test_vmmGo.lua"
+		// f := "test_vmmTypes.lua"
 		bs, err0 := ioutil.ReadFile("samplecodes/" + f)
 		if err0 != nil {
 			t.Error(err0)
@@ -54,6 +55,7 @@ func TestParserBuildRun(t *testing.T) {
 		vmg := NewVMG("test")
 		CoreModule(vmg)
 		GoModule().Bind(vmg)
+		TypesModule().Bind(vmg)
 		defer vmg.Close()
 
 		chunk := NewChunk(chunkName, node)

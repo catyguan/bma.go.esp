@@ -290,6 +290,8 @@ func (this *VM) runCode(node goyacc.Node) (int, ER, error) {
 					nv = len(rv)
 				case VMTable:
 					nv = rv.Len()
+				case VMArray:
+					nv = rv.Len()
 				}
 			}
 			this.API_push(nv)
@@ -311,7 +313,7 @@ func (this *VM) runCode(node goyacc.Node) (int, ER, error) {
 			if err2 != nil {
 				return 0, ER_ERROR, err2
 			}
-			this.API_push(val)
+			this.API_push(this.API_array(val))
 			return 1, ER_NEXT, nil
 		case goyacc.OP_RETURN:
 			r1, er1, err1 := this.runCode(n.Child)
@@ -655,9 +657,16 @@ func (this *VM) runCode(node goyacc.Node) (int, ER, error) {
 				if err2 != nil {
 					return 0, ER_ERROR, err2
 				}
-				if tmp, ok := v1.([]interface{}); ok {
-					vlist = tmp
-				} else {
+				if v1 != nil {
+					if tmp, ok := v1.([]interface{}); ok {
+						vlist = tmp
+					} else {
+						if tmp, ok := v1.(VMArray); ok {
+							vlist = tmp.ToArray()
+						}
+					}
+				}
+				if vlist == nil {
 					tb := this.API_table(v1)
 					if tb == nil {
 						vlist = []interface{}{v1}

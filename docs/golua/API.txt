@@ -3,6 +3,7 @@ vm.API_xxxx
 
 golua API:
 funcs.go
-vmmGo
-gooMutex
-gooTimer
+vmmGo.go
+vmmTypes.go
+gooMutex.go
+gooTimer.go
