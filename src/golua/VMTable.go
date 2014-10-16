@@ -216,3 +216,26 @@ func (this *objectVMTable) Len() int {
 func (this *objectVMTable) ToMap() map[string]interface{} {
 	return this.p.ToMap(this.o)
 }
+
+func GoData(d interface{}) interface{} {
+	if d == nil {
+		return nil
+	}
+	switch ro := d.(type) {
+	case VMTable:
+		m := ro.ToMap()
+		rm := make(map[string]interface{})
+		for k, v := range m {
+			rm[k] = GoData(v)
+		}
+		return rm
+	case VMArray:
+		a := ro.ToArray()
+		ra := make([]interface{}, len(a))
+		for k, v := range a {
+			ra[k] = GoData(v)
+		}
+		return ra
+	}
+	return d
+}

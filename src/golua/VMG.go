@@ -61,6 +61,18 @@ func (this *VMG) removeVM(id uint32) bool {
 	return ok
 }
 
+func (this *VMG) ListVM() []uint32 {
+	return nil
+}
+
+func (this *VMG) GetVMInfo(id uint32) string {
+	return ""
+}
+
+func (this *VMG) KillVM(id uint32) bool {
+	return false
+}
+
 func (this *VMG) GetGlobal(n string) (interface{}, bool) {
 	this.mux.RLock()
 	defer this.mux.RUnlock()

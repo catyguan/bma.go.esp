@@ -17,7 +17,7 @@ func safeCall() {
 	})
 }
 
-func TestParserBuildRun(t *testing.T) {
+func T2estParserBuildRun(t *testing.T) {
 	if true {
 		runtime.GOMAXPROCS(5)
 		safeCall()

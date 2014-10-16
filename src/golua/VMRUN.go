@@ -7,7 +7,6 @@ import (
 	"logger"
 	"runtime"
 	"sync/atomic"
-	"time"
 )
 
 type ChunkCode struct {
@@ -35,6 +34,10 @@ func (this *ChunkCode) String() string {
 }
 
 func (this *VM) Call(nargs int, nresults int) (rint int, rerr error) {
+	return this.CallX(nargs, nresults, nil)
+}
+
+func (this *VM) CallX(nargs int, nresults int, locals map[string]interface{}) (rint int, rerr error) {
 	if this.IsClosing() {
 		return 0, fmt.Errorf("%s closed", this)
 	}
@@ -118,6 +121,10 @@ func (this *VM) Call(nargs int, nresults int) (rint int, rerr error) {
 		}
 		this.stack.stackTop -= n
 		this.stack = nst
+
+		for lk, lv := range locals {
+			nst.createLocal(this, lk, lv)
+		}
 
 		if gof, ok := f.(GoFunction); ok {
 			nst.gof = gof
@@ -203,10 +210,9 @@ func (this *VM) runCode(node goyacc.Node) (int, ER, error) {
 	this.numOfTime++
 	if this.numOfTime > this.config.TimeCheck {
 		this.numOfTime = 0
-		now := time.Now()
-		du := now.Sub(this.executeTime).Seconds()
-		if int(du*1000) > this.GetMaxExecutionTime() {
-			return 0, ER_ERROR, fmt.Errorf("max execute time(%f)", du)
+		err := this.API_checkExecuteTime()
+		if err != nil {
+			return 0, ER_ERROR, err
 		}
 	}
 

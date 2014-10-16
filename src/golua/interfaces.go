@@ -18,6 +18,16 @@ type GoObject interface {
 	Close(o interface{})
 }
 
+type VMGInitor func(vmg *VMG)
+
+type GoSourceRepository interface {
+	Load(script string, reload bool) (bool, string, error)
+}
+type GoSourceRepositoryFactory interface {
+	Valid(cfg map[string]interface{}) error
+	Create(cfg map[string]interface{}) (GoSourceRepository, error)
+}
+
 type supportFuncName interface {
 	FuncName() (string, string)
 }
@@ -101,3 +111,26 @@ func (this *gofCommon) IsNative() bool {
 func (this *gofCommon) String() string {
 	return fmt.Sprintf("GOF<%s>", this.name)
 }
+
+// RequestInfo
+type RequestInfo struct {
+	Script    string
+	Reload    bool
+	Trace     bool
+	DumpStack bool
+	Context   map[string]interface{}
+	Data      map[string]interface{}
+}
+
+func (this *RequestInfo) Valid() error {
+	if this.Script == "" {
+		return fmt.Errorf("script empty")
+	}
+	return nil
+}
+
+const (
+	KEY_OBJECT_CONTEXT = "__CONTEXT__"
+	KEY_CONTEXT        = "_CONTEXT"
+	KEY_REQUEST        = "_REQUEST"
+)

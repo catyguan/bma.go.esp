@@ -1,6 +1,17 @@
 package golua
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
+
+func (this *VM) API_checkExecuteTime() error {
+	du := time.Since(this.executeTime).Seconds()
+	if int(du*1000) > this.GetMaxExecutionTime() {
+		return fmt.Errorf("max execute time(%f)", du)
+	}
+	return nil
+}
 
 func (this *VM) API_checkstack(n int) error {
 	st := this.stack
