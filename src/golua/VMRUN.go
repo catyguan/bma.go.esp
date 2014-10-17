@@ -33,11 +33,7 @@ func (this *ChunkCode) String() string {
 	return "Chunk<" + this.name + ">"
 }
 
-func (this *VM) Call(nargs int, nresults int) (rint int, rerr error) {
-	return this.CallX(nargs, nresults, nil)
-}
-
-func (this *VM) CallX(nargs int, nresults int, locals map[string]interface{}) (rint int, rerr error) {
+func (this *VM) Call(nargs int, nresults int, locals map[string]interface{}) (rint int, rerr error) {
 	if this.IsClosing() {
 		return 0, fmt.Errorf("%s closed", this)
 	}
@@ -65,7 +61,7 @@ func (this *VM) CallX(nargs int, nresults int, locals map[string]interface{}) (r
 				for i := l - 1; i >= 0; i-- {
 					f := this.stack.defers[i]
 					this.API_push(f)
-					_, errX := this.Call(0, 0)
+					_, errX := this.Call(0, 0, nil)
 					if errX != nil {
 						if errX != nil {
 							logger.Debug(tag, "%s defer %s fail - %s", this, f, errX)
@@ -379,7 +375,7 @@ func (this *VM) runCode(node goyacc.Node) (int, ER, error) {
 			}
 			// fmt.Println("CALL 2", r1, this.DumpStack())
 			this.stack.line = node.GetLine()
-			r0, err0 := this.Call(r2, -1)
+			r0, err0 := this.Call(r2, -1, nil)
 			if err0 != nil {
 				return r0, ER_ERROR, err0
 			}

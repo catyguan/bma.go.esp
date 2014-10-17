@@ -1,6 +1,7 @@
 package golua
 
 import (
+	"bmautil/valutil"
 	"fmt"
 	"time"
 )
@@ -351,9 +352,11 @@ func (this *VM) API_var(n string) VMVar {
 		return &VoidVar
 	}
 	st := this.stack
-	if v, ok := st.local[n]; ok {
-		if vv, ok2 := v.(VMVar); ok2 {
-			return vv
+	if st.local != nil {
+		if v, ok := st.local[n]; ok {
+			if vv, ok2 := v.(VMVar); ok2 {
+				return vv
+			}
 		}
 	}
 	return &globalVar{n}
@@ -379,8 +382,10 @@ func (this *VM) API_createLocal(n string, val interface{}) {
 func (this *VM) API_findVar(n string) VMVar {
 	st := this.stack
 	for st != nil {
-		if va, ok := st.local[n]; ok {
-			return va
+		if st.local != nil {
+			if va, ok := st.local[n]; ok {
+				return va
+			}
 		}
 		st = st.parent
 	}
@@ -400,4 +405,58 @@ func (this *VM) API_defer(f interface{}, parentStack bool) error {
 	}
 	st.defers = append(st.defers, f)
 	return nil
+}
+
+func (this *VM) API_getMember(obj interface{}, key interface{}) (interface{}, error) {
+	switch o := obj.(type) {
+	case []interface{}:
+		i := valutil.ToInt(key, -1)
+		if i < 0 || i >= len(o) {
+			return nil, fmt.Errorf("index(%d) out of range(%d)", i, len(o))
+		}
+		return o[i], nil
+	case VMArray:
+		i := valutil.ToInt(key, -1)
+		return o.Get(this, i)
+	case map[string]interface{}:
+		s := valutil.ToString(key, "")
+		v := o[s]
+		return v, nil
+	case VMTable:
+		s := valutil.ToString(key, "")
+		return o.Get(this, s)
+
+	}
+	return nil, fmt.Errorf("unknow memberObject(%T)", obj)
+}
+
+func (this *VM) API_setMember(obj interface{}, key interface{}, v interface{}) (bool, error) {
+	switch o := obj.(type) {
+	case []interface{}:
+		i := valutil.ToInt(key, -1)
+		if i < 0 || i >= len(o) {
+			return false, fmt.Errorf("index(%d) out of range(%d)", i, len(o))
+		}
+		o[i] = v
+		return true, nil
+	case VMArray:
+		i := valutil.ToInt(key, -1)
+		err := o.Set(this, i, v)
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	case map[string]interface{}:
+		s := valutil.ToString(key, "")
+		o[s] = v
+		return true, nil
+	case VMTable:
+		s := valutil.ToString(key, "")
+		err := o.Set(this, s, v)
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	}
+	return false, fmt.Errorf("unknow memberObject(%T)", obj)
 }

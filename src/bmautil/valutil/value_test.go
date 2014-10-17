@@ -1,19 +1,24 @@
 package valutil
 
 import (
+	"fmt"
 	"testing"
 )
 
 func TestValueUtil(t *testing.T) {
-	if true {
+	if false {
 		v1 := ToBool("true", false)
 		if !v1 {
 			t.Error("ToBool 'true' => ", v1)
 		}
 	}
+	if true {
+		v1 := ToString(3, "")
+		fmt.Printf(v1)
+	}
 }
 
-func TestSizeUtil(t *testing.T) {
+func T2estSizeUtil(t *testing.T) {
 	if true {
 		v := 12345678
 		s := SizeString(uint64(v), 1024, SizeK)
@@ -53,7 +58,7 @@ type bean struct {
 	Format     string // default: json, string
 }
 
-func TestBeanToMap(t *testing.T) {
+func T2estBeanToMap(t *testing.T) {
 	var o bean
 	o.DataSource = "mysql"
 	o.Query = "select"

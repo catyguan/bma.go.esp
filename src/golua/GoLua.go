@@ -11,7 +11,7 @@ import (
 
 // GoLua
 type GoLua struct {
-	sr  GoSourceRepository
+	ss  ScriptSource
 	cfg *VMConfig
 	vmg *VMG
 
@@ -19,10 +19,11 @@ type GoLua struct {
 	codes map[string]*ChunkCode
 }
 
-func NewGoLua(n string, sr GoSourceRepository, gm VMGInitor, cfg *VMConfig) *GoLua {
+func NewGoLua(n string, ss ScriptSource, gm VMGInitor, cfg *VMConfig) *GoLua {
 	r := new(GoLua)
 	r.vmg = NewVMG(n)
-	r.sr = sr
+	r.vmg.gl = r
+	r.ss = ss
 	gm(r.vmg)
 	r.cfg = cfg
 	r.codes = make(map[string]*ChunkCode)
@@ -33,13 +34,22 @@ func (this *GoLua) String() string {
 	return this.vmg.name
 }
 
-func (this *GoLua) Close() {
-	this.vmg.Close()
+func (this *GoLua) ResetCodes() {
+	this.mux.Lock()
+	defer this.mux.Unlock()
+	for k, _ := range this.codes {
+		delete(this.codes, k)
+	}
 }
 
-func (this *GoLua) Load(script string, reload bool, save bool) (*ChunkCode, error) {
+func (this *GoLua) Close() {
+	this.vmg.Close()
+	this.vmg.gl = nil
+}
+
+func (this *GoLua) Load(script string, save bool) (*ChunkCode, error) {
 	// compile
-	cok, content, err := this.sr.Load(script, reload)
+	cok, content, err := this.ss.Load(script)
 	if err != nil {
 		err0 := fmt.Errorf("load '%s' fail - %s", script, err)
 		logger.Debug(tag, "%s: %s", this, err0)
@@ -50,7 +60,7 @@ func (this *GoLua) Load(script string, reload bool, save bool) (*ChunkCode, erro
 		logger.Debug(tag, "%s: %s", this, err0)
 		return nil, err0
 	}
-	logger.Debug(tag, "%s: load('%s',%v) done", this, script, reload)
+	logger.Debug(tag, "%s: load('%s') done", this, script)
 
 	p := goyacc.NewParser(script, content)
 	node, err2 := p.Parse()
@@ -76,6 +86,10 @@ func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
 	if !ok {
 		return nil, fmt.Errorf("nil request")
 	}
+	err0 := req.Valid()
+	if err0 != nil {
+		return nil, err0
+	}
 
 	var cc *ChunkCode
 	if !req.Reload {
@@ -85,7 +99,7 @@ func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
 	}
 	if cc == nil {
 		var err2 error
-		cc, err2 = this.Load(req.Script, req.Reload, true)
+		cc, err2 = this.Load(req.Script, true)
 		if err2 != nil {
 			return nil, err2
 		}
@@ -115,10 +129,7 @@ func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
 	locals[KEY_REQUEST] = vm.API_table(req.Data)
 
 	vm.API_push(cc)
-	_, err4 := vm.CallX(0, 1, locals)
-	if req.DumpStack {
-		fmt.Println(vm.DumpStack())
-	}
+	_, err4 := vm.Call(0, 1, locals)
 	if err4 != nil {
 		logger.Debug(tag, "%s: execute %s fail - %s", this, req, err4)
 		return nil, err4
@@ -129,6 +140,54 @@ func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
 		return nil, err5
 	}
 	r = GoData(r)
-	logger.Debug(tag, "%s: execute %s done -> %v", this, req, r)
+	if logger.EnableDebug(tag) {
+		execId, _ := context.ExecIdFromContext(ctx)
+		logger.Debug(tag, "%s:[%d] execute %s done -> %v", this, execId, req, r)
+	}
 	return r, nil
+}
+
+func (this *GoLua) Require(pvm *VM, n string) error {
+	var cc *ChunkCode
+	this.mux.RLock()
+	cc = this.codes[n]
+	this.mux.RUnlock()
+
+	if cc != nil {
+		logger.Debug(tag, "%s: require '%s' exists", this, n)
+		return nil
+	}
+
+	var err2 error
+	cc, err2 = this.Load(n, true)
+	if err2 != nil {
+		return err2
+	}
+
+	var vm *VM
+	if pvm != nil {
+		vm = pvm
+	} else {
+		vm, err2 = this.vmg.CreateVM()
+		if err2 != nil {
+			return fmt.Errorf("create vm error - %s", err2)
+		}
+		defer vm.Destroy()
+	}
+
+	if this.cfg != nil {
+		vm.config = this.cfg
+	}
+	vm.ResetExecutionTime()
+
+	vm.API_push(cc)
+	_, err4 := vm.Call(0, 0, nil)
+	if err4 != nil {
+		logger.Debug(tag, "%s: require '%s' fail - %s", this, n, err4)
+		return err4
+	}
+	if logger.EnableDebug(tag) {
+		logger.Debug(tag, "%s: require '%s' done", this, n)
+	}
+	return nil
 }

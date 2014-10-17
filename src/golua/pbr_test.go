@@ -70,7 +70,7 @@ func T2estParserBuildRun(t *testing.T) {
 		vm.SetMaxExecutionTime(100)
 
 		vm.API_push(chunk)
-		_, err4 := vm.Call(0, 1)
+		_, err4 := vm.Call(0, 1, nil)
 		if err4 != nil {
 			t.Error("vm call error:", err4)
 			return

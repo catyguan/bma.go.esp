@@ -27,7 +27,7 @@ func (this *VMFunc) Exec(vm *VM) (int, error) {
 
 	st := vm.stack
 	for n, val := range this.closures {
-		st.local[n] = val
+		st.createLocal(vm, n, val)
 	}
 	more := false
 	for i, n := range ns {

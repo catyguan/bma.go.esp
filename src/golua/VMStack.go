@@ -20,7 +20,6 @@ type VMStack struct {
 func newVMStack(p *VMStack) *VMStack {
 	r := new(VMStack)
 	r.parent = p
-	r.local = make(map[string]VMVar)
 	if p != nil {
 		r.stackBegin = p.stackBegin + p.stackTop
 	} else {
@@ -75,6 +74,9 @@ func (this *VMStack) clear() {
 }
 
 func (this *VMStack) createLocal(vm *VM, n string, val interface{}) {
+	if this.local == nil {
+		this.local = make(map[string]VMVar)
+	}
 	va, ok := this.local[n]
 	if !ok {
 		if va == nil {

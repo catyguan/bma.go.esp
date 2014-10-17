@@ -32,7 +32,7 @@ func (this *testObj) ValueConvert(n string) bool {
 	return true
 }
 
-func TestValconv(t *testing.T) {
+func T2estValconv(t *testing.T) {
 	doTest(t, true, BaseType(reflect.String))
 	doTest(t, true, BaseType(reflect.Uint32))
 	doTest(t, -123, BaseType(reflect.Bool))

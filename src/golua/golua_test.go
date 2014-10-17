@@ -16,7 +16,7 @@ func TestExecute(t *testing.T) {
 		data := make(map[string]interface{})
 
 		dirs := []string{"samplecodes/"}
-		sr := new(FileGoSourceRepository)
+		sr := new(FileScriptSource)
 		sr.Dirs = dirs
 
 		golua := NewGoLua("test", sr, func(vmg *VMG) {
@@ -27,7 +27,7 @@ func TestExecute(t *testing.T) {
 		defer golua.Close()
 
 		trace := false
-		f := "s_add.lua"
+		f := "/s_add.lua"
 		data["a"] = 1
 		data["b"] = 2
 
@@ -35,7 +35,6 @@ func TestExecute(t *testing.T) {
 		req.Script = f
 		req.Data = data
 		req.Trace = trace
-		req.DumpStack = true
 		ctx := context.Background()
 		ctx, _ = context.CreateExecId(ctx)
 		ctx = CreateRequest(ctx, req)

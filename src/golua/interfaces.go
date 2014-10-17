@@ -20,12 +20,13 @@ type GoObject interface {
 
 type VMGInitor func(vmg *VMG)
 
-type GoSourceRepository interface {
-	Load(script string, reload bool) (bool, string, error)
+type ScriptSource interface {
+	Load(script string) (bool, string, error)
 }
-type GoSourceRepositoryFactory interface {
+type ScriptSourceFactory interface {
 	Valid(cfg map[string]interface{}) error
-	Create(cfg map[string]interface{}) (GoSourceRepository, error)
+	Compare(cfg map[string]interface{}, old map[string]interface{}) (same bool)
+	Create(cfg map[string]interface{}) (ScriptSource, error)
 }
 
 type supportFuncName interface {
@@ -114,12 +115,16 @@ func (this *gofCommon) String() string {
 
 // RequestInfo
 type RequestInfo struct {
-	Script    string
-	Reload    bool
-	Trace     bool
-	DumpStack bool
-	Context   map[string]interface{}
-	Data      map[string]interface{}
+	Script  string
+	Reload  bool
+	Trace   bool
+	Context map[string]interface{}
+	Data    map[string]interface{}
+}
+
+func NewRequestInfo() *RequestInfo {
+	r := new(RequestInfo)
+	return r
 }
 
 func (this *RequestInfo) Valid() error {

@@ -42,9 +42,9 @@ func NewSimpleLog(msg string) AccLogInfo {
 }
 
 type commonAccLogInfo struct {
-	data      map[string]interface{}
-	time      time.Time
-	timeUseMS int
+	data       map[string]interface{}
+	time       time.Time
+	timeUseSec float64
 }
 
 func (this *commonAccLogInfo) Message(cfg map[string]string) string {
@@ -61,7 +61,7 @@ func (this *commonAccLogInfo) Message(cfg map[string]string) string {
 		}
 	}
 	out.WriteString("tu=")
-	out.WriteString(fmt.Sprintf("%d", this.timeUseMS))
+	out.WriteString(fmt.Sprintf("%f", this.timeUseSec))
 	out.WriteByte('\n')
 	return out.String()
 }
@@ -70,10 +70,10 @@ func (this *commonAccLogInfo) TimeDay() int {
 	return this.time.Day()
 }
 
-func NewCommonLog(dt map[string]interface{}, tuseMS int) AccLogInfo {
+func NewCommonLog(dt map[string]interface{}, tuseSec float64) AccLogInfo {
 	r := new(commonAccLogInfo)
 	r.data = dt
 	r.time = time.Now()
-	r.timeUseMS = tuseMS
+	r.timeUseSec = tuseSec
 	return r
 }

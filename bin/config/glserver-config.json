@@ -1,0 +1,33 @@
+{
+	"global" : {
+		"Debug" : true,
+		"DevMode" : true,
+		"GOMAXPROCS" : 5
+	},
+	"httpPoint" : {
+		"Port" : "1080"
+	},
+	"acclog": {
+		"Nodes" : [
+			{
+				"Name" : "*"
+			}
+		]
+	},
+	"goluaServ" : {
+		"GoLua" : {
+			"goluaMux" : {
+				"SS" : {
+					"Type" : "file",
+					"Dirs" : ["${CWD}/golua"]
+				}
+			},
+			"test" : {
+				"SS" : {
+					"Type" : "file",
+					"Dirs" : ["${CWD}/golua/test"]
+				}
+			}
+		}
+	}
+}

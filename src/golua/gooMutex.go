@@ -68,7 +68,7 @@ func (gooLocker) Get(vm *VM, o interface{}, key string) (interface{}, error) {
 				mux.Lock()
 				defer mux.Unlock()
 				vm.API_push(f)
-				r, err2 := vm.Call(0, -1)
+				r, err2 := vm.Call(0, -1, nil)
 				if err2 != nil {
 					return r, err2
 				}

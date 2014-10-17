@@ -254,7 +254,7 @@ func (this GOF_pcall) Exec(vm *VM) (int, error) {
 		vm.API_push(err1)
 		return 2, nil
 	}
-	r, err2 := vm.Call(top-1, -1)
+	r, err2 := vm.Call(top-1, -1, nil)
 	if err2 != nil {
 		vm.API_popAll()
 		vm.API_push(false)
@@ -278,6 +278,36 @@ func (this GOF_pcall) String() string {
 	return "GoFunc<pcall>"
 }
 
+// require(scriptName)
+type GOF_require int
+
+func (this GOF_require) Exec(vm *VM) (int, error) {
+	n, err0 := vm.API_pop1X(-1, true)
+	if err0 != nil {
+		return 0, err0
+	}
+	vn := valutil.ToString(n, "")
+	if vn == "" {
+		return 0, fmt.Errorf("require script invalid(%v)", n)
+	}
+	if vm.vmg.gl == nil {
+		return 0, fmt.Errorf("VMG can't require")
+	}
+	err2 := vm.vmg.gl.Require(vm, vn)
+	if err2 != nil {
+		return 0, err2
+	}
+	return 0, nil
+}
+
+func (this GOF_require) IsNative() bool {
+	return true
+}
+
+func (this GOF_require) String() string {
+	return "GoFunc<require>"
+}
+
 // core module
 func CoreModule(vmg *VMG) {
 	vmg.SetGlobal("print", GOF_print(0))
@@ -287,4 +317,5 @@ func CoreModule(vmg *VMG) {
 	vmg.SetGlobal("rawget", GOF_rawget(0))
 	vmg.SetGlobal("rawset", GOF_rawset(0))
 	vmg.SetGlobal("pcall", GOF_pcall(0))
+	vmg.SetGlobal("require", GOF_require(0))
 }

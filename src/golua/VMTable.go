@@ -47,7 +47,7 @@ func (this *CommonVMTable) Get(vm *VM, key string) (interface{}, error) {
 				vm.API_push(f)
 				vm.API_push(this)
 				vm.API_push(key)
-				r0, err := vm.Call(2, 1)
+				r0, err := vm.Call(2, 1, nil)
 				if err != nil {
 					return nil, err
 				}
@@ -84,7 +84,7 @@ func (this *CommonVMTable) Set(vm *VM, key string, val interface{}) error {
 				vm.API_push(this)
 				vm.API_push(key)
 				vm.API_push(val)
-				_, err := vm.Call(3, 0)
+				_, err := vm.Call(3, 0, nil)
 				if err != nil {
 					return err
 				}

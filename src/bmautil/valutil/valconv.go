@@ -547,13 +547,18 @@ func Convert(v interface{}, toType reflect.Type) (interface{}, bool) {
 func conv(val reflect.Value, toType reflect.Type) (interface{}, bool) {
 	valType := val.Type()
 	if valType.AssignableTo(toType) {
+		// fmt.Println(1)
 		return val.Interface(), true
 	}
 	if valType.ConvertibleTo(toType) {
-		return val.Convert(toType).Interface(), true
+		// fmt.Println(2)
+		if toType.Kind() != reflect.String {
+			return val.Convert(toType).Interface(), true
+		}
 	}
 
 	if r, ok := base_convert(val, toType); ok {
+		// fmt.Println(3)
 		return r, true
 	}
 	kind := toType.Kind()

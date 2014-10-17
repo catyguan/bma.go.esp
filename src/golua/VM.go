@@ -2,6 +2,7 @@ package golua
 
 import (
 	"bmautil/syncutil"
+	"boot"
 	"bytes"
 	"fmt"
 	"logger"
@@ -30,6 +31,22 @@ func (this *VMConfig) Valid() error {
 		return fmt.Errorf("TimeCheck invalid")
 	}
 	return nil
+}
+
+func (this *VMConfig) Compare(old *VMConfig) int {
+	if old == nil {
+		return boot.CCR_NEED_START
+	}
+	if this.MaxStack != old.MaxStack {
+		return boot.CCR_CHANGE
+	}
+	if this.TimeLimit != old.TimeLimit {
+		return boot.CCR_CHANGE
+	}
+	if this.TimeCheck != old.TimeCheck {
+		return boot.CCR_CHANGE
+	}
+	return boot.CCR_NONE
 }
 
 var (

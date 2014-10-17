@@ -85,15 +85,42 @@ func (this GOF_types_name) String() string {
 	return "GoFunc<types.name>"
 }
 
+func types_pop_v(vm *VM) (interface{}, interface{}, error) {
+	c := vm.API_gettop()
+	switch c {
+	case 0:
+	case 1:
+		v, err1 := vm.API_pop1X(-1, true)
+		if err1 != nil {
+			return nil, nil, err1
+		}
+		return v, nil, nil
+	case 2:
+		v, dv, err1 := vm.API_pop2X(-1, true)
+		if err1 != nil {
+			return nil, nil, err1
+		}
+		return v, dv, nil
+	default:
+		o, m, dv, err1 := vm.API_pop3X(-1, true)
+		if err1 != nil {
+			return nil, nil, err1
+		}
+		v, err2 := vm.API_getMember(o, m)
+		if err2 != nil {
+			return nil, nil, err2
+		}
+		return v, dv, nil
+	}
+	return nil, nil, vm.API_checkstack(1)
+
+}
+
 // types.int32(v, defv)
 type GOF_types_int32 int
 
 func (this GOF_types_int32) Exec(vm *VM) (int, error) {
-	err0 := vm.API_checkstack(1)
-	if err0 != nil {
-		return 0, err0
-	}
-	v, dv, err1 := vm.API_pop2X(-1, true)
+	v, dv, err1 := types_pop_v(vm)
 	if err1 != nil {
 		return 0, err1
 	}
@@ -115,11 +142,7 @@ func (this GOF_types_int32) String() string {
 type GOF_types_int64 int
 
 func (this GOF_types_int64) Exec(vm *VM) (int, error) {
-	err0 := vm.API_checkstack(1)
-	if err0 != nil {
-		return 0, err0
-	}
-	v, dv, err1 := vm.API_pop2X(-1, true)
+	v, dv, err1 := types_pop_v(vm)
 	if err1 != nil {
 		return 0, err1
 	}
@@ -141,11 +164,7 @@ func (this GOF_types_int64) String() string {
 type GOF_types_float int
 
 func (this GOF_types_float) Exec(vm *VM) (int, error) {
-	err0 := vm.API_checkstack(1)
-	if err0 != nil {
-		return 0, err0
-	}
-	v, dv, err1 := vm.API_pop2X(-1, true)
+	v, dv, err1 := types_pop_v(vm)
 	if err1 != nil {
 		return 0, err1
 	}
@@ -167,11 +186,7 @@ func (this GOF_types_float) String() string {
 type GOF_types_string int
 
 func (this GOF_types_string) Exec(vm *VM) (int, error) {
-	err0 := vm.API_checkstack(1)
-	if err0 != nil {
-		return 0, err0
-	}
-	v, dv, err1 := vm.API_pop2X(-1, true)
+	v, dv, err1 := types_pop_v(vm)
 	if err1 != nil {
 		return 0, err1
 	}
@@ -193,11 +208,7 @@ func (this GOF_types_string) String() string {
 type GOF_types_bool int
 
 func (this GOF_types_bool) Exec(vm *VM) (int, error) {
-	err0 := vm.API_checkstack(1)
-	if err0 != nil {
-		return 0, err0
-	}
-	v, dv, err1 := vm.API_pop2X(-1, true)
+	v, dv, err1 := types_pop_v(vm)
 	if err1 != nil {
 		return 0, err1
 	}

@@ -53,7 +53,7 @@ func (this GOF_go_run) Exec(vm *VM) (int, error) {
 	// vm2.PrepareRun(true)
 	go func() {
 		vm2.API_push(f)
-		_, errX := vm2.Call(0, 0)
+		_, errX := vm2.Call(0, 0, nil)
 		if errX != nil {
 			logger.Debug(tag, "go.run %s fail - %s", vm2, errX)
 		}
@@ -453,7 +453,7 @@ func (this GOF_go_timer) Exec(vm *VM) (int, error) {
 			return
 		}
 		vm2.API_push(f)
-		_, errX := vm2.Call(0, 0)
+		_, errX := vm2.Call(0, 0, nil)
 		if errX != nil {
 			logger.Debug(tag, "go.timer %s fail - %s", vm2, errX)
 		}
@@ -507,7 +507,7 @@ func (this GOF_go_ticker) Exec(vm *VM) (int, error) {
 				break
 			}
 			vm2.API_push(f)
-			_, errX := vm2.Call(0, 0)
+			_, errX := vm2.Call(0, 0, nil)
 			if errX != nil {
 				logger.Debug(tag, "go.ticker %s fail - %s", vm2, errX)
 			}
