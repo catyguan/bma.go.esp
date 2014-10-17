@@ -129,6 +129,10 @@ func (this *RequestInfo) Valid() error {
 	return nil
 }
 
+func (this *RequestInfo) String() string {
+	return fmt.Sprintf("Req[script=%s,context=%v,data=%v]", this.Script, this.Context, this.Data)
+}
+
 const (
 	KEY_OBJECT_CONTEXT = "__CONTEXT__"
 	KEY_CONTEXT        = "_CONTEXT"

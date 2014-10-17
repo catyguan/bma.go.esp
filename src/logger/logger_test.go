@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func TestLoggerBase(t *testing.T) {
+func T2estLoggerBase(t *testing.T) {
 	runtime.GOMAXPROCS(1)
 
 	cfg := Config()
@@ -24,18 +24,21 @@ func TestLoggerBase(t *testing.T) {
 }
 
 func TestLoggerInit(t *testing.T) {
-	config.InitConfig("../../test/esp-config.json")
+	config.InitGlobalConfig("../../test/esp-config.json")
 
 	cfg := Config()
 	cfg.InitLogger()
 
 	Debug("test", "i can't see DEBUG")
 	Info("test", "i can see INFO")
-	Debug("test2", "i can see DEBUG")
-	Info("test3", "i will write to file if pass")
+	Debug("test2", "i can see DEBUG because disabled")
+	Debug("test3", "i can see DEBUG because disabled")
+	Debug("test4", "i can see DEBUG")
+
+	time.Sleep(100 * time.Millisecond)
 }
 
-func TestRotateFile(t *testing.T) {
+func T2estRotateFile(t *testing.T) {
 	var wd, _ = os.Getwd()
 	fn := wd + "/../../test/rotate"
 

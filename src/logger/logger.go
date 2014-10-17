@@ -90,23 +90,15 @@ type LogWriter interface {
 }
 
 /****** Logger ******/
-
-// A Filter represents the log level below which no log records are written to
-// the associated LogWriter.
-type Filter struct {
-	level  level
-	writer LogWriter
-}
-
 // LoggerConfig
 type LoggerConfig struct {
-	root    Filter
-	filters map[string]Filter
-	writers map[string]LogWriter
+	root    level
+	writer  LogWriter
+	filters map[string]level
 }
 
 var (
-	logConfig LoggerConfig = LoggerConfig{Filter{LEVEL_ALL, nil}, make(map[string]Filter), make(map[string]LogWriter)}
+	logConfig LoggerConfig = LoggerConfig{LEVEL_ALL, nil, nil}
 )
 
 // Create a new logger.
@@ -119,95 +111,52 @@ func Config() *LoggerConfig {
 func (cfg *LoggerConfig) GetLevel(tag string) level {
 	if tag != "" {
 		fs := logConfig.filters
-		if f, ok := fs[tag]; ok {
-			return f.level
+		if fs != nil {
+			if l, ok := fs[tag]; ok {
+				return l
+			}
 		}
 		return NOUSE
 	}
-	return logConfig.root.level
+	return logConfig.root
 }
 
-func newFilter(tag string, l level, w LogWriter) {
-	obj := make(map[string]Filter)
+func newFilter(tag string, l level) {
+	obj := make(map[string]level)
 	for k, v := range logConfig.filters {
 		obj[k] = v
 	}
-	obj[tag] = Filter{l, w}
+	obj[tag] = l
 	logConfig.filters = obj
-}
-
-func newWriter(name string, w LogWriter) {
-	old := logConfig.writers[name]
-	if old != nil {
-		panic("LogWriter '" + name + "' already exists")
-	}
-	obj := make(map[string]LogWriter)
-	for k, v := range logConfig.writers {
-		obj[k] = v
-	}
-	obj[name] = w
-	logConfig.writers = obj
 }
 
 func (cfg *LoggerConfig) SetLevel(tag string, l level) level {
 	if tag != "" {
+		old := NOUSE
 		fs := logConfig.filters
-		if f, ok := fs[tag]; ok {
-			old := f.level
-			f.level = l
-			return old
+		if fs != nil {
+			if l, ok := fs[tag]; ok {
+				old = l
+			}
 		}
-		newFilter(tag, l, nil)
-		return NOUSE
+		newFilter(tag, l)
+		return old
 	} else {
-		old := logConfig.root.level
-		logConfig.root.level = l
+		old := logConfig.root
+		logConfig.root = l
 		return old
 	}
 }
 
-func (cfg *LoggerConfig) HasWriter(name string) bool {
-	_, ok := logConfig.writers[name]
-	return ok
-}
-
-func (cfg *LoggerConfig) SetWriter(tag string, writerName string) bool {
-	w, ok := logConfig.writers[writerName]
-	if !ok {
-		return false
-	}
-	if tag != "" {
-		fs := logConfig.filters
-		if f, ok := fs[tag]; ok {
-			f.writer = w
-			return true
-		}
-		newFilter(tag, NOUSE, w)
-		return true
-	} else {
-		logConfig.root.writer = w
-		return true
-	}
-}
-
-func (cfg *LoggerConfig) NewWriter(name string, w LogWriter) bool {
-	_, ok := logConfig.writers[name]
-	if !ok {
-		return false
-	}
-	newWriter(name, w)
+func (cfg *LoggerConfig) SetWriter(w LogWriter) bool {
+	cfg.writer = w
 	return true
 }
 
-func createWriter(wobj beanWriter) LogWriter {
+func createWriter(wobj *beanWriter) LogWriter {
 	typ := wobj.Type
 	if typ == "" {
 		fmt.Println("logger writer type is nil")
-		return nil
-	}
-	enable := !wobj.Disable
-	if !enable {
-		fmt.Printf("logger writer '%s' disable\n", wobj.Name)
 		return nil
 	}
 	if typ == "console" {
@@ -219,7 +168,7 @@ func createWriter(wobj beanWriter) LogWriter {
 	}
 	if typ == "file" {
 		if wobj.File == "" {
-			fmt.Printf("ERROR: fileLogWriter '%s' file invalid\n", wobj.Name)
+			fmt.Printf("ERROR: fileLogWriter file invalid\n")
 			return nil
 		}
 		buflen := wobj.BufferSize
@@ -251,50 +200,26 @@ func createWriter(wobj beanWriter) LogWriter {
 		}
 		return w
 	}
-	if typ == "link" {
-		w1 := logConfig.writers[wobj.Writer1]
-		w2 := logConfig.writers[wobj.Writer2]
-		if w1 == nil && w2 == nil {
-			fmt.Printf("ERROR: LinkLogWriter '%s' all writer invalid\n", wobj.Name)
-			return nil
-		}
-		return NewLinkLogWriter(w1, w2)
-	}
-	fmt.Printf("logger unknow writer '%s' type '%s'\n", wobj.Name, typ)
+	fmt.Printf("logger unknow writer type '%s'\n", typ)
 	return nil
 }
 
-func createFilter(fobj beanFilter) *Filter {
+func createFilter(fobj beanFilter) level {
 	enable := !fobj.Disable
 	if !enable {
 		fmt.Printf("logger filter '%s' disable\n", fobj.Name)
-		return nil
+		return NOUSE
 	}
-	var w LogWriter
-	wname := fobj.Writer
-	if wname == "" {
-		w = nil
-	} else {
-		w = logConfig.writers[wname]
-		if w == nil {
-			fmt.Printf("logger filter '%s' invalid writer '%s'\n", fobj.Name, wname)
-			return nil
-		}
-	}
-	lstr := fobj.Level
-	lvl := StringToLevel(lstr)
 
-	if w == nil {
-		wname = "<none>"
-	}
-	fmt.Printf("logger filter '%s' => %s '%s'\n", fobj.Name, level(lvl).String(), wname)
-	return &Filter{level(lvl), w}
+	lstr := fobj.Level
+	lvl := level(StringToLevel(lstr))
+
+	fmt.Printf("logger filter '%s' => %s\n", fobj.Name, lvl.String())
+	return lvl
 }
 
 type beanWriter struct {
-	Name       string
 	Type       string
-	Disable    bool
 	BufferSize int
 	Format     string
 	// rotate
@@ -303,21 +228,17 @@ type beanWriter struct {
 	Maxlines int
 	Maxsize  int
 	NoDaily  bool
-	// link
-	Writer1 string
-	Writer2 string
 }
 
 type beanFilter struct {
 	Name    string
 	Level   string
-	Writer  string
 	Disable bool
 }
 
 type beanLogger struct {
 	RootLevel string
-	Writer    []beanWriter
+	Writer    *beanWriter
 	Filter    []beanFilter
 }
 
@@ -327,20 +248,14 @@ func (lc *LoggerConfig) InitLogger() {
 		if beanLogger.RootLevel != "" {
 			l := level(StringToLevel(beanLogger.RootLevel))
 			fmt.Printf("logger root level = %s\n", l)
-			logConfig.root.level = l
+			logConfig.root = l
 		}
-		wlist := beanLogger.Writer
-		if wlist != nil {
-			for _, wobj := range wlist {
-				if wobj.Name == "" {
-					fmt.Println("writer no Name")
-					continue
-				}
-				w := createWriter(wobj)
-				if w != nil {
-					// fmt.Println("new writer =>", w)
-					logConfig.writers[wobj.Name] = w
-				}
+		wobj := beanLogger.Writer
+		if wobj != nil {
+			w := createWriter(wobj)
+			if w != nil {
+				fmt.Println("logger writer =>", w)
+				logConfig.writer = w
 			}
 		}
 		flist := beanLogger.Filter
@@ -350,25 +265,24 @@ func (lc *LoggerConfig) InitLogger() {
 					fmt.Println("filter no Name")
 					continue
 				}
-				f := createFilter(fobj)
-				if f != nil {
-					// fmt.Println("new filter =>", f)
+				l := createFilter(fobj)
+				// fmt.Println("filter =>", fobj.Name, l)
+				if l != NOUSE {
+					// fmt.Println("new filter =>", fobj.Name, l)
 					if fobj.Name == "root" {
-						if f.level != NOUSE {
-							logConfig.root.level = f.level
-						}
-						if f.writer != nil {
-							logConfig.root.writer = f.writer
-						}
+						logConfig.root = l
 					} else {
-						logConfig.filters[fobj.Name] = *f
+						if logConfig.filters == nil {
+							logConfig.filters = make(map[string]level)
+						}
+						logConfig.filters[fobj.Name] = l
 					}
 				}
 			}
 		}
 	}
 	// default init
-	if logConfig.root.writer == nil {
+	if logConfig.writer == nil {
 		initDefaultLogger()
 	}
 }
@@ -382,48 +296,38 @@ func Close() {
 	time.Sleep(1 * time.Millisecond)
 
 	// Close all open loggers
-	logConfig.filters = make(map[string]Filter)
-	logConfig.root.writer = nil
+	logConfig.filters = nil
+	w := logConfig.writer
+	logConfig.writer = nil
 
-	ws := logConfig.writers
-	logConfig.writers = make(map[string]LogWriter)
-	for _, w := range ws {
+	if w != nil {
 		w.Close()
 	}
 }
 
 func initDefaultLogger() {
 	dw := NewConsoleLogWriter(logBufferLength)
-	logConfig.writers["console"] = dw
-
+	logConfig.writer = dw
 	fmt.Println("logger root default writer: console")
-	logConfig.root.writer = dw
 }
 
 /******* Logging *******/
 func getFilter(tag string, lvl level) (LogWriter, bool) {
-	var l level = NOUSE
-	var w LogWriter = nil
+	l := logConfig.root
 	fs := logConfig.filters
-	if f, ok := fs[tag]; ok {
-		l = f.level
-		w = f.writer
+	if fs != nil {
+		if l2, ok := fs[tag]; ok {
+			l = l2
+		}
 	}
-
-	if l == NOUSE {
-		l = logConfig.root.level
-	}
-	if w == nil {
-		w = logConfig.root.writer
-	}
-
-	// Determine if any logging will be done
+	// fmt.Println("getFilter", tag, lvl, l, lvl < l)
 	if lvl < l {
 		return nil, false
 	}
+	w := logConfig.writer
 	if w == nil && !closed {
 		initDefaultLogger()
-		w = logConfig.root.writer
+		w = logConfig.writer
 	}
 	return w, true
 }

@@ -18,6 +18,10 @@ func NewConsoleLogWriter(logBufferLength int) ConsoleLogWriter {
 	return records
 }
 
+func (w ConsoleLogWriter) String() string {
+	return "ConsoleLogWriter"
+}
+
 func (w ConsoleLogWriter) run(out io.Writer) {
 	var timestr string
 	var timestrAt int64

@@ -48,6 +48,8 @@ func TestExecute(t *testing.T) {
 		}
 		fmt.Println("Call => ", rval)
 
+		// golua.Execute(ctx)
+
 		time.Sleep(100 * time.Millisecond)
 	}
 }

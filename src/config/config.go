@@ -155,6 +155,15 @@ func InitConfig(fileName string) (ConfigObject, error) {
 	return InitAndParseConfig(fileName, AppConfigVar)
 }
 
+func InitGlobalConfig(fileName string) error {
+	co, err := InitConfig(fileName)
+	if err != nil {
+		return err
+	}
+	Global = co
+	return nil
+}
+
 func InitAndParseConfig(fileName string, cvar ConfigVar) (ConfigObject, error) {
 	if fileName == "" {
 		fileName = "esp-config.json"
