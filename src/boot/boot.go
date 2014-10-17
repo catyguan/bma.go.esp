@@ -328,6 +328,7 @@ func doInit(ctx *BootContext) bool {
 		fmt.Printf("GOMAXPROCS => %d\n", maxpv)
 		runtime.GOMAXPROCS(maxpv)
 	}
+	DevMode = config.Global.GetBoolConfig("global.DevMode", false)
 
 	if !ctx.IsRestart {
 		lcfg := logger.Config()

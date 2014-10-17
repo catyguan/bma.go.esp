@@ -15,16 +15,16 @@ type Stream struct {
 }
 
 func newStream(str string) *Stream {
-	buffersize := len(str)
-
 	r := new(Stream)
 	r.bufpos = -1
 	r.line = 1
 	r.column = 1
-	r.bufsize = buffersize
 	r.buffer = []rune(str)
+	buffersize := len(r.buffer)
+	r.bufsize = buffersize
 	r.bufline = make([]int, buffersize)
 	r.bufcolumn = make([]int, buffersize)
+
 	return r
 }
 
