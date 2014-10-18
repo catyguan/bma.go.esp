@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func TestExecute(t *testing.T) {
+func T2estExecute(t *testing.T) {
 	if true {
 		runtime.GOMAXPROCS(5)
 		safeCall()

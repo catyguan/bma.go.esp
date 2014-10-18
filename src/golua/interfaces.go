@@ -62,6 +62,7 @@ type VMTable interface {
 type VMArray interface {
 	Get(vm *VM, idx int) (interface{}, error)
 	Set(vm *VM, idx int, val interface{}) error
+	Insert(vm *VM, idx int, val interface{}) error
 	Add(vm *VM, val interface{}) error
 	Delete(vm *VM, idx int) error
 	Len() int

@@ -17,7 +17,7 @@ func safeCall() {
 	})
 }
 
-func T2estParserBuildRun(t *testing.T) {
+func TestParserBuildRun(t *testing.T) {
 	if true {
 		runtime.GOMAXPROCS(5)
 		safeCall()
@@ -26,7 +26,8 @@ func T2estParserBuildRun(t *testing.T) {
 		// f := "test1.lua"
 		// f := "test_go_syn.lua"
 		// f := "test_vmmGo.lua"
-		f := "test_vmmTypes.lua"
+		// f := "test_vmmTypes.lua"
+		f := "test_vmmTable.lua"
 		bs, err0 := ioutil.ReadFile("samplecodes/" + f)
 		if err0 != nil {
 			t.Error(err0)
@@ -40,7 +41,6 @@ func T2estParserBuildRun(t *testing.T) {
 		// s = "function a(b, c) end"
 
 		chunkName := f
-
 		p := goyacc.NewParser(chunkName, content)
 		node, err := p.Parse()
 		if err != nil {
@@ -56,6 +56,7 @@ func T2estParserBuildRun(t *testing.T) {
 		CoreModule(vmg)
 		GoModule().Bind(vmg)
 		TypesModule().Bind(vmg)
+		TableModule().Bind(vmg)
 		defer vmg.Close()
 
 		chunk := NewChunk(chunkName, node)

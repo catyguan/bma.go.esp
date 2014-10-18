@@ -13,6 +13,7 @@ const tag = "vmmhttp"
 func HttpServModule() *golua.VMModule {
 	m := golua.NewVMModule("httpserv")
 	m.Init("query", GOF_httpserv_query(0))
+	m.Init("formValue", GOF_httpserv_formValue(0))
 	m.Init("form", newQueryv("form"))
 	m.Init("host", newQueryv("host"))
 	m.Init("path", newQueryv("path"))
@@ -106,6 +107,50 @@ func (this GOF_httpserv_query) IsNative() bool {
 
 func (this GOF_httpserv_query) String() string {
 	return "GoFunc<httpserv.query>"
+}
+
+// httpserv.formValue(n:string[, defval])
+type GOF_httpserv_formValue int
+
+func (this GOF_httpserv_formValue) Exec(vm *golua.VM) (int, error) {
+	err0 := vm.API_checkstack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	n, dv, err1 := vm.API_pop2X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	vn := valutil.ToString(n, "")
+
+	ctx := vm.API_context()
+	if ctx == nil {
+		return 0, fmt.Errorf("formValue(%v) fail - context nil", n)
+	}
+	req, _ := RequestFromContext(ctx)
+	if req == nil {
+		return 0, fmt.Errorf("formValue(%v) fail - request nil", n)
+	}
+
+	err2 := req.ParseForm()
+	if err2 != nil {
+		return 0, err2
+	}
+
+	rv := req.FormValue(vn)
+	if rv == "" {
+		rv = valutil.ToString(dv, "")
+	}
+	vm.API_push(rv)
+	return 1, nil
+}
+
+func (this GOF_httpserv_formValue) IsNative() bool {
+	return true
+}
+
+func (this GOF_httpserv_formValue) String() string {
+	return "GoFunc<httpserv.formValue>"
 }
 
 // httpserv.queryv()

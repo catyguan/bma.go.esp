@@ -122,14 +122,22 @@ func (this *Stream) getColumn() int {
 	if this.bufpos < this.bufsize {
 		return this.bufcolumn[this.bufpos]
 	}
-	return this.bufcolumn[this.bufpos-1]
+	if this.bufpos > 0 && this.bufpos-1 < len(this.bufcolumn) {
+		return this.bufcolumn[this.bufpos-1]
+	}
+	return 0
+
 }
 
 func (this *Stream) getLine() int {
+	// print(this.bufpos, this.bufsize, len(this.bufline))
 	if this.bufpos < this.bufsize {
 		return this.bufline[this.bufpos]
 	}
-	return this.bufline[this.bufpos-1]
+	if this.bufpos > 0 && this.bufpos-1 < len(this.bufline) {
+		return this.bufline[this.bufpos-1]
+	}
+	return 0
 }
 
 func (this *Stream) backup(amount int) {

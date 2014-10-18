@@ -50,6 +50,22 @@ func (this *CommonVMArray) Set(vm *VM, idx int, val interface{}) error {
 	return fmt.Errorf("index(%d) out range(%d)", idx, len(this.data))
 }
 
+func (this *CommonVMArray) Insert(vm *VM, idx int, val interface{}) error {
+	if this.mux != nil {
+		this.mux.Lock()
+		defer this.mux.Unlock()
+	}
+	if idx >= 0 {
+		if idx < len(this.data) {
+			this.data = append(this.data, nil)
+			copy(this.data[idx+1:], this.data[idx:len(this.data)-1])
+			this.data[idx] = val
+			return nil
+		}
+	}
+	return fmt.Errorf("index(%d) out range(%d)", idx, len(this.data))
+}
+
 func (this *CommonVMArray) Add(vm *VM, val interface{}) error {
 	if this.mux != nil {
 		this.mux.Lock()

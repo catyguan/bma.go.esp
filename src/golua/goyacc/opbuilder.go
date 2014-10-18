@@ -569,6 +569,9 @@ func endChunk(yylex yyLexer, lval *yySymType) {
 }
 
 func walk(node Node, f func(n Node) bool) bool {
+	if node == nil {
+		return true
+	}
 	c := node.GetNumChildren()
 	for i := 0; i < c; i++ {
 		cn := node.GetChild(i)
@@ -582,6 +585,9 @@ func walk(node Node, f func(n Node) bool) bool {
 }
 
 func execOptimize(node Node) bool {
+	if node == nil {
+		return true
+	}
 	walk(node, execOptimize)
 
 	if node.GetOp() == OP_FUNC {
