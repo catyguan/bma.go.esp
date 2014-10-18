@@ -20,15 +20,6 @@ type GoObject interface {
 
 type VMGInitor func(vmg *VMG)
 
-type ScriptSource interface {
-	Load(script string) (bool, string, error)
-}
-type ScriptSourceFactory interface {
-	Valid(cfg map[string]interface{}) error
-	Compare(cfg map[string]interface{}, old map[string]interface{}) (same bool)
-	Create(cfg map[string]interface{}) (ScriptSource, error)
-}
-
 type supportFuncName interface {
 	FuncName() (string, string)
 }

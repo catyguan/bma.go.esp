@@ -2,6 +2,7 @@ package golua
 
 import (
 	"context"
+	"fileloader"
 	"fmt"
 	"runtime"
 	"testing"
@@ -16,7 +17,7 @@ func TestExecute(t *testing.T) {
 		data := make(map[string]interface{})
 
 		dirs := []string{"samplecodes/"}
-		sr := new(FileScriptSource)
+		sr := new(fileloader.FileFileLoader)
 		sr.Dirs = dirs
 
 		golua := NewGoLua("test", sr, func(vmg *VMG) {

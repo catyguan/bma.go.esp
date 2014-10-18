@@ -1,4 +1,4 @@
-package golua
+package fileloader
 
 import (
 	"bmautil/valutil"
@@ -9,14 +9,14 @@ import (
 )
 
 func init() {
-	AddScriptSourceFactory("file", FileScriptSourceFactory(0))
+	AddFileLoaderFactory("file", FileFileLoaderFactory)
 }
 
-type FileScriptSource struct {
+type FileFileLoader struct {
 	Dirs []string
 }
 
-func (this *FileScriptSource) Load(script string) (bool, string, error) {
+func (this *FileFileLoader) Load(script string) (bool, string, error) {
 	for _, dir := range this.Dirs {
 		fn := path.Join(dir, script)
 		_, err := os.Stat(fn)
@@ -39,9 +39,13 @@ type fssConfig struct {
 	Dirs []string
 }
 
-type FileScriptSourceFactory int
+type fileFileLoaderFactory int
 
-func (this FileScriptSourceFactory) Valid(cfg map[string]interface{}) error {
+const (
+	FileFileLoaderFactory = fileFileLoaderFactory(0)
+)
+
+func (this fileFileLoaderFactory) Valid(cfg map[string]interface{}) error {
 	var co fssConfig
 	if valutil.ToBean(cfg, &co) {
 		if len(co.Dirs) == 0 {
@@ -63,10 +67,10 @@ func (this FileScriptSourceFactory) Valid(cfg map[string]interface{}) error {
 		}
 		return nil
 	}
-	return fmt.Errorf("invalid FileScriptSource config")
+	return fmt.Errorf("invalid FileFileLoader config")
 }
 
-func (this FileScriptSourceFactory) Compare(cfg map[string]interface{}, old map[string]interface{}) bool {
+func (this fileFileLoaderFactory) Compare(cfg map[string]interface{}, old map[string]interface{}) bool {
 	var co, oo fssConfig
 	if !valutil.ToBean(cfg, &co) {
 		return false
@@ -89,14 +93,14 @@ func (this FileScriptSourceFactory) Compare(cfg map[string]interface{}, old map[
 	return true
 }
 
-func (this FileScriptSourceFactory) Create(cfg map[string]interface{}) (ScriptSource, error) {
+func (this fileFileLoaderFactory) Create(cfg map[string]interface{}) (FileLoader, error) {
 	err := this.Valid(cfg)
 	if err != nil {
 		return nil, err
 	}
 	var co fssConfig
 	valutil.ToBean(cfg, &co)
-	r := new(FileScriptSource)
+	r := new(FileFileLoader)
 	r.Dirs = co.Dirs
 	return r, nil
 }

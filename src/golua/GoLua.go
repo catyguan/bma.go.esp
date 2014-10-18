@@ -2,6 +2,7 @@ package golua
 
 import (
 	"context"
+	"fileloader"
 	"fmt"
 	"golua/goyacc"
 	"logger"
@@ -11,7 +12,7 @@ import (
 
 // GoLua
 type GoLua struct {
-	ss  ScriptSource
+	ss  fileloader.FileLoader
 	cfg *VMConfig
 	vmg *VMG
 
@@ -19,7 +20,7 @@ type GoLua struct {
 	codes map[string]*ChunkCode
 }
 
-func NewGoLua(n string, ss ScriptSource, gm VMGInitor, cfg *VMConfig) *GoLua {
+func NewGoLua(n string, ss fileloader.FileLoader, gm VMGInitor, cfg *VMConfig) *GoLua {
 	r := new(GoLua)
 	r.vmg = NewVMG(n)
 	r.vmg.gl = r
