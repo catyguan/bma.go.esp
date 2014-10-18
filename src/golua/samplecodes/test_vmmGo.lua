@@ -27,11 +27,11 @@ local vr
 -- 	return 1
 -- end)
 
-local timer = go.ticker(40, function()
-	print("i'm in timer")
-end)
+-- local timer = go.ticker(40, function()
+-- 	print("i'm in timer")
+-- end)
 -- go.defer(timer)
-go.sleep(100)
+-- go.sleep(100)
 
 -- local v1, v2
 -- v1, v2 = pcall(function(a,b)
@@ -40,5 +40,7 @@ go.sleep(100)
 -- end, 1,2)
 -- print("pcall =>", v1, v2,"\n-------\n")
 -- error(v2)
+
+vr =  go.exec("s_add.lua", {_REQUEST=_REQUEST})
 
 return vr

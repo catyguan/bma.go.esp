@@ -12,6 +12,16 @@ type CommonVMTable struct {
 	metaTable VMTable
 }
 
+func NewVMTable(o map[string]interface{}) VMTable {
+	r := new(CommonVMTable)
+	if o == nil {
+		r.data = make(map[string]interface{})
+	} else {
+		r.data = o
+	}
+	return r
+}
+
 func (this *CommonVMTable) String() string {
 	return fmt.Sprintf("@%v", this.data)
 }

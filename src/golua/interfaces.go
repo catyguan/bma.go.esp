@@ -107,7 +107,6 @@ func (this *gofCommon) String() string {
 // RequestInfo
 type RequestInfo struct {
 	Script  string
-	Reload  bool
 	Trace   bool
 	Context map[string]interface{}
 	Data    map[string]interface{}

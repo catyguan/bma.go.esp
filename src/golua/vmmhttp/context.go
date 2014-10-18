@@ -1,0 +1,35 @@
+package vmmhttp
+
+import (
+	"context"
+	"net/http"
+)
+
+type key int
+
+const key4req key = 0
+const key4resp key = 1
+
+func CreateServ(ctx context.Context, w http.ResponseWriter, req *http.Request) context.Context {
+	ctx = context.WithValue(ctx, key4req, req)
+	ctx = context.WithValue(ctx, key4resp, w)
+	return ctx
+}
+
+func RequestFromContext(ctx context.Context) (*http.Request, bool) {
+	v := ctx.Value(key4req)
+	if v != nil {
+		r, ok := v.(*http.Request)
+		return r, ok
+	}
+	return nil, false
+}
+
+func ResponseFromContext(ctx context.Context) (http.ResponseWriter, bool) {
+	v := ctx.Value(key4resp)
+	if v != nil {
+		r, ok := v.(http.ResponseWriter)
+		return r, ok
+	}
+	return nil, false
+}

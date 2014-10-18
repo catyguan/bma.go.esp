@@ -1,6 +1,7 @@
 package golua
 
 import (
+	"boot"
 	"context"
 	"fileloader"
 	"fmt"
@@ -93,11 +94,16 @@ func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
 	}
 
 	var cc *ChunkCode
-	if !req.Reload {
-		this.mux.RLock()
+	this.mux.RLock()
+	if boot.DevMode {
+		for k, _ := range this.codes {
+			delete(this.codes, k)
+		}
+	} else {
 		cc = this.codes[req.Script]
-		this.mux.RUnlock()
 	}
+	this.mux.RUnlock()
+
 	if cc == nil {
 		var err2 error
 		cc, err2 = this.Load(req.Script, true)
@@ -105,6 +111,12 @@ func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
 			return nil, err2
 		}
 	}
+
+	// build up env
+	locals := make(map[string]interface{})
+	locals[KEY_OBJECT_CONTEXT] = ctx
+	locals[KEY_CONTEXT] = NewVMTable(req.Context)
+	locals[KEY_REQUEST] = NewVMTable(req.Data)
 
 	vm, err3 := this.vmg.CreateVM()
 	if err3 != nil {
@@ -122,12 +134,7 @@ func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
 		vm.ResetExecutionTime()
 		vm.SetMaxExecutionTime(int(du.Seconds() * 1000))
 	}
-
-	// build up env
-	locals := make(map[string]interface{})
-	locals[KEY_OBJECT_CONTEXT] = ctx
-	locals[KEY_CONTEXT] = vm.API_table(req.Context)
-	locals[KEY_REQUEST] = vm.API_table(req.Data)
+	vm.context = ctx
 
 	vm.API_push(cc)
 	_, err4 := vm.Call(0, 1, locals)

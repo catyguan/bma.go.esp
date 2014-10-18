@@ -2,6 +2,7 @@ package golua
 
 import (
 	"bmautil/valutil"
+	"context"
 	"fmt"
 	"time"
 )
@@ -459,4 +460,8 @@ func (this *VM) API_setMember(obj interface{}, key interface{}, v interface{}) (
 		return true, nil
 	}
 	return false, fmt.Errorf("unknow memberObject(%T)", obj)
+}
+
+func (this *VM) API_context() context.Context {
+	return this.context
 }

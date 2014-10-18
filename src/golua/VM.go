@@ -4,6 +4,7 @@ import (
 	"bmautil/syncutil"
 	"boot"
 	"bytes"
+	"context"
 	"fmt"
 	"logger"
 	"sync/atomic"
@@ -74,6 +75,7 @@ type VM struct {
 	numOfTime        int
 	executeTime      time.Time
 	trace            bool
+	context          context.Context
 }
 
 func newVM(vmg *VMG, id uint32) *VM {

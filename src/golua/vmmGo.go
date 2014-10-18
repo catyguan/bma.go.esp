@@ -23,6 +23,7 @@ func GoModule() *VMModule {
 	m.Init("sleep", GOF_go_sleep(0))
 	m.Init("timer", GOF_go_timer(0))
 	m.Init("ticker", GOF_go_ticker(0))
+	m.Init("exec", GOF_go_exec(0))
 	return m
 }
 
@@ -524,4 +525,53 @@ func (this GOF_go_ticker) IsNative() bool {
 
 func (this GOF_go_ticker) String() string {
 	return "GoFunc<go.ticker>"
+}
+
+// go.exec(scriptName:string [, locals:map])
+type GOF_go_exec int
+
+func (this GOF_go_exec) Exec(vm *VM) (int, error) {
+	err1 := vm.API_checkstack(1)
+	if err1 != nil {
+		return 0, err1
+	}
+	sn, locals, err2 := vm.API_pop2X(-1, true)
+	if err2 != nil {
+		return 0, err2
+	}
+	vsn := valutil.ToString(sn, "")
+	if vsn == "" {
+		return 0, fmt.Errorf("invalid ScriptName(%v)", sn)
+	}
+	var vtb map[string]interface{}
+	if locals != nil {
+		switch tmp := locals.(type) {
+		case map[string]interface{}:
+			vtb = tmp
+		case VMTable:
+			vtb = tmp.ToMap()
+		}
+		if vtb == nil {
+			return 0, fmt.Errorf("invalid Locals(%v)", locals)
+		}
+	}
+
+	cc, err3 := vm.vmg.gl.Load(vsn, true)
+	if err3 != nil {
+		return 0, err3
+	}
+	vm.API_push(cc)
+	rc, err4 := vm.Call(0, -1, vtb)
+	if err4 != nil {
+		return rc, err4
+	}
+	return rc, nil
+}
+
+func (this GOF_go_exec) IsNative() bool {
+	return true
+}
+
+func (this GOF_go_exec) String() string {
+	return "GoFunc<go.exec>"
 }

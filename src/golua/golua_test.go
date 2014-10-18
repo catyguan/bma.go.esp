@@ -28,7 +28,8 @@ func TestExecute(t *testing.T) {
 		defer golua.Close()
 
 		trace := false
-		f := "/s_add.lua"
+		// f := "/s_add.lua"
+		f := "test_vmmGo.lua"
 		data["a"] = 1
 		data["b"] = 2
 

@@ -35,7 +35,12 @@ func (this *VMG) newVM() (*VM, error) {
 	}
 	this.mux.Lock()
 	defer this.mux.Unlock()
-	this.vmid++
+	for {
+		this.vmid++
+		if _, ok := this.vms[this.vmid]; !ok {
+			break
+		}
+	}
 	vm := newVM(this, this.vmid)
 	this.vms[vm.id] = vm
 	return vm, nil

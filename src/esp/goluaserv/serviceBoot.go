@@ -2,6 +2,7 @@ package goluaserv
 
 import (
 	"boot"
+	"fileloader"
 	"fmt"
 	"golua"
 	"logger"
@@ -70,7 +71,7 @@ func (this *goluaConfigInfo) Valid() error {
 			return err
 		}
 	}
-	fac := golua.CommonScriptSourceFactory(0)
+	fac := fileloader.CommonFileLoaderFactory
 	if this.SS == nil {
 		return fmt.Errorf("empty ScriptSource")
 	}
@@ -85,7 +86,7 @@ func (this *goluaConfigInfo) Compare(old *goluaConfigInfo) int {
 	if old == nil {
 		return boot.CCR_NEED_START
 	}
-	fac := golua.CommonScriptSourceFactory(0)
+	fac := fileloader.CommonFileLoaderFactory
 	r2 := fac.Compare(this.SS, old.SS)
 	if !r2 {
 		return boot.CCR_NEED_START
@@ -137,7 +138,7 @@ func (this *Service) Init(ctx *boot.BootContext) bool {
 }
 
 func (this *Service) _create(k string, glcfg *goluaConfigInfo) bool {
-	fac := golua.CommonScriptSourceFactory(0)
+	fac := fileloader.CommonFileLoaderFactory
 	ss, err0 := fac.Create(glcfg.SS)
 	if err0 != nil {
 		logger.Error(tag, "create ScriptSource['%s', %s] fail %s", k, glcfg.SS, err0)

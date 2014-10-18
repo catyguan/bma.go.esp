@@ -16,12 +16,6 @@
 	},
 	"goluaServ" : {
 		"GoLua" : {
-			"goluaMux" : {
-				"SS" : {
-					"Type" : "file",
-					"Dirs" : ["${CWD}/golua"]
-				}
-			},
 			"test" : {
 				"SS" : {
 					"Type" : "file",
@@ -29,5 +23,13 @@
 				}
 			}
 		}
+	},
+	"goluaMux" : {
+		"App" : [
+			{
+				"Name" : "test",
+				"Location" : "/"
+			}
+		]
 	}
 }
