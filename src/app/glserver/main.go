@@ -46,6 +46,8 @@ func myInitor(vmg *golua.VMG) {
 	golua.CoreModule(vmg)
 	golua.GoModule().Bind(vmg)
 	golua.TypesModule().Bind(vmg)
+	golua.TableModule().Bind(vmg)
+	golua.StringsModule().Bind(vmg)
 	vmmhttp.HttpServModule().Bind(vmg)
 	vmmacclog.Module().Bind(vmg)
 }
