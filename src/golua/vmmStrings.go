@@ -2,6 +2,7 @@ package golua
 
 import (
 	"bmautil/valutil"
+	"fmt"
 	"strings"
 	"unicode"
 )
@@ -22,6 +23,7 @@ func TableModule() *VMModule {
 	m.Init("trimRight", GOF_strings_trimRight(0))
 	m.Init("trimPrefix", GOF_strings_trimPrefix(0))
 	m.Init("trimSuffix", GOF_strings_trimSuffix(0))
+	m.Init("substr", GOF_strings_substr(0))
 	return m
 }
 
@@ -425,4 +427,42 @@ func (this GOF_strings_trimSuffix) IsNative() bool {
 
 func (this GOF_strings_trimSuffix) String() string {
 	return "GoFunc<strings.trimSuffix>"
+}
+
+// strings.substr(string $string , int $start [, int $length ] ) string
+type GOF_strings_substr int
+
+func (this GOF_strings_substr) Exec(vm *VM) (int, error) {
+	err0 := vm.API_checkstack(2)
+	if err0 != nil {
+		return 0, err0
+	}
+	s, start, l, err1 := vm.API_pop3X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	vs := valutil.ToString(s, "")
+	clist := []rune(vs)
+	vstart := valutil.ToInt(start, 0)
+	vlen := valutil.ToInt(l, -1)
+	if vstart < 0 || vstart >= len(clist) {
+		return 0, fmt.Errorf("invalid start(%v) on string(%d)", vstart, len(clist))
+	}
+	if vlen < 0 {
+		vlen = len(clist) - vstart
+	}
+	if vstart+vlen > len(clist) {
+		return 0, fmt.Errorf("invalid len(%v, %v) on string(%d)", vstart, l, len(clist))
+	}
+	rv := clist[vstart : vstart+vlen]
+	vm.API_push(string(rv))
+	return 1, nil
+}
+
+func (this GOF_strings_substr) IsNative() bool {
+	return true
+}
+
+func (this GOF_strings_substr) String() string {
+	return "GoFunc<strings.substr>"
 }

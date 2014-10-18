@@ -91,6 +91,20 @@ func (this *CommonVMArray) Delete(vm *VM, idx int) error {
 	return fmt.Errorf("index(%d) out range(%d)", idx, len(this.data))
 }
 
+func (this *CommonVMArray) SubArray(start int, end int) ([]interface{}, error) {
+	if this.mux != nil {
+		this.mux.Lock()
+		defer this.mux.Unlock()
+	}
+	if start >= 0 && start < len(this.data) {
+		if end > 0 && end <= len(this.data) {
+			return this.data[start:end], nil
+		}
+		return nil, fmt.Errorf("index(%d) out range(%d)", end, len(this.data))
+	}
+	return nil, fmt.Errorf("index(%d) out range(%d)", start, len(this.data))
+}
+
 func (this *CommonVMArray) Len() int {
 	return len(this.data)
 }
@@ -100,9 +114,7 @@ func (this *CommonVMArray) ToArray() []interface{} {
 		this.mux.RLock()
 		defer this.mux.RUnlock()
 		r := make([]interface{}, len(this.data))
-		for k, v := range this.data {
-			r[k] = v
-		}
+		copy(r, this.data)
 		return r
 	} else {
 		return this.data

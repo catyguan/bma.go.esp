@@ -9,7 +9,8 @@ local vr
 -- vr = strings.split("a,b,c", ",", 2)
 -- vr = strings.toLower("ABVDX123")
 -- vr = strings.toUpper("a,b,c")
-vr = strings.trimSuffix(" a,b,c ","c ")
-print(#vr)
+-- vr = strings.trimSuffix(" a,b,c ","c ")
+-- print(#vr)
+vr = strings.substr("中文abcde", 1, 2)
 
 return vr

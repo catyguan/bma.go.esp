@@ -11,6 +11,7 @@ func StringsModule() *VMModule {
 	m.Init("concat", GOF_table_concat(0))
 	m.Init("insert", GOF_table_insert(0))
 	m.Init("remove", GOF_table_remove(0))
+	m.Init("subtable", GOF_table_subtable(0))
 	return m
 }
 
@@ -147,4 +148,49 @@ func (this GOF_table_remove) IsNative() bool {
 
 func (this GOF_table_remove) String() string {
 	return "GoFunc<table.insert>"
+}
+
+// table.sub(table , int $start [, int $length ] ) table
+type GOF_table_subtable int
+
+func (this GOF_table_subtable) Exec(vm *VM) (int, error) {
+	err0 := vm.API_checkstack(2)
+	if err0 != nil {
+		return 0, err0
+	}
+	o, start, l, err1 := vm.API_pop3X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	vo := vm.API_array(o)
+	if vo == nil {
+		return 0, fmt.Errorf("invalid array(%T)", o)
+	}
+	vstart := valutil.ToInt(start, 0)
+	vlen := valutil.ToInt(l, -1)
+	if vstart < 0 || vstart >= vo.Len() {
+		return 0, fmt.Errorf("invalid start(%v) on array(%d)", vstart, vo.Len())
+	}
+	if vlen < 0 {
+		vlen = vo.Len() - vstart
+	}
+	if vstart+vlen > vo.Len() {
+		return 0, fmt.Errorf("invalid len(%v, %v) on array(%d)", vstart, l, vo.Len())
+	}
+	rv, err2 := vo.SubArray(vstart, vstart+vlen)
+	if err2 != nil {
+		return 0, err2
+	}
+	tmp := make([]interface{}, len(rv))
+	copy(tmp, rv)
+	vm.API_push(vm.API_array(tmp))
+	return 1, nil
+}
+
+func (this GOF_table_subtable) IsNative() bool {
+	return true
+}
+
+func (this GOF_table_subtable) String() string {
+	return "GoFunc<table.subtable>"
 }

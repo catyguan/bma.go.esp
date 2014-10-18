@@ -65,6 +65,7 @@ type VMArray interface {
 	Insert(vm *VM, idx int, val interface{}) error
 	Add(vm *VM, val interface{}) error
 	Delete(vm *VM, idx int) error
+	SubArray(start int, end int) ([]interface{}, error)
 	Len() int
 	ToArray() []interface{}
 }
@@ -72,7 +73,7 @@ type VMArray interface {
 func AssertNil(n string, v interface{}) error {
 	if v == nil {
 		if n != "" {
-			return fmt.Errorf("%s null pointer", n)
+			return fmt.Errorf("'%s' null pointer", n)
 		}
 		return errors.New("null pointer")
 	}
