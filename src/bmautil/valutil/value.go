@@ -83,7 +83,9 @@ func ToFloat32(v interface{}, defv float32) float32 {
 
 func ToString(v interface{}, defv string) string {
 	if r, ok := Convert(v, reflect.TypeOf(defv)); ok {
-		return r.(string)
+		if rs, ok := r.(string); ok {
+			return rs
+		}
 	}
 	return defv
 }

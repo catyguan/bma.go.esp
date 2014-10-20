@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-func StringsModule() *VMModule {
+func TableModule() *VMModule {
 	m := NewVMModule("table")
 	m.Init("concat", GOF_table_concat(0))
 	m.Init("insert", GOF_table_insert(0))

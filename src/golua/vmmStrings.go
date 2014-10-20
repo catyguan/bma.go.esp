@@ -7,7 +7,7 @@ import (
 	"unicode"
 )
 
-func TableModule() *VMModule {
+func StringsModule() *VMModule {
 	m := NewVMModule("strings")
 	m.Init("contains", GOF_strings_contains(0))
 	m.Init("hasPrefix", GOF_strings_hasPrefix(0))

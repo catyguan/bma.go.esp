@@ -24,7 +24,9 @@ func main() {
 	acclog := acclog.NewService("acclog")
 	boot.AddService(acclog)
 
-	service := goluaserv.NewService("goluaServ", myInitor)
+	service := goluaserv.NewService("goluaServ", func(vmg *golua.VMG) {
+		myInitor(vmg, acclog)
+	})
 	boot.AddService(service)
 
 	var wd, _ = os.Getwd()
@@ -33,7 +35,7 @@ func main() {
 	mux.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir(wd+"/public"))))
 
 	mux4gl := httpmux4goluaserv.NewService("goluaMux", service)
-	mux4gl.SetupAcclog(acclog, "http")
+	mux4gl.SetupAcclog(acclog, "httpserv")
 	mux4gl.InitMux(mux, "/")
 	boot.AddService(mux4gl)
 
@@ -43,13 +45,14 @@ func main() {
 	boot.Go(cfile)
 }
 
-func myInitor(vmg *golua.VMG) {
+func myInitor(vmg *golua.VMG, acclog *acclog.Service) {
 	golua.CoreModule(vmg)
 	golua.GoModule().Bind(vmg)
 	golua.TypesModule().Bind(vmg)
 	golua.TableModule().Bind(vmg)
 	golua.StringsModule().Bind(vmg)
 	vmmhttp.HttpServModule().Bind(vmg)
+	vmmhttp.HttpClientModule(acclog, "httpclient").Bind(vmg)
 	vmmacclog.Module().Bind(vmg)
 	vmmjson.Module().Bind(vmg)
 }
