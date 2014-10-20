@@ -249,3 +249,26 @@ func GoData(d interface{}) interface{} {
 	}
 	return d
 }
+
+func GoluaData(d interface{}) interface{} {
+	if d == nil {
+		return nil
+	}
+	switch ro := d.(type) {
+	case map[string]interface{}:
+		for k, v := range ro {
+			ro[k] = GoluaData(v)
+		}
+		r := new(CommonVMTable)
+		r.data = ro
+		return r
+	case []interface{}:
+		for k, v := range ro {
+			ro[k] = GoluaData(v)
+		}
+		r := new(CommonVMArray)
+		r.data = ro
+		return r
+	}
+	return d
+}

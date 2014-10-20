@@ -16,7 +16,7 @@ func Module() *golua.VMModule {
 type GOF_acclog_log int
 
 func (this GOF_acclog_log) Exec(vm *golua.VM) (int, error) {
-	ctx := vm.API_context()
+	ctx := vm.API_getContext()
 	if ctx != nil {
 		adt, ok := acclog.AcclogDataFromContext(ctx)
 		if ok {

@@ -462,6 +462,10 @@ func (this *VM) API_setMember(obj interface{}, key interface{}, v interface{}) (
 	return false, fmt.Errorf("unknow memberObject(%T)", obj)
 }
 
-func (this *VM) API_context() context.Context {
+func (this *VM) API_getContext() context.Context {
 	return this.context
+}
+
+func (this *VM) API_setContext(ctx context.Context) {
+	this.context = ctx
 }

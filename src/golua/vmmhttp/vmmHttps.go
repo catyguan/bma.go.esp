@@ -27,7 +27,7 @@ func HttpServModule() *golua.VMModule {
 }
 
 func doQuery(vm *golua.VM, n string) (interface{}, error) {
-	ctx := vm.API_context()
+	ctx := vm.API_getContext()
 	if ctx == nil {
 		return nil, fmt.Errorf("doQuery(%s) fail - context nil", n)
 	}
@@ -123,7 +123,7 @@ func (this GOF_httpserv_formValue) Exec(vm *golua.VM) (int, error) {
 	}
 	vn := valutil.ToString(n, "")
 
-	ctx := vm.API_context()
+	ctx := vm.API_getContext()
 	if ctx == nil {
 		return 0, fmt.Errorf("formValue(%v) fail - context nil", n)
 	}
@@ -181,7 +181,7 @@ func (this GOF_httpserv_queryv) String() string {
 }
 
 func respWriter(vm *golua.VM) (http.ResponseWriter, error) {
-	ctx := vm.API_context()
+	ctx := vm.API_getContext()
 	if ctx == nil {
 		return nil, fmt.Errorf("respWriter fail - context nil")
 	}
@@ -213,7 +213,7 @@ func (this GOF_httpserv_writeHeader) Exec(vm *golua.VM) (int, error) {
 
 	w.WriteHeader(vst)
 
-	ctx := vm.API_context()
+	ctx := vm.API_getContext()
 	if ctx != nil {
 		adt, ok := acclog.AcclogDataFromContext(ctx)
 		if ok {

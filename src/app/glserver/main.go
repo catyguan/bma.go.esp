@@ -8,6 +8,7 @@ import (
 	"golua"
 	"golua/vmmacclog"
 	"golua/vmmhttp"
+	"golua/vmmjson"
 	"httpserver"
 	"net/http"
 	"os"
@@ -50,4 +51,5 @@ func myInitor(vmg *golua.VMG) {
 	golua.StringsModule().Bind(vmg)
 	vmmhttp.HttpServModule().Bind(vmg)
 	vmmacclog.Module().Bind(vmg)
+	vmmjson.Module().Bind(vmg)
 }
