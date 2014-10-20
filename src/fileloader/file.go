@@ -16,7 +16,7 @@ type FileFileLoader struct {
 	Dirs []string
 }
 
-func (this *FileFileLoader) Load(script string) (bool, string, error) {
+func (this *FileFileLoader) Load(script string) ([]byte, error) {
 	for _, dir := range this.Dirs {
 		fn := path.Join(dir, script)
 		_, err := os.Stat(fn)
@@ -24,15 +24,15 @@ func (this *FileFileLoader) Load(script string) (bool, string, error) {
 			if os.IsNotExist(err) {
 				continue
 			}
-			return false, "", err
+			return nil, err
 		}
 		content, err2 := ioutil.ReadFile(fn)
 		if err != nil {
-			return false, "", err2
+			return nil, err2
 		}
-		return true, string(content), nil
+		return content, nil
 	}
-	return false, "", nil
+	return nil, nil
 }
 
 type fssConfig struct {

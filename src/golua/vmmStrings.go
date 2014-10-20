@@ -24,6 +24,7 @@ func StringsModule() *VMModule {
 	m.Init("trimPrefix", GOF_strings_trimPrefix(0))
 	m.Init("trimSuffix", GOF_strings_trimSuffix(0))
 	m.Init("substr", GOF_strings_substr(0))
+	m.Init("format", GOF_strings_format(0))
 	return m
 }
 
@@ -465,4 +466,31 @@ func (this GOF_strings_substr) IsNative() bool {
 
 func (this GOF_strings_substr) String() string {
 	return "GoFunc<strings.substr>"
+}
+
+// strings.format(string $string , ... ) string
+type GOF_strings_format int
+
+func (this GOF_strings_format) Exec(vm *VM) (int, error) {
+	err0 := vm.API_checkstack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	top := vm.API_gettop()
+	ps, err1 := vm.API_popN(top, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	vs := valutil.ToString(ps[0], "")
+	rs := fmt.Sprintf(vs, ps[1:]...)
+	vm.API_push(rs)
+	return 1, nil
+}
+
+func (this GOF_strings_format) IsNative() bool {
+	return true
+}
+
+func (this GOF_strings_format) String() string {
+	return "GoFunc<strings.format>"
 }

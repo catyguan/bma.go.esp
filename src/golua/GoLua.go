@@ -51,19 +51,20 @@ func (this *GoLua) Close() {
 
 func (this *GoLua) Load(script string, save bool) (*ChunkCode, error) {
 	// compile
-	cok, content, err := this.ss.Load(script)
+	bs, err := this.ss.Load(script)
 	if err != nil {
 		err0 := fmt.Errorf("load '%s' fail - %s", script, err)
 		logger.Debug(tag, "%s: %s", this, err0)
 		return nil, err0
 	}
-	if !cok {
+	if bs == nil {
 		err0 := fmt.Errorf("can't locate '%s'", script)
 		logger.Debug(tag, "%s: %s", this, err0)
 		return nil, err0
 	}
 	logger.Debug(tag, "%s: load('%s') done", this, script)
 
+	content := string(bs)
 	p := goyacc.NewParser(script, content)
 	node, err2 := p.Parse()
 	if err2 != nil {

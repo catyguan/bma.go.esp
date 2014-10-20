@@ -6,7 +6,7 @@ import (
 )
 
 type FileLoader interface {
-	Load(script string) (bool, string, error)
+	Load(script string) ([]byte, error)
 }
 type FileLoaderFactory interface {
 	Valid(cfg map[string]interface{}) error

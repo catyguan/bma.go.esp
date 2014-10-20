@@ -69,3 +69,15 @@ func TestGenRandome(t *testing.T) {
 	}
 	fmt.Println()
 }
+
+func TestSprintf(t *testing.T) {
+	arr := []interface{}{1, 2}
+	s := fmt.Sprintf("%d, %d", arr...)
+	fmt.Println("ask = ", s)
+}
+
+func TestTime(t *testing.T) {
+	tm := time.Now()
+	bs, _ := tm.MarshalText()
+	fmt.Println("TimeJson", string(bs))
+}

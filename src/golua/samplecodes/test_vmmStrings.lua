@@ -11,6 +11,7 @@ local vr
 -- vr = strings.toUpper("a,b,c")
 -- vr = strings.trimSuffix(" a,b,c ","c ")
 -- print(#vr)
-vr = strings.substr("中文abcde", 1, 2)
+-- vr = strings.substr("中文abcde", 1, 2)
+vr = strings.format("a = %d, b=%v",1, "string")
 
 return vr

@@ -374,7 +374,10 @@ func (this *VM) runCode(node goyacc.Node) (int, ER, error) {
 				return r1 + r2, er2, err2
 			}
 			// fmt.Println("CALL 2", r1, this.DumpStack())
-			this.stack.line = node.GetLine()
+			calll := node.GetLine()
+			if calll > 0 {
+				this.stack.line = node.GetLine()
+			}
 			r0, err0 := this.Call(r2, -1, nil)
 			if err0 != nil {
 				return r0, ER_ERROR, err0
