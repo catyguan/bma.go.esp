@@ -227,6 +227,16 @@ func (this *objectVMTable) ToMap() map[string]interface{} {
 	return this.p.ToMap(this.o)
 }
 
+func (this *VM) API_object(v interface{}) interface{} {
+	if v == nil {
+		return nil
+	}
+	if o, ok := v.(*objectVMTable); ok {
+		return o.o
+	}
+	return nil
+}
+
 func GoData(d interface{}) interface{} {
 	if d == nil {
 		return nil
