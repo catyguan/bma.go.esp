@@ -55,6 +55,33 @@ func QueryAction(callback RowScan, sqlstr string, args ...interface{}) SQLAction
 	}
 }
 
+func FetchRow(rows *sql.Rows) (map[string]interface{}, error) {
+	if !rows.Next() {
+		return nil, nil
+	}
+
+	fns, err0 := rows.Columns()
+	if err0 != nil {
+		return nil, err0
+	}
+	sz := len(fns)
+	r := make(map[string]interface{})
+	data := make([]interface{}, sz)
+	scaninterfaces := make([]interface{}, sz)
+	for i := 0; i < sz; i++ {
+		scaninterfaces[i] = &data[i]
+	}
+
+	err2 := rows.Scan(scaninterfaces...)
+	if err2 != nil {
+		return nil, err2
+	}
+	for i := 0; i < sz; i++ {
+		r[fns[i]] = data[i]
+	}
+	return r, nil
+}
+
 func FetchMap(rows *sql.Rows, spos, count int) ([]map[string]interface{}, error) {
 	fns, err := rows.Columns()
 	if err != nil {

@@ -1,0 +1,11 @@
+{
+	"test" : {
+		"SQL" : {
+			"test": {
+				"Driver" : "sqlite3",
+				"DataSource" : "test.db",
+				"DelayOpen": true
+			}
+		}
+	}
+}
