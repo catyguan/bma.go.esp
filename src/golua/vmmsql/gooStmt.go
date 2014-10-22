@@ -72,7 +72,12 @@ func (gooStmt) Get(vm *golua.VM, o interface{}, key string) (interface{}, error)
 				if err2 != nil {
 					return 0, err2
 				}
-				vm.API_push(golua.NewGOO(rs, gooRows(0)))
+				ro := golua.NewGOO(rs, gooRows(0))
+				errl := vm.API_cleanDefer(ro)
+				if errl != nil {
+					return 0, errl
+				}
+				vm.API_push(ro)
 				return 1, nil
 			}), nil
 		}

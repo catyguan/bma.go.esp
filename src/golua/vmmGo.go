@@ -104,6 +104,30 @@ func (this GOF_go_defer) String() string {
 	return "GoFunc<go.defer>"
 }
 
+// go.cleanDefer(xxx)
+type GOF_go_cleanDefer int
+
+func (this GOF_go_cleanDefer) Exec(vm *VM) (int, error) {
+	err0 := vm.API_checkstack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	f, err2 := vm.API_pop1X(-1, true)
+	if err2 != nil {
+		return 0, err2
+	}
+	err3 := vm.API_cleanDefer(f)
+	return 0, err3
+}
+
+func (this GOF_go_cleanDefer) IsNative() bool {
+	return true
+}
+
+func (this GOF_go_cleanDefer) String() string {
+	return "GoFunc<go.cleanDefer>"
+}
+
 // go.chan(sz)
 type GOF_go_chan int
 

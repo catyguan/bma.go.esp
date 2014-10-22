@@ -123,7 +123,10 @@ func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
 	if err3 != nil {
 		return nil, fmt.Errorf("create vm error - %s", err3)
 	}
-	defer vm.Destroy()
+	defer func() {
+		vm.CleanDefer()
+		vm.Destroy()
+	}()
 
 	if this.cfg != nil {
 		vm.config = this.cfg

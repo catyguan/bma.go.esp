@@ -19,7 +19,12 @@ func (gooDB) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 				if err != nil {
 					return 0, err
 				}
-				vm.API_push(golua.NewGOO(tx, gooTx(0)))
+				ro := golua.NewGOO(tx, gooTx(0))
+				errl := vm.API_cleanDefer(ro)
+				if errl != nil {
+					return 0, errl
+				}
+				vm.API_push(ro)
 				return 1, nil
 			}), nil
 		case "Close":
@@ -116,7 +121,12 @@ func (gooDB) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 				if err2 != nil {
 					return 0, err2
 				}
-				vm.API_push(golua.NewGOO(st, gooStmt(0)))
+				ro := golua.NewGOO(st, gooStmt(0))
+				errl := vm.API_cleanDefer(ro)
+				if errl != nil {
+					return 0, errl
+				}
+				vm.API_push(ro)
 				return 1, nil
 			}), nil
 		case "Query":
@@ -138,7 +148,12 @@ func (gooDB) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 				if err2 != nil {
 					return 0, err2
 				}
-				vm.API_push(golua.NewGOO(rs, gooRows(0)))
+				ro := golua.NewGOO(rs, gooRows(0))
+				errl := vm.API_cleanDefer(ro)
+				if errl != nil {
+					return 0, errl
+				}
+				vm.API_push(ro)
 				return 1, nil
 			}), nil
 		}

@@ -395,7 +395,7 @@ func (this *VM) API_findVar(n string) VMVar {
 
 func (this *VM) API_defer(f interface{}, parentStack bool) error {
 	if !this.API_canCall(f) {
-		return fmt.Errorf("defer func(%T) can't call", f)
+		return fmt.Errorf("defer func(%T) invalid", f)
 	}
 	st := this.stack
 	if parentStack {
@@ -403,6 +403,9 @@ func (this *VM) API_defer(f interface{}, parentStack bool) error {
 		if st == nil {
 			return fmt.Errorf("parent stack nil when defer")
 		}
+	}
+	if st.defers == nil {
+		st.defers = make([]interface{}, 0)
 	}
 	st.defers = append(st.defers, f)
 	return nil
@@ -468,4 +471,25 @@ func (this *VM) API_getContext() context.Context {
 
 func (this *VM) API_setContext(ctx context.Context) {
 	this.context = ctx
+}
+
+func (this *VM) API_cleanDefer(f interface{}) error {
+	if canClose(f) {
+		o := f
+		f = NewGOF("deferClose", func(vm *VM) (int, error) {
+			doClose(o)
+			return 0, nil
+		})
+	}
+	if !this.API_canCall(f) {
+		return fmt.Errorf("clean defer func(%T) invalid", f)
+	}
+	if this.defers == nil {
+
+	}
+	if this.defers == nil {
+		this.defers = make([]interface{}, 0)
+	}
+	this.defers = append(this.defers, f)
+	return nil
 }

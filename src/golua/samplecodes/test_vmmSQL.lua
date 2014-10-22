@@ -9,7 +9,7 @@ end)
 db:Ping()
 
 local rs = db:Query("select * from test4")
-go.defer(rs)
+-- go.defer(rs)
 
 local data
 local desc = {id="int",dt="time"}
@@ -30,9 +30,10 @@ end
 -- res = stmt:Exec("ppp")
 -- print("Prepare & Exec", res)
 
--- local tx = db:Begin()
+local tx = db:Begin()
 -- go.defer(tx)
--- local res = tx:Exec("UPDATE test SET password='newpass2' WHERE username=?", "ppp")
--- print(res)
+local res = tx:Exec("UPDATE test SET password='newpass7' WHERE username=?", "ppp")
+print(res)
+tx:Rollback()
 
 return vr

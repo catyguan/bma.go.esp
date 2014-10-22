@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"golua"
+	"logger"
 )
 
 type gooTx int
@@ -51,7 +52,12 @@ func (gooTx) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 					return 0, fmt.Errorf("stmt invalid(%v)", st)
 				}
 				nst := obj.Stmt(vst)
-				vm.API_push(golua.NewGOO(nst, gooStmt(0)))
+				ro := golua.NewGOO(nst, gooStmt(0))
+				errl := vm.API_cleanDefer(ro)
+				if errl != nil {
+					return 0, errl
+				}
+				vm.API_push(ro)
 				return 1, nil
 			}), nil
 		case "Exec":
@@ -133,7 +139,12 @@ func (gooTx) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 				if err2 != nil {
 					return 0, err2
 				}
-				vm.API_push(golua.NewGOO(st, gooStmt(0)))
+				ro := golua.NewGOO(st, gooStmt(0))
+				errl := vm.API_cleanDefer(ro)
+				if errl != nil {
+					return 0, errl
+				}
+				vm.API_push(ro)
 				return 1, nil
 			}), nil
 		case "Query":
@@ -155,7 +166,12 @@ func (gooTx) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 				if err2 != nil {
 					return 0, err2
 				}
-				vm.API_push(golua.NewGOO(rs, gooRows(0)))
+				ro := golua.NewGOO(rs, gooRows(0))
+				errl := vm.API_cleanDefer(ro)
+				if errl != nil {
+					return 0, errl
+				}
+				vm.API_push(ro)
 				return 1, nil
 			}), nil
 		}
@@ -178,6 +194,10 @@ func (gooTx) CanClose() bool {
 
 func (gooTx) Close(o interface{}) {
 	if tx, ok := o.(*sql.Tx); ok {
-		tx.Rollback()
+		err := tx.Rollback()
+		// fmt.Println("TX Close", err)
+		if err != nil && err != sql.ErrTxDone {
+			logger.Warn(tag, "tx rollback when close")
+		}
 	}
 }

@@ -76,6 +76,8 @@ type VM struct {
 	executeTime      time.Time
 	trace            bool
 	context          context.Context
+
+	defers []interface{}
 }
 
 func newVM(vmg *VMG, id uint32) *VM {
@@ -141,6 +143,22 @@ func (this *VM) Spawn(n string) (*VM, error) {
 	vm2.initStack(st)
 	logger.Debug(tag, "%s spawn -> %s", this, vm2)
 	return vm2, nil
+}
+
+func (this *VM) CleanDefer() {
+	if this.defers != nil {
+		l := len(this.defers)
+		for i := l - 1; i >= 0; i-- {
+			f := this.defers[i]
+			this.API_push(f)
+			_, errX := this.Call(0, 0, nil)
+			if errX != nil {
+				if errX != nil {
+					logger.Debug(tag, "%s clean defer %s fail - %s", this, f, errX)
+				}
+			}
+		}
+	}
 }
 
 func (this *VM) Destroy() {
