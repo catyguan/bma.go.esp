@@ -16,6 +16,10 @@ func TimeModule() *VMModule {
 	return m
 }
 
+func CreateGoTime(tm *time.Time) VMTable {
+	return NewGOO(tm, gooTime(0))
+}
+
 func ToDuration(v interface{}) (time.Duration, error) {
 	switch v.(type) {
 	case string:

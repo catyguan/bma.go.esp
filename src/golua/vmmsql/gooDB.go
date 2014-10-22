@@ -30,7 +30,7 @@ func (gooDB) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 			}), nil
 		case "Exec":
 			return golua.NewGOF("DB:Exec", func(vm *golua.VM) (int, error) {
-				err0 := vm.API_checkstack(1)
+				err0 := vm.API_checkstack(2)
 				if err0 != nil {
 					return 0, err0
 				}
@@ -39,11 +39,11 @@ func (gooDB) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 				if err1 != nil {
 					return 0, err1
 				}
-				vsql := valutil.ToString(ns[0], "")
+				vsql := valutil.ToString(ns[1], "")
 				if vsql == "" {
 					return 0, fmt.Errorf("query string invalid(%v)", ns[0])
 				}
-				rs, err2 := obj.Exec(vsql, ns[1:]...)
+				rs, err2 := obj.Exec(vsql, ns[2:]...)
 				if err2 != nil {
 					return 0, err2
 				}
@@ -56,7 +56,7 @@ func (gooDB) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 			}), nil
 		case "ExecLastId":
 			return golua.NewGOF("DB:ExecLastId", func(vm *golua.VM) (int, error) {
-				err0 := vm.API_checkstack(1)
+				err0 := vm.API_checkstack(2)
 				if err0 != nil {
 					return 0, err0
 				}
@@ -65,11 +65,11 @@ func (gooDB) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 				if err1 != nil {
 					return 0, err1
 				}
-				vsql := valutil.ToString(ns[0], "")
+				vsql := valutil.ToString(ns[1], "")
 				if vsql == "" {
 					return 0, fmt.Errorf("query string invalid(%v)", ns[0])
 				}
-				rs, err2 := obj.Exec(vsql, ns[1:]...)
+				rs, err2 := obj.Exec(vsql, ns[2:]...)
 				if err2 != nil {
 					return 0, err2
 				}
@@ -100,11 +100,11 @@ func (gooDB) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 			}), nil
 		case "Prepare":
 			return golua.NewGOF("DB:Prepare", func(vm *golua.VM) (int, error) {
-				err0 := vm.API_checkstack(1)
+				err0 := vm.API_checkstack(2)
 				if err0 != nil {
 					return 0, err0
 				}
-				q, err1 := vm.API_pop1X(-1, true)
+				_, q, err1 := vm.API_pop2X(-1, true)
 				if err1 != nil {
 					return 0, err1
 				}
@@ -117,11 +117,11 @@ func (gooDB) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 					return 0, err2
 				}
 				vm.API_push(golua.NewGOO(st, gooStmt(0)))
-				return 0, nil
+				return 1, nil
 			}), nil
 		case "Query":
 			return golua.NewGOF("DB:Query", func(vm *golua.VM) (int, error) {
-				err0 := vm.API_checkstack(1)
+				err0 := vm.API_checkstack(2)
 				if err0 != nil {
 					return 0, err0
 				}
@@ -130,11 +130,11 @@ func (gooDB) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 				if err1 != nil {
 					return 0, err1
 				}
-				vsql := valutil.ToString(ns[0], "")
+				vsql := valutil.ToString(ns[1], "")
 				if vsql == "" {
 					return 0, fmt.Errorf("query string invalid(%v)", ns[0])
 				}
-				rs, err2 := obj.Query(vsql, ns[1:]...)
+				rs, err2 := obj.Query(vsql, ns[2:]...)
 				if err2 != nil {
 					return 0, err2
 				}

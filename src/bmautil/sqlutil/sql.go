@@ -1,7 +1,9 @@
 package sqlutil
 
 import (
+	"bmautil/valutil"
 	"database/sql"
+	"time"
 )
 
 type SQLAction func(db *sql.DB) error
@@ -55,7 +57,7 @@ func QueryAction(callback RowScan, sqlstr string, args ...interface{}) SQLAction
 	}
 }
 
-func FetchRow(rows *sql.Rows) (map[string]interface{}, error) {
+func FetchRow(rows *sql.Rows, desc map[string]string) (map[string]interface{}, error) {
 	if !rows.Next() {
 		return nil, nil
 	}
@@ -77,7 +79,57 @@ func FetchRow(rows *sql.Rows) (map[string]interface{}, error) {
 		return nil, err2
 	}
 	for i := 0; i < sz; i++ {
-		r[fns[i]] = data[i]
+		v := data[i]
+		k := fns[i]
+		if v == nil {
+			r[k] = nil
+			continue
+		}
+		vt := ""
+		if desc != nil {
+			vt = desc[k]
+		}
+		if bs, ok := v.([]byte); ok {
+			if vt != "bytes" {
+				v = string(bs)
+			} else {
+				r[k] = bs
+				continue
+			}
+		}
+		switch vt {
+		case "", "string":
+			v = valutil.ToString(v, "")
+		case "int":
+			v = valutil.ToInt(v, 0)
+		case "int32":
+			v = valutil.ToInt32(v, 0)
+		case "int64":
+			v = valutil.ToInt64(v, 0)
+		case "float32":
+			v = valutil.ToFloat32(v, 0)
+		case "float", "float64":
+			v = valutil.ToFloat64(v, 0)
+		case "bool":
+			v = valutil.ToBool(v, false)
+		case "time":
+			fm := "2006-01-02 15:04:05"
+			if desc != nil {
+				if nfm, ok := desc[k+".format"]; ok {
+					fm = nfm
+				}
+			}
+			if tm, ok := v.(time.Time); ok {
+				v = tm
+			} else {
+				tmp := valutil.ToString(v, "")
+				v, err0 = time.ParseInLocation(fm, tmp, time.Local)
+				if err0 != nil {
+					v = time.Unix(0, 0)
+				}
+			}
+		}
+		r[k] = v
 	}
 	return r, nil
 }

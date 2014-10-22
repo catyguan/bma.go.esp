@@ -6,8 +6,8 @@ import (
 	"bmautil/valutil"
 	"bytes"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
 	"testing"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func TestMysql(t *testing.T) {
