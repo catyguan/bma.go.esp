@@ -26,12 +26,11 @@ func (this *serviceConfigInfo) Compare(old *serviceConfigInfo) int {
 	if old == nil {
 		return boot.CCR_NEED_START
 	}
+	if len(this.GoLua) != len(old.GoLua) {
+		return boot.CCR_NEED_START
+	}
 	r := boot.CCR_NONE
 	for k, o := range this.GoLua {
-		if old.GoLua == nil {
-			r = boot.CCR_CHANGE
-			continue
-		}
 		oo, ok := old.GoLua[k]
 		if ok {
 			cf := o.Compare(oo)
@@ -39,23 +38,9 @@ func (this *serviceConfigInfo) Compare(old *serviceConfigInfo) int {
 				return boot.CCR_NEED_START
 			}
 		} else {
-			r = boot.CCR_CHANGE
+			return boot.CCR_NEED_START
 		}
 	}
-	if r == boot.CCR_NONE {
-		for k, _ := range old.GoLua {
-			if this.GoLua == nil {
-				r = boot.CCR_CHANGE
-				break
-			}
-			_, ok := this.GoLua[k]
-			if !ok {
-				r = boot.CCR_CHANGE
-				break
-			}
-		}
-	}
-
 	return r
 }
 

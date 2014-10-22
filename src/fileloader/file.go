@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 )
 
 func init() {
@@ -17,8 +18,21 @@ type FileFileLoader struct {
 }
 
 func (this *FileFileLoader) Load(script string) ([]byte, error) {
+	module, n := SplitModuleScript(script)
 	for _, dir := range this.Dirs {
-		fn := path.Join(dir, script)
+		fn := dir
+		if strings.Contains(fn, VAR_M) {
+			fn = strings.Replace(fn, VAR_M, module, -1)
+		} else {
+			if module != "" {
+				fn = path.Join(fn, module)
+			}
+		}
+		if strings.Contains(fn, VAR_F) {
+			fn = strings.Replace(fn, VAR_F, n, -1)
+		} else {
+			fn = path.Join(fn, n)
+		}
 		_, err := os.Stat(fn)
 		if err != nil {
 			if os.IsNotExist(err) {
@@ -35,7 +49,7 @@ func (this *FileFileLoader) Load(script string) ([]byte, error) {
 	return nil, nil
 }
 
-type fssConfig struct {
+type fflConfig struct {
 	Dirs []string
 }
 
@@ -46,13 +60,16 @@ const (
 )
 
 func (this fileFileLoaderFactory) Valid(cfg map[string]interface{}) error {
-	var co fssConfig
+	var co fflConfig
 	if valutil.ToBean(cfg, &co) {
 		if len(co.Dirs) == 0 {
 			return fmt.Errorf("Dirs empty")
 		}
 		for _, dir := range co.Dirs {
 			if dir == "" {
+				continue
+			}
+			if strings.Contains(dir, VAR_F) {
 				continue
 			}
 			s, err := os.Stat(dir)
@@ -71,7 +88,7 @@ func (this fileFileLoaderFactory) Valid(cfg map[string]interface{}) error {
 }
 
 func (this fileFileLoaderFactory) Compare(cfg map[string]interface{}, old map[string]interface{}) bool {
-	var co, oo fssConfig
+	var co, oo fflConfig
 	if !valutil.ToBean(cfg, &co) {
 		return false
 	}
@@ -98,7 +115,7 @@ func (this fileFileLoaderFactory) Create(cfg map[string]interface{}) (FileLoader
 	if err != nil {
 		return nil, err
 	}
-	var co fssConfig
+	var co fflConfig
 	valutil.ToBean(cfg, &co)
 	r := new(FileFileLoader)
 	r.Dirs = co.Dirs

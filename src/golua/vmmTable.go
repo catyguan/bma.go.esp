@@ -12,6 +12,7 @@ func TableModule() *VMModule {
 	m.Init("insert", GOF_table_insert(0))
 	m.Init("remove", GOF_table_remove(0))
 	m.Init("subtable", GOF_table_subtable(0))
+	m.Init("newArray", GOF_table_newArray(0))
 	return m
 }
 
@@ -193,4 +194,25 @@ func (this GOF_table_subtable) IsNative() bool {
 
 func (this GOF_table_subtable) String() string {
 	return "GoFunc<table.subtable>"
+}
+
+// table.newArray(...) table
+type GOF_table_newArray int
+
+func (this GOF_table_newArray) Exec(vm *VM) (int, error) {
+	top := vm.API_gettop()
+	ns, err1 := vm.API_popN(top, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	vm.API_push(vm.API_array(ns))
+	return 1, nil
+}
+
+func (this GOF_table_newArray) IsNative() bool {
+	return true
+}
+
+func (this GOF_table_newArray) String() string {
+	return "GoFunc<table.newArray>"
 }

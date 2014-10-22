@@ -5,13 +5,17 @@ import (
 	"esp/acclog"
 	"esp/goluaserv"
 	"esp/goluaserv/httpmux4goluaserv"
+	"fileloader"
 	"golua"
 	"golua/vmmacclog"
 	"golua/vmmhttp"
 	"golua/vmmjson"
+	"golua/vmmsql"
 	"httpserver"
 	"net/http"
 	"os"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 const (
@@ -23,6 +27,9 @@ func main() {
 
 	acclog := acclog.NewService("acclog")
 	boot.AddService(acclog)
+
+	fl := fileloader.NewService("fileloader")
+	boot.AddService(fl)
 
 	service := goluaserv.NewService("goluaServ", func(vmg *golua.VMG) {
 		myInitor(vmg, acclog)
@@ -56,4 +63,5 @@ func myInitor(vmg *golua.VMG, acclog *acclog.Service) {
 	vmmhttp.HttpClientModule(acclog, "httpclient").Bind(vmg)
 	vmmacclog.Module().Bind(vmg)
 	vmmjson.Module().Bind(vmg)
+	vmmsql.Module().Bind(vmg)
 }
