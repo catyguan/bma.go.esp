@@ -14,12 +14,20 @@
 			}
 		]
 	},
+	"fileloader" : {
+	},
 	"goluaServ" : {
 		"GoLua" : {
 			"test" : {
-				"SS" : {
+				"FL" : {
 					"Type" : "file",
 					"Dirs" : ["${CWD}/golua/test"]
+				}
+			},
+			"app1" : {
+				"FL" : {
+					"Type" : "http",
+					"URL" : "http://127.0.0.1:1085/query?m=app1&f=$F&v=&c=93c34d692cba9871a489afc335e4ac46"
 				}
 			}
 		}
@@ -29,6 +37,10 @@
 			{
 				"Name" : "test",
 				"Location" : "/"
+			},
+			{
+				"Name" : "app1",
+				"Location" : "/app1"
 			}
 		]
 	}

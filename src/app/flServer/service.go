@@ -103,9 +103,10 @@ func (this *Service) InvokeFL(w http.ResponseWriter, req *http.Request) {
 	if version == "" {
 		version = "default"
 	}
-	if strings.HasPrefix(file, "/") {
-		file = file[1:]
+	if !strings.HasPrefix(file, "/") {
+		file = "/" + file
 	}
+	file = filepath.Clean(file)[1:]
 	fn := fmt.Sprintf("%s:%s/%s", module, version, file)
 	logger.Debug(tag, "query(%s, %s, %s) -> %s", module, version, file, fn)
 

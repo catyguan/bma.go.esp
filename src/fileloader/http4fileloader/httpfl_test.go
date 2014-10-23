@@ -20,7 +20,8 @@ func TestHttpLoader(t *testing.T) {
 
 	// url := "http://my.oschina.net/u/698121/blog/$F"
 	// fn := "156245"
-	url := "http://127.0.0.1:1085/query?m=test&f=$F&v=&c=09fd752adf1cf436a2fb132247af2f1f"
+	// url := "http://127.0.0.1:1085/query?m=test&f=$F&v=&c=09fd752adf1cf436a2fb132247af2f1f"
+	url := "http://172.19.16.97:1085/query?m=test&f=$F&v=&c=1519ed1a3f3ed8de99d2fb1cbdb7a1ff"
 	fn := "hello.lua"
 
 	cfg := make(map[string]interface{})

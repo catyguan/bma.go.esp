@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func T2estExecute(t *testing.T) {
+func TestExecute(t *testing.T) {
 	if true {
 		runtime.GOMAXPROCS(5)
 		safeCall()
@@ -28,8 +28,8 @@ func T2estExecute(t *testing.T) {
 		defer golua.Close()
 
 		trace := false
-		// f := "/s_add.lua"
-		f := "test_vmmGo.lua"
+		f := "/s_add.lua"
+		// f := "test_vmmGo.lua"
 		data["a"] = 1
 		data["b"] = 2
 

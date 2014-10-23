@@ -123,7 +123,7 @@ func (this *Service) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if path == "" || strings.HasSuffix(path, "/") {
 		path = path + mapp.IndexName
 	}
-	logger.Debug(tag, "dispatch %s:%s => %s:%s:%s", host, opath, mapp.Name, mapp.Location, path)
+	logger.Debug(tag, "dispatch %s:%s => %s, %s, %s", host, opath, mapp.Name, mapp.Location, path)
 
 	for _, p1 := range mapp.Skip {
 		if p1 == path {
@@ -132,6 +132,7 @@ func (this *Service) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
+	req.URL.Path = path
 
 	this.doInvoke(w, req, mapp, path, adt)
 }

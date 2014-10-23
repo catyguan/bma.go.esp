@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"golua/goyacc"
 	"logger"
+	"strings"
 	"sync"
 	"time"
 )
@@ -94,6 +95,8 @@ func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
 		return nil, err0
 	}
 
+	script := this.ParseScriptName(nil, req.Script)
+
 	var cc *ChunkCode
 	this.mux.RLock()
 	if boot.DevMode {
@@ -101,13 +104,13 @@ func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
 			delete(this.codes, k)
 		}
 	} else {
-		cc = this.codes[req.Script]
+		cc = this.codes[script]
 	}
 	this.mux.RUnlock()
 
 	if cc == nil {
 		var err2 error
-		cc, err2 = this.Load(req.Script, true)
+		cc, err2 = this.Load(script, true)
 		if err2 != nil {
 			return nil, err2
 		}
@@ -159,7 +162,28 @@ func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
 	return r, nil
 }
 
+func (this *GoLua) ParseScriptName(vm *VM, n string) string {
+	change := false
+	m, f := fileloader.SplitModuleScript(n)
+	if m == "_" && vm != nil {
+		cn := vm.stack.chunkName
+		m2, _ := fileloader.SplitModuleScript(cn)
+		m = m2
+		change = true
+	}
+	if strings.HasPrefix(f, "/") {
+		f = f[1:]
+		change = true
+	}
+	if change {
+		return fileloader.BuildModuleScript(m, f)
+	}
+	return n
+}
+
 func (this *GoLua) Require(pvm *VM, n string) error {
+	n = this.ParseScriptName(pvm, n)
+
 	var cc *ChunkCode
 	this.mux.RLock()
 	cc = this.codes[n]

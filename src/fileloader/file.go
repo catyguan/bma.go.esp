@@ -21,6 +21,7 @@ type FileFileLoader struct {
 
 func (this *FileFileLoader) Load(script string) ([]byte, error) {
 	module, n := SplitModuleScript(script)
+	n = filepath.Clean("/" + n)[1:]
 	for _, dir := range this.Dirs {
 		fn := dir
 		if strings.Contains(fn, VAR_M) {
@@ -34,6 +35,11 @@ func (this *FileFileLoader) Load(script string) ([]byte, error) {
 			fn = strings.Replace(fn, VAR_F, n, -1)
 		} else {
 			fn = path.Join(fn, n)
+		}
+		var err0 error
+		fn, err0 = filepath.Abs(fn)
+		if err0 != nil {
+			return nil, err0
 		}
 		logger.Debug("file.fl", "%s, %s -> %s", dir, script, fn)
 		_, err := os.Stat(fn)
@@ -72,6 +78,9 @@ func (this fileFileLoaderFactory) Valid(cfg map[string]interface{}) error {
 			if dir == "" {
 				continue
 			}
+			if strings.Contains(dir, VAR_M) {
+				continue
+			}
 			if strings.Contains(dir, VAR_F) {
 				continue
 			}
@@ -101,15 +110,18 @@ func (this fileFileLoaderFactory) Compare(cfg map[string]interface{}, old map[st
 	if len(co.Dirs) != len(oo.Dirs) {
 		return false
 	}
-	tmp := make(map[string]bool)
-	for _, dir := range oo.Dirs {
-		tmp[dir] = true
-	}
-	for _, dir := range co.Dirs {
-		if !tmp[dir] {
-			return false
+	if true {
+		tmp := make(map[string]bool)
+		for _, dir := range oo.Dirs {
+			tmp[dir] = true
+		}
+		for _, dir := range co.Dirs {
+			if !tmp[dir] {
+				return false
+			}
 		}
 	}
+
 	return true
 }
 

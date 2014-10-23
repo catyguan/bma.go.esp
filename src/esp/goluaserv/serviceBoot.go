@@ -46,7 +46,7 @@ func (this *serviceConfigInfo) Compare(old *serviceConfigInfo) int {
 
 type goluaConfigInfo struct {
 	VM *golua.VMConfig
-	SS map[string]interface{}
+	FL map[string]interface{}
 }
 
 func (this *goluaConfigInfo) Valid() error {
@@ -57,10 +57,10 @@ func (this *goluaConfigInfo) Valid() error {
 		}
 	}
 	fac := fileloader.CommonFileLoaderFactory
-	if this.SS == nil {
+	if this.FL == nil {
 		return fmt.Errorf("empty ScriptSource")
 	}
-	err1 := fac.Valid(this.SS)
+	err1 := fac.Valid(this.FL)
 	if err1 != nil {
 		return err1
 	}
@@ -72,7 +72,7 @@ func (this *goluaConfigInfo) Compare(old *goluaConfigInfo) int {
 		return boot.CCR_NEED_START
 	}
 	fac := fileloader.CommonFileLoaderFactory
-	r2 := fac.Compare(this.SS, old.SS)
+	r2 := fac.Compare(this.FL, old.FL)
 	if !r2 {
 		return boot.CCR_NEED_START
 	}
@@ -124,9 +124,9 @@ func (this *Service) Init(ctx *boot.BootContext) bool {
 
 func (this *Service) _create(k string, glcfg *goluaConfigInfo) bool {
 	fac := fileloader.CommonFileLoaderFactory
-	ss, err0 := fac.Create(glcfg.SS)
+	ss, err0 := fac.Create(glcfg.FL)
 	if err0 != nil {
-		logger.Error(tag, "create ScriptSource['%s', %s] fail %s", k, glcfg.SS, err0)
+		logger.Error(tag, "create ScriptSource['%s', %s] fail %s", k, glcfg.FL, err0)
 		return false
 	}
 	gl := golua.NewGoLua(k, ss, this.vmgInit, glcfg.VM)

@@ -3,6 +3,7 @@ package fileloader
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -14,7 +15,12 @@ func safeCall() {
 	})
 }
 
-func T2estFFLoader(t *testing.T) {
+func TestFFLoader(t *testing.T) {
+	// tt := "app1/default/../../hello.txt"
+	// fmt.Println(filepath.Clean("/" + tt))
+	// if true {
+	// 	return
+	// }
 	safeCall()
 
 	cfg := make(map[string]interface{})
@@ -22,6 +28,7 @@ func T2estFFLoader(t *testing.T) {
 	dirs := make([]interface{}, 0)
 	dirs = append(dirs, "./")
 	cfg["Dirs"] = dirs
+	cfg["SafeDirs"] = dirs
 
 	fl, err := CommonFileLoaderFactory.Create(cfg)
 	if err != nil {
@@ -29,16 +36,24 @@ func T2estFFLoader(t *testing.T) {
 		return
 	}
 	// fn := "interfaces.go"
-	fn := "testdir:hello.txt"
+	fn := "testdir:../../hello.txt"
 	bs, err2 := fl.Load(fn)
 	if err2 != nil {
-		t.Error(err)
+		t.Error(err2)
 		return
 	}
 	fmt.Println(string(bs))
 }
 
-func TestMFLoader(t *testing.T) {
+func T2estMFLoader(t *testing.T) {
+
+	tt := "../../abcd"
+	fmt.Println(filepath.Abs(tt))
+
+	if true {
+		return
+	}
+
 	safeCall()
 
 	ff := new(FileFileLoader)

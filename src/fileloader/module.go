@@ -26,6 +26,13 @@ func SplitModuleScript(n string) (string, string) {
 	}
 }
 
+func BuildModuleScript(m, n string) string {
+	if m == "" {
+		return n
+	}
+	return m + ":" + n
+}
+
 type mFileLoader int
 
 func (this mFileLoader) Load(script string) ([]byte, error) {
