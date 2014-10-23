@@ -1,0 +1,17 @@
+{
+	"global" : {
+		"Debug" : true,
+		"DevMode" : true,
+		"GOMAXPROCS" : 5
+	},
+	"httpPoint" : {
+		"Port" : "1085"
+	},
+	"service" : {
+		"Key" : "123456",
+		"FL" : {
+			"Type" : "file",
+			"Dirs" : ["${CWD}/../gls.fls"]
+		}
+	}
+}

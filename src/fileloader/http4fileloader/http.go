@@ -30,14 +30,10 @@ func (this *HttpFileLoader) Load(script string) ([]byte, error) {
 	method := "GET"
 	qurl := this.URL
 	if strings.Contains(qurl, fileloader.VAR_M) {
-		strings.Replace(qurl, fileloader.VAR_M, module, -1)
-	} else {
-		qurl += module + "/"
+		qurl = strings.Replace(qurl, fileloader.VAR_M, module, -1)
 	}
 	if strings.Contains(qurl, fileloader.VAR_F) {
-		strings.Replace(qurl, fileloader.VAR_F, n, -1)
-	} else {
-		qurl += n
+		qurl = strings.Replace(qurl, fileloader.VAR_F, n, -1)
 	}
 	hreq, err2 := http.NewRequest(method, qurl, nil)
 	if err2 != nil {
@@ -63,7 +59,7 @@ func (this *HttpFileLoader) Load(script string) ([]byte, error) {
 	logger.Debug(tag, "[%s] http '%s'(%f) end '%d'", script, qurl, te.Sub(ts).Seconds(), hresp.StatusCode)
 	defer hresp.Body.Close()
 	if hresp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("invalid http status(%d)", hresp.StatusCode)
+		return nil, fmt.Errorf("'%s' invalid http status(%d)", qurl, hresp.StatusCode)
 	}
 
 	respBody, err4 := ioutil.ReadAll(hresp.Body)

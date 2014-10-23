@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 
+	_ "fileloader/http4fileloader"
 	_ "github.com/mattn/go-sqlite3"
 )
 

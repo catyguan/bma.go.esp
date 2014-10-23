@@ -5,6 +5,7 @@ import (
 	"esp/acclog"
 	"fmt"
 	"golua"
+	"net"
 	"net/http"
 )
 
@@ -20,6 +21,7 @@ func HttpServModule() *golua.VMModule {
 	m.Init("requestURI", newQueryv("requestURI"))
 	m.Init("post", newQueryv("post"))
 	m.Init("header", newQueryv("header"))
+	m.Init("remoteAddr", newQueryv("remoteAddr"))
 	m.Init("writeHeader", GOF_httpserv_writeHeader(0))
 	m.Init("setHeader", GOF_httpserv_setHeader(0))
 	m.Init("write", GOF_httpserv_write(0))
@@ -43,7 +45,8 @@ func doQuery(vm *golua.VM, n string) (interface{}, error) {
 	case "requestURI":
 		return req.RequestURI, nil
 	case "remoteAddr":
-		return req.RemoteAddr, nil
+		ip, _, _ := net.SplitHostPort(req.RemoteAddr)
+		return ip, nil
 	case "form":
 		o := golua.NewVMTable(nil)
 		err := req.ParseForm()

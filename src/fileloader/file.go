@@ -4,8 +4,10 @@ import (
 	"bmautil/valutil"
 	"fmt"
 	"io/ioutil"
+	"logger"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -33,6 +35,7 @@ func (this *FileFileLoader) Load(script string) ([]byte, error) {
 		} else {
 			fn = path.Join(fn, n)
 		}
+		logger.Debug("file.fl", "%s, %s -> %s", dir, script, fn)
 		_, err := os.Stat(fn)
 		if err != nil {
 			if os.IsNotExist(err) {
@@ -118,6 +121,10 @@ func (this fileFileLoaderFactory) Create(cfg map[string]interface{}) (FileLoader
 	var co fflConfig
 	valutil.ToBean(cfg, &co)
 	r := new(FileFileLoader)
-	r.Dirs = co.Dirs
+	r.Dirs = make([]string, 0, len(co.Dirs))
+	for _, dir := range co.Dirs {
+		dir = filepath.Clean(dir)
+		r.Dirs = append(r.Dirs, dir)
+	}
 	return r, nil
 }
