@@ -141,7 +141,7 @@ type GOF_httpclient_exec struct {
 	m *httpClientModule
 }
 
-func (this *GOF_httpclient_exec) Exec(vm *golua.VM) (int, error) {
+func (this *GOF_httpclient_exec) Exec(vm *golua.VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(1)
 	if err0 != nil {
 		return 0, err0
@@ -180,7 +180,7 @@ type GOF_httpclient_getContent struct {
 	m *httpClientModule
 }
 
-func (this *GOF_httpclient_getContent) Exec(vm *golua.VM) (int, error) {
+func (this *GOF_httpclient_getContent) Exec(vm *golua.VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(1)
 	if err0 != nil {
 		return 0, err0

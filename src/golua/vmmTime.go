@@ -40,7 +40,7 @@ func ToDuration(v interface{}) (time.Duration, error) {
 // time.parseDuration(s string) string
 type GOF_time_parseDuration int
 
-func (this GOF_time_parseDuration) Exec(vm *VM) (int, error) {
+func (this GOF_time_parseDuration) Exec(vm *VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(1)
 	if err0 != nil {
 		return 0, err0
@@ -69,7 +69,7 @@ func (this GOF_time_parseDuration) String() string {
 // time.date(year int, month, day, hour, min, sec int[, loc string]) Time:object
 type GOF_time_date int
 
-func (this GOF_time_date) Exec(vm *VM) (int, error) {
+func (this GOF_time_date) Exec(vm *VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(6)
 	if err0 != nil {
 		return 0, err0
@@ -114,7 +114,7 @@ func (this GOF_time_date) String() string {
 // time.now() Time:object
 type GOF_time_now int
 
-func (this GOF_time_now) Exec(vm *VM) (int, error) {
+func (this GOF_time_now) Exec(vm *VM, self interface{}) (int, error) {
 	vm.API_popAll()
 	ro := time.Now()
 	vm.API_push(NewGOO(&ro, gooTime(0)))
@@ -132,7 +132,7 @@ func (this GOF_time_now) String() string {
 // time.parse(layout, value string) Time:object
 type GOF_time_parse int
 
-func (this GOF_time_parse) Exec(vm *VM) (int, error) {
+func (this GOF_time_parse) Exec(vm *VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(1)
 	if err0 != nil {
 		return 0, err0
@@ -166,7 +166,7 @@ func (this GOF_time_parse) String() string {
 // time.unix(v int64) Time:object
 type GOF_time_unix int
 
-func (this GOF_time_unix) Exec(vm *VM) (int, error) {
+func (this GOF_time_unix) Exec(vm *VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(1)
 	if err0 != nil {
 		return 0, err0

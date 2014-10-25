@@ -30,13 +30,17 @@ func GoModule() *VMModule {
 // go.run(func() [,vmname string])
 type GOF_go_run int
 
-func (this GOF_go_run) Exec(vm *VM) (int, error) {
+func (this GOF_go_run) Exec(vm *VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(1)
 	if err0 != nil {
 		return 0, err0
 	}
 	n := ""
-	f, nv, err1 := vm.API_pop2X(-1, true)
+	f, nv, err1 := vm.API_pop2X(-1, false)
+	if err1 != nil {
+		return 0, err1
+	}
+	nv, err1 = vm.API_value(nv)
 	if err1 != nil {
 		return 0, err1
 	}
@@ -76,7 +80,7 @@ func (this GOF_go_run) String() string {
 //	xxx -- func(), ClosableObject(chan,)
 type GOF_go_defer int
 
-func (this GOF_go_defer) Exec(vm *VM) (int, error) {
+func (this GOF_go_defer) Exec(vm *VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(1)
 	if err0 != nil {
 		return 0, err0
@@ -87,7 +91,7 @@ func (this GOF_go_defer) Exec(vm *VM) (int, error) {
 	}
 	if canClose(f) {
 		o := f
-		f = NewGOF("deferClose", func(vm *VM) (int, error) {
+		f = NewGOF("deferClose", func(vm *VM, self interface{}) (int, error) {
 			doClose(o)
 			return 0, nil
 		})
@@ -107,7 +111,7 @@ func (this GOF_go_defer) String() string {
 // go.cleanDefer(xxx)
 type GOF_go_cleanDefer int
 
-func (this GOF_go_cleanDefer) Exec(vm *VM) (int, error) {
+func (this GOF_go_cleanDefer) Exec(vm *VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(1)
 	if err0 != nil {
 		return 0, err0
@@ -131,7 +135,7 @@ func (this GOF_go_cleanDefer) String() string {
 // go.chan(sz)
 type GOF_go_chan int
 
-func (this GOF_go_chan) Exec(vm *VM) (int, error) {
+func (this GOF_go_chan) Exec(vm *VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(1)
 	if err0 != nil {
 		return 0, err0
@@ -160,7 +164,7 @@ func (this GOF_go_chan) String() string {
 // go.write(chan, v) bool
 type GOF_go_write int
 
-func (this GOF_go_write) Exec(vm *VM) (int, error) {
+func (this GOF_go_write) Exec(vm *VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(2)
 	if err0 != nil {
 		return 0, err0
@@ -199,7 +203,7 @@ func (this GOF_go_write) String() string {
 // go.read(array<ch> [,timeoutMS:int]) (idx, value)
 type GOF_go_read int
 
-func (this GOF_go_read) Exec(vm *VM) (int, error) {
+func (this GOF_go_read) Exec(vm *VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(1)
 	if err0 != nil {
 		return 0, err0
@@ -275,7 +279,7 @@ func (this GOF_go_read) String() string {
 // go.select(ch) (bool, value)
 type GOF_go_select int
 
-func (this GOF_go_select) Exec(vm *VM) (int, error) {
+func (this GOF_go_select) Exec(vm *VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(1)
 	if err0 != nil {
 		return 0, err0
@@ -338,7 +342,7 @@ func doClose(o interface{}) bool {
 //		obj - chan
 type GOF_go_close int
 
-func (this GOF_go_close) Exec(vm *VM) (int, error) {
+func (this GOF_go_close) Exec(vm *VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(1)
 	if err0 != nil {
 		return 0, err0
@@ -366,7 +370,7 @@ func (this GOF_go_close) String() string {
 //		obj - var
 type GOF_go_enableSafe int
 
-func (this GOF_go_enableSafe) Exec(vm *VM) (int, error) {
+func (this GOF_go_enableSafe) Exec(vm *VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(1)
 	if err0 != nil {
 		return 0, err0
@@ -400,7 +404,7 @@ func (this GOF_go_enableSafe) String() string {
 // go.mutex([rw:bool])
 type GOF_go_mutex int
 
-func (this GOF_go_mutex) Exec(vm *VM) (int, error) {
+func (this GOF_go_mutex) Exec(vm *VM, self interface{}) (int, error) {
 	rw, err2 := vm.API_pop1X(-1, true)
 	if err2 != nil {
 		return 0, err2
@@ -429,7 +433,7 @@ func (this GOF_go_mutex) String() string {
 // go.sleep(timeMS:int)
 type GOF_go_sleep int
 
-func (this GOF_go_sleep) Exec(vm *VM) (int, error) {
+func (this GOF_go_sleep) Exec(vm *VM, self interface{}) (int, error) {
 	tm, err2 := vm.API_pop1X(-1, true)
 	if err2 != nil {
 		return 0, err2
@@ -453,7 +457,7 @@ func (this GOF_go_sleep) String() string {
 // go.timer(timeMS:int, func())
 type GOF_go_timer int
 
-func (this GOF_go_timer) Exec(vm *VM) (int, error) {
+func (this GOF_go_timer) Exec(vm *VM, self interface{}) (int, error) {
 	err1 := vm.API_checkstack(2)
 	if err1 != nil {
 		return 0, err1
@@ -500,7 +504,7 @@ func (this GOF_go_timer) String() string {
 // go.ticker(timeMS:int, func())
 type GOF_go_ticker int
 
-func (this GOF_go_ticker) Exec(vm *VM) (int, error) {
+func (this GOF_go_ticker) Exec(vm *VM, self interface{}) (int, error) {
 	err1 := vm.API_checkstack(2)
 	if err1 != nil {
 		return 0, err1
@@ -554,7 +558,7 @@ func (this GOF_go_ticker) String() string {
 // go.exec(scriptName:string [, locals:map])
 type GOF_go_exec int
 
-func (this GOF_go_exec) Exec(vm *VM) (int, error) {
+func (this GOF_go_exec) Exec(vm *VM, self interface{}) (int, error) {
 	err1 := vm.API_checkstack(1)
 	if err1 != nil {
 		return 0, err1

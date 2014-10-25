@@ -10,7 +10,7 @@ import (
 // print(...)
 type GOF_print int
 
-func (this GOF_print) Exec(vm *VM) (int, error) {
+func (this GOF_print) Exec(vm *VM, self interface{}) (int, error) {
 	// fmt.Println("PRINT", vm.DumpStack())
 	buf := bytes.NewBuffer(make([]byte, 0, 32))
 	top := vm.API_gettop()
@@ -44,7 +44,7 @@ func (this GOF_print) String() string {
 // error(...)
 type GOF_error int
 
-func (this GOF_error) Exec(vm *VM) (int, error) {
+func (this GOF_error) Exec(vm *VM, self interface{}) (int, error) {
 	buf := bytes.NewBuffer(make([]byte, 0, 32))
 	top := vm.API_gettop()
 	for i := 1; i <= top; i++ {
@@ -84,7 +84,7 @@ func (this GOF_error) String() string {
 // setmetatable(table, metatable)
 type GOF_setmetatable int
 
-func (this GOF_setmetatable) Exec(vm *VM) (int, error) {
+func (this GOF_setmetatable) Exec(vm *VM, self interface{}) (int, error) {
 	err00 := vm.API_checkstack(2)
 	if err00 != nil {
 		return 0, err00
@@ -124,7 +124,7 @@ func (this GOF_setmetatable) String() string {
 // getmetatable(table) metatable
 type GOF_getmetatable int
 
-func (this GOF_getmetatable) Exec(vm *VM) (int, error) {
+func (this GOF_getmetatable) Exec(vm *VM, self interface{}) (int, error) {
 	err00 := vm.API_checkstack(1)
 	if err00 != nil {
 		return 0, err00
@@ -157,7 +157,7 @@ func (this GOF_getmetatable) String() string {
 // rawget(table, key) value
 type GOF_rawget int
 
-func (this GOF_rawget) Exec(vm *VM) (int, error) {
+func (this GOF_rawget) Exec(vm *VM, self interface{}) (int, error) {
 	err00 := vm.API_checkstack(2)
 	if err00 != nil {
 		return 0, err00
@@ -195,7 +195,7 @@ func (this GOF_rawget) String() string {
 // rawset(table, key[, value])
 type GOF_rawset int
 
-func (this GOF_rawset) Exec(vm *VM) (int, error) {
+func (this GOF_rawset) Exec(vm *VM, self interface{}) (int, error) {
 	err00 := vm.API_checkstack(2)
 	if err00 != nil {
 		return 0, err00
@@ -234,7 +234,7 @@ func (this GOF_rawset) String() string {
 // pcall(f, ...) true, ... | false, error
 type GOF_pcall int
 
-func (this GOF_pcall) Exec(vm *VM) (int, error) {
+func (this GOF_pcall) Exec(vm *VM, self interface{}) (int, error) {
 	top := vm.API_gettop()
 	if top == 0 {
 		vm.API_push(true)
@@ -281,7 +281,7 @@ func (this GOF_pcall) String() string {
 // require(scriptName)
 type GOF_require int
 
-func (this GOF_require) Exec(vm *VM) (int, error) {
+func (this GOF_require) Exec(vm *VM, self interface{}) (int, error) {
 	n, err0 := vm.API_pop1X(-1, true)
 	if err0 != nil {
 		return 0, err0

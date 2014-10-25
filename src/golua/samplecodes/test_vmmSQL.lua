@@ -30,10 +30,10 @@ end
 -- res = stmt:Exec("ppp")
 -- print("Prepare & Exec", res)
 
-local tx = db:Begin()
--- go.defer(tx)
-local res = tx:Exec("UPDATE test SET password='newpass7' WHERE username=?", "ppp")
-print(res)
-tx:Rollback()
+-- local tx = db:Begin()
+-- -- go.defer(tx)
+-- local res = tx:Exec("UPDATE test SET password='newpass7' WHERE username=?", "ppp")
+-- print(res)
+-- tx:Rollback()
 
 return vr

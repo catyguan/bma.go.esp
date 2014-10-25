@@ -136,6 +136,19 @@ func (this *VM) API_array(v interface{}) VMArray {
 	return nil
 }
 
+func (this *VM) API_toSlice(v interface{}) []interface{} {
+	if v == nil {
+		return nil
+	}
+	if o, ok := v.([]interface{}); ok {
+		return o
+	}
+	if o, ok := v.(VMArray); ok {
+		return o.ToArray()
+	}
+	return nil
+}
+
 func (this *VM) API_newarray(ds []interface{}) VMArray {
 	r := new(CommonVMArray)
 	r.data = make([]interface{}, 0)

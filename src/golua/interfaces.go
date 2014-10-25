@@ -6,7 +6,7 @@ import (
 )
 
 type GoFunction interface {
-	Exec(vm *VM) (int, error)
+	Exec(vm *VM, self interface{}) (int, error)
 	IsNative() bool
 }
 
@@ -81,7 +81,7 @@ func AssertNil(n string, v interface{}) error {
 }
 
 // gofCommon
-type GoFunc func(vm *VM) (int, error)
+type GoFunc func(vm *VM, self interface{}) (int, error)
 type gofCommon struct {
 	name string
 	f    GoFunc
@@ -94,8 +94,8 @@ func NewGOF(n string, f GoFunc) GoFunction {
 	return r
 }
 
-func (this *gofCommon) Exec(vm *VM) (int, error) {
-	return this.f(vm)
+func (this *gofCommon) Exec(vm *VM, self interface{}) (int, error) {
+	return this.f(vm, self)
 }
 
 func (this *gofCommon) IsNative() bool {

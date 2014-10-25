@@ -11,7 +11,7 @@ func (gooRMutex) Get(vm *VM, o interface{}, key string) (interface{}, error) {
 	if mux, ok := o.(*sync.RWMutex); ok {
 		switch key {
 		case "RLocker":
-			return NewGOF("rmutex:RLocker", func(vm *VM) (int, error) {
+			return NewGOF("rmutex:RLocker", func(vm *VM, self interface{}) (int, error) {
 				nobj := NewGOO(mux.RLocker(), gooLocker(0))
 				vm.API_push(nobj)
 				return 1, nil
@@ -46,19 +46,19 @@ func (gooLocker) Get(vm *VM, o interface{}, key string) (interface{}, error) {
 	if mux, ok := o.(sync.Locker); ok {
 		switch key {
 		case "Lock":
-			return NewGOF("locker:Lock", func(vm *VM) (int, error) {
+			return NewGOF("locker:Lock", func(vm *VM, self interface{}) (int, error) {
 				mux.Lock()
 				return 0, nil
 			}), nil
 		case "Unlock":
-			return NewGOF("locker:Unlock", func(vm *VM) (int, error) {
+			return NewGOF("locker:Unlock", func(vm *VM, self interface{}) (int, error) {
 				mux.Unlock()
 				return 0, nil
 			}), nil
 		case "Sync":
-			return NewGOF("locker:Sync", func(vm *VM) (int, error) {
+			return NewGOF("locker:Sync", func(vm *VM, self interface{}) (int, error) {
 				// o:Sync(f)
-				_, f, err0 := vm.API_pop2X(-1, true)
+				f, err0 := vm.API_pop1X(-1, false)
 				if err0 != nil {
 					return 0, err0
 				}

@@ -21,7 +21,7 @@ func safeCall() {
 	})
 }
 
-func TestJson(t *testing.T) {
+func TestSQL(t *testing.T) {
 	if true {
 		runtime.GOMAXPROCS(5)
 		safeCall()

@@ -8,31 +8,31 @@ func (gooDuration) Get(vm *VM, o interface{}, key string) (interface{}, error) {
 	if obj, ok := o.(time.Duration); ok {
 		switch key {
 		case "Hours":
-			return NewGOF("Duration:Hours", func(vm *VM) (int, error) {
+			return NewGOF("Duration:Hours", func(vm *VM, self interface{}) (int, error) {
 				vm.API_popAll()
 				vm.API_push(obj.Hours())
 				return 1, nil
 			}), nil
 		case "Minutes":
-			return NewGOF("Duration:Minutes", func(vm *VM) (int, error) {
+			return NewGOF("Duration:Minutes", func(vm *VM, self interface{}) (int, error) {
 				vm.API_popAll()
 				vm.API_push(obj.Minutes())
 				return 1, nil
 			}), nil
 		case "Nanoseconds":
-			return NewGOF("Duration:Nanoseconds", func(vm *VM) (int, error) {
+			return NewGOF("Duration:Nanoseconds", func(vm *VM, self interface{}) (int, error) {
 				vm.API_popAll()
 				vm.API_push(obj.Nanoseconds())
 				return 1, nil
 			}), nil
 		case "Seconds":
-			return NewGOF("Duration:Seconds", func(vm *VM) (int, error) {
+			return NewGOF("Duration:Seconds", func(vm *VM, self interface{}) (int, error) {
 				vm.API_popAll()
 				vm.API_push(obj.Seconds())
 				return 1, nil
 			}), nil
 		case "String":
-			return NewGOF("Duration:String", func(vm *VM) (int, error) {
+			return NewGOF("Duration:String", func(vm *VM, self interface{}) (int, error) {
 				vm.API_popAll()
 				vm.API_push(obj.String())
 				return 1, nil

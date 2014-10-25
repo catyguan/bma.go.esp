@@ -2,11 +2,14 @@ package golua
 
 import (
 	"fmt"
+	"sync"
 )
 
 type VMModule struct {
-	name  string
-	funcs map[string]GoFunction
+	name    string
+	funcs   map[string]GoFunction
+	mutex   sync.RWMutex
+	members map[string]interface{}
 }
 
 func NewVMModule(n string) *VMModule {
@@ -33,23 +36,49 @@ func (this *VMModule) String() string {
 }
 
 func (this *VMModule) Get(vm *VM, key string) (interface{}, error) {
-	return this.funcs[key], nil
+	return this.Rawget(key), nil
 }
 func (this *VMModule) Rawget(key string) interface{} {
-	return this.funcs[key]
+	if f, ok := this.funcs[key]; ok {
+		return f
+	}
+	this.mutex.RLock()
+	defer this.mutex.RUnlock()
+	if this.members != nil {
+		if v, ok := this.members[key]; ok {
+			return v
+		}
+	}
+	return nil
 }
 func (this *VMModule) Set(vm *VM, key string, val interface{}) error {
+	this.Rawset(key, val)
 	return nil
 }
 func (this *VMModule) Rawset(key string, val interface{}) {
-
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+	if this.members == nil {
+		this.members = make(map[string]interface{})
+	}
+	this.members[key] = val
 }
 func (this *VMModule) Delete(key string) {
-
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+	if this.members != nil {
+		delete(this.members, key)
+	}
 }
 func (this *VMModule) Len() int {
-	return len(this.funcs)
+	return len(this.funcs) + len(this.members)
 }
 func (this *VMModule) ToMap() map[string]interface{} {
-	return make(map[string]interface{})
+	r := make(map[string]interface{})
+	this.mutex.RLock()
+	defer this.mutex.RUnlock()
+	for k, v := range this.members {
+		r[k] = v
+	}
+	return r
 }

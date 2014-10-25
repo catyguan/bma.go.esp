@@ -2,11 +2,11 @@
 -- local v2 = 1+2*3+v1
 -- print("helloWorld = ", v1, v2)
 -- v3 = o["e"]
-local vr, v2
-vr = [1,2,3,4,5]
-print(vr[2])
-vr[3] = nil
-vr[5] = "add"
+-- local vr, v2
+-- vr = [1,2,3,4,5]
+-- print(vr[2])
+-- vr[3] = nil
+-- vr[5] = "add"
 -- v2 = {a=1,b=2.0,c=true,d="hello",["e"]=3}
 -- vr = v2["e"]
 
@@ -33,11 +33,11 @@ vr[5] = "add"
 -- print(v1, a, b, c)
 
 -- print("hello world", v1, 1)
--- local obj = {
--- 	p = print
--- }
--- obj:p("hello world")
--- obj.parent:print(1 + 2, true, a.b)
+local obj = {
+	p = print
+}
+obj.p("hello world")
+-- obj.parent.print(1 + 2, true, a.b)
 -- a.b = 1 + 2 - 3
 
 -- functions
@@ -47,10 +47,12 @@ vr[5] = "add"
 -- 	return a + b + c
 -- end
 -- vr = f1(1, 2)
--- local o = {}
--- function o:f2(a,b)
--- 	b = 2
--- end
+local o = {}
+function o.f2(a,b)
+	print(self, a, b)
+end
+print(o)
+o.f2(1, 2)
 -- local function f3(a,b,...)
 -- 	print(a,b,...)
 -- end

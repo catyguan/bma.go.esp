@@ -110,9 +110,3 @@ func (this *memberVar) Set(vm *VM, v interface{}) (bool, error) {
 func (this *memberVar) String() string {
 	return fmt.Sprintf("memberVar(%T, %v)", this.obj, this.key)
 }
-
-// selfm
-type selfm struct {
-	self   interface{}
-	mvalue interface{}
-}

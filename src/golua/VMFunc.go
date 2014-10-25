@@ -20,7 +20,7 @@ func (this *VMFunc) IsNative() bool {
 	return false
 }
 
-func (this *VMFunc) Exec(vm *VM) (int, error) {
+func (this *VMFunc) Exec(vm *VM, self interface{}) (int, error) {
 	top := vm.API_gettop()
 	vs, _ := vm.API_popN(top, true)
 	ns := this.node.Params
@@ -49,6 +49,9 @@ func (this *VMFunc) Exec(vm *VM) (int, error) {
 			a = append(a, vs[i])
 		}
 		vm.API_createLocal(KEYWORD_MORE, a)
+	}
+	if self != nil {
+		vm.API_createLocal("self", self)
 	}
 	r1, _, err1 := vm.runCode(this.node.Block)
 	return r1, err1

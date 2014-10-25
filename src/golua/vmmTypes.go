@@ -20,7 +20,7 @@ func TypesModule() *VMModule {
 // types.name(v[, extInfo:bool])
 type GOF_types_name int
 
-func (this GOF_types_name) Exec(vm *VM) (int, error) {
+func (this GOF_types_name) Exec(vm *VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(1)
 	if err0 != nil {
 		return 0, err0
@@ -119,7 +119,7 @@ func types_pop_v(vm *VM) (interface{}, interface{}, error) {
 // types.int32(v, defv)
 type GOF_types_int32 int
 
-func (this GOF_types_int32) Exec(vm *VM) (int, error) {
+func (this GOF_types_int32) Exec(vm *VM, self interface{}) (int, error) {
 	v, dv, err1 := types_pop_v(vm)
 	if err1 != nil {
 		return 0, err1
@@ -141,7 +141,7 @@ func (this GOF_types_int32) String() string {
 // types.int64(v, defv)
 type GOF_types_int64 int
 
-func (this GOF_types_int64) Exec(vm *VM) (int, error) {
+func (this GOF_types_int64) Exec(vm *VM, self interface{}) (int, error) {
 	v, dv, err1 := types_pop_v(vm)
 	if err1 != nil {
 		return 0, err1
@@ -163,7 +163,7 @@ func (this GOF_types_int64) String() string {
 // types.float(v, defv)
 type GOF_types_float int
 
-func (this GOF_types_float) Exec(vm *VM) (int, error) {
+func (this GOF_types_float) Exec(vm *VM, self interface{}) (int, error) {
 	v, dv, err1 := types_pop_v(vm)
 	if err1 != nil {
 		return 0, err1
@@ -185,7 +185,7 @@ func (this GOF_types_float) String() string {
 // types.string(v, defv)
 type GOF_types_string int
 
-func (this GOF_types_string) Exec(vm *VM) (int, error) {
+func (this GOF_types_string) Exec(vm *VM, self interface{}) (int, error) {
 	v, dv, err1 := types_pop_v(vm)
 	if err1 != nil {
 		return 0, err1
@@ -207,7 +207,7 @@ func (this GOF_types_string) String() string {
 // types.bool(v, defv)
 type GOF_types_bool int
 
-func (this GOF_types_bool) Exec(vm *VM) (int, error) {
+func (this GOF_types_bool) Exec(vm *VM, self interface{}) (int, error) {
 	v, dv, err1 := types_pop_v(vm)
 	if err1 != nil {
 		return 0, err1

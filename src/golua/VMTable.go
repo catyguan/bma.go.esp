@@ -159,6 +159,19 @@ func (this *CommonVMTable) ToMap() map[string]interface{} {
 	}
 }
 
+func (this *VM) API_toMap(v interface{}) map[string]interface{} {
+	if v == nil {
+		return nil
+	}
+	if o, ok := v.(map[string]interface{}); ok {
+		return o
+	}
+	if o, ok := v.(VMTable); ok {
+		return o.ToMap()
+	}
+	return nil
+}
+
 func (this *VM) API_table(v interface{}) VMTable {
 	if v == nil {
 		return nil

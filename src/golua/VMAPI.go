@@ -51,6 +51,15 @@ func (this *VM) API_canCall(v interface{}) bool {
 	if _, ok := v.(GoFunction); ok {
 		return true
 	}
+	if mv, ok := v.(*memberVar); ok {
+		f, err := mv.Get(this)
+		if err != nil {
+			return false
+		}
+		if _, ok := f.(GoFunction); ok {
+			return true
+		}
+	}
 	return false
 }
 
@@ -476,7 +485,7 @@ func (this *VM) API_setContext(ctx context.Context) {
 func (this *VM) API_cleanDefer(f interface{}) error {
 	if canClose(f) {
 		o := f
-		f = NewGOF("deferClose", func(vm *VM) (int, error) {
+		f = NewGOF("deferClose", func(vm *VM, self interface{}) (int, error) {
 			doClose(o)
 			return 0, nil
 		})

@@ -11,19 +11,19 @@ func (gooStmt) Get(vm *golua.VM, o interface{}, key string) (interface{}, error)
 	if obj, ok := o.(*sql.Stmt); ok {
 		switch key {
 		case "Close":
-			return golua.NewGOF("Stmt:Close", func(vm *golua.VM) (int, error) {
+			return golua.NewGOF("Stmt.Close", func(vm *golua.VM, self interface{}) (int, error) {
 				vm.API_popAll()
 				obj.Close()
 				return 0, nil
 			}), nil
 		case "Exec":
-			return golua.NewGOF("Stmt:Exec", func(vm *golua.VM) (int, error) {
+			return golua.NewGOF("Stmt.Exec", func(vm *golua.VM, self interface{}) (int, error) {
 				top := vm.API_gettop()
 				ns, err1 := vm.API_popN(top, true)
 				if err1 != nil {
 					return 0, err1
 				}
-				rs, err2 := obj.Exec(ns[1:]...)
+				rs, err2 := obj.Exec(ns[0:]...)
 				if err2 != nil {
 					return 0, err2
 				}
@@ -35,13 +35,13 @@ func (gooStmt) Get(vm *golua.VM, o interface{}, key string) (interface{}, error)
 				return 1, nil
 			}), nil
 		case "ExecLastId":
-			return golua.NewGOF("Stmt:ExecLastId", func(vm *golua.VM) (int, error) {
+			return golua.NewGOF("Stmt.ExecLastId", func(vm *golua.VM, self interface{}) (int, error) {
 				top := vm.API_gettop()
 				ns, err1 := vm.API_popN(top, true)
 				if err1 != nil {
 					return 0, err1
 				}
-				rs, err2 := obj.Exec(ns[1:]...)
+				rs, err2 := obj.Exec(ns[0:]...)
 				if err2 != nil {
 					return 0, err2
 				}
@@ -62,13 +62,13 @@ func (gooStmt) Get(vm *golua.VM, o interface{}, key string) (interface{}, error)
 				return 2, nil
 			}), nil
 		case "Query":
-			return golua.NewGOF("Stmt:Query", func(vm *golua.VM) (int, error) {
+			return golua.NewGOF("Stmt.Query", func(vm *golua.VM, self interface{}) (int, error) {
 				top := vm.API_gettop()
 				ns, err1 := vm.API_popN(top, true)
 				if err1 != nil {
 					return 0, err1
 				}
-				rs, err2 := obj.Query(ns[1:]...)
+				rs, err2 := obj.Query(ns[0:]...)
 				if err2 != nil {
 					return 0, err2
 				}

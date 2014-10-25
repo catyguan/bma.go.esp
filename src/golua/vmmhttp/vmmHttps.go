@@ -83,7 +83,7 @@ func doQuery(vm *golua.VM, n string) (interface{}, error) {
 // httpserv.query(n:string[, defval])
 type GOF_httpserv_query int
 
-func (this GOF_httpserv_query) Exec(vm *golua.VM) (int, error) {
+func (this GOF_httpserv_query) Exec(vm *golua.VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(1)
 	if err0 != nil {
 		return 0, err0
@@ -115,7 +115,7 @@ func (this GOF_httpserv_query) String() string {
 // httpserv.formValue(n:string[, defval])
 type GOF_httpserv_formValue int
 
-func (this GOF_httpserv_formValue) Exec(vm *golua.VM) (int, error) {
+func (this GOF_httpserv_formValue) Exec(vm *golua.VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(1)
 	if err0 != nil {
 		return 0, err0
@@ -165,7 +165,7 @@ func newQueryv(n string) *GOF_httpserv_queryv {
 	return &GOF_httpserv_queryv{n}
 }
 
-func (this *GOF_httpserv_queryv) Exec(vm *golua.VM) (int, error) {
+func (this *GOF_httpserv_queryv) Exec(vm *golua.VM, self interface{}) (int, error) {
 	vm.API_popAll()
 	rv, err := doQuery(vm, this.n)
 	if err != nil {
@@ -198,7 +198,7 @@ func respWriter(vm *golua.VM) (http.ResponseWriter, error) {
 // httpserv.writeHeader(status:int)
 type GOF_httpserv_writeHeader int
 
-func (this GOF_httpserv_writeHeader) Exec(vm *golua.VM) (int, error) {
+func (this GOF_httpserv_writeHeader) Exec(vm *golua.VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(1)
 	if err0 != nil {
 		return 0, err0
@@ -239,7 +239,7 @@ func (this GOF_httpserv_writeHeader) String() string {
 // httpserv.setHeader(hs:map)
 type GOF_httpserv_setHeader int
 
-func (this GOF_httpserv_setHeader) Exec(vm *golua.VM) (int, error) {
+func (this GOF_httpserv_setHeader) Exec(vm *golua.VM, self interface{}) (int, error) {
 	w, errW := respWriter(vm)
 	if errW != nil {
 		vm.API_popAll()
@@ -290,7 +290,7 @@ func (this GOF_httpserv_setHeader) String() string {
 // httpserv.write(status:int)
 type GOF_httpserv_write int
 
-func (this GOF_httpserv_write) Exec(vm *golua.VM) (int, error) {
+func (this GOF_httpserv_write) Exec(vm *golua.VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(1)
 	if err0 != nil {
 		return 0, err0

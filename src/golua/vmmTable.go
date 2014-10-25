@@ -19,7 +19,7 @@ func TableModule() *VMModule {
 // table.concat(array[, sep,  start, end])
 type GOF_table_concat int
 
-func (this GOF_table_concat) Exec(vm *VM) (int, error) {
+func (this GOF_table_concat) Exec(vm *VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(1)
 	if err0 != nil {
 		return 0, err0
@@ -63,7 +63,7 @@ func (this GOF_table_concat) String() string {
 // table.insert(table[, pos], value)
 type GOF_table_insert int
 
-func (this GOF_table_insert) Exec(vm *VM) (int, error) {
+func (this GOF_table_insert) Exec(vm *VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(2)
 	if err0 != nil {
 		return 0, err0
@@ -106,7 +106,7 @@ func (this GOF_table_insert) String() string {
 // table.remove(table, pos) value
 type GOF_table_remove int
 
-func (this GOF_table_remove) Exec(vm *VM) (int, error) {
+func (this GOF_table_remove) Exec(vm *VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(2)
 	if err0 != nil {
 		return 0, err0
@@ -154,7 +154,7 @@ func (this GOF_table_remove) String() string {
 // table.sub(table , int $start [, int $length ] ) table
 type GOF_table_subtable int
 
-func (this GOF_table_subtable) Exec(vm *VM) (int, error) {
+func (this GOF_table_subtable) Exec(vm *VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(2)
 	if err0 != nil {
 		return 0, err0
@@ -199,7 +199,7 @@ func (this GOF_table_subtable) String() string {
 // table.newArray(...) table
 type GOF_table_newArray int
 
-func (this GOF_table_newArray) Exec(vm *VM) (int, error) {
+func (this GOF_table_newArray) Exec(vm *VM, self interface{}) (int, error) {
 	top := vm.API_gettop()
 	ns, err1 := vm.API_popN(top, true)
 	if err1 != nil {

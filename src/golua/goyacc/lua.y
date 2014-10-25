@@ -114,10 +114,6 @@ SetList:
 
 FuncName:
 	DottedName
-	| DottedName ':' NAME{ 
-		opValueExt(&$3, $3.token.image)
-		op2(yylex, &$$, OP_SELFM, &$1, &$3)
-	}
 
 DottedName:
 	NAME { opVar(&$$, &$1) }
@@ -173,12 +169,6 @@ PrefixExp:
 
 FuncCall:
 	PrefixExp Args { op2(yylex, &$$, OP_CALL, &$1, &$2) }
-	| PrefixExp ':' NAME Args {
-		opValueExt(&$3, $3.token.image)
-		var tmp yySymType
-		op2(yylex, &tmp, OP_SELFM, &$1, &$3)
-		op2(yylex, &$$, OP_CALL, &tmp, &$4)
-	}
 
 Args:
 	'(' ')'

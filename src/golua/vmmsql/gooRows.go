@@ -1,12 +1,10 @@
 package vmmsql
 
 import (
-	"bmautil/sqlutil"
 	"bmautil/valutil"
 	"database/sql"
 	"fmt"
 	"golua"
-	"time"
 )
 
 type gooRows int
@@ -15,12 +13,12 @@ func (gooRows) Get(vm *golua.VM, o interface{}, key string) (interface{}, error)
 	if obj, ok := o.(*sql.Rows); ok {
 		switch key {
 		case "Fetch":
-			return golua.NewGOF("Rows:Fetch", func(vm *golua.VM) (int, error) {
-				errX := vm.API_checkstack(2)
+			return golua.NewGOF("Rows.Fetch", func(vm *golua.VM, self interface{}) (int, error) {
+				errX := vm.API_checkstack(1)
 				if errX != nil {
 					return 0, errX
 				}
-				_, va, desc, err1 := vm.API_pop3X(-1, false)
+				va, desc, err1 := vm.API_pop2X(-1, false)
 				if err1 != nil {
 					return 0, err1
 				}
@@ -37,37 +35,27 @@ func (gooRows) Get(vm *golua.VM, o interface{}, key string) (interface{}, error)
 				}
 				mdesc := make(map[string]string)
 				if desc != nil {
-					switch rdesc := desc.(type) {
-					case map[string]interface{}:
-						for k, v := range rdesc {
-							mdesc[k] = valutil.ToString(v, "")
-						}
-					case golua.VMTable:
-						m := rdesc.ToMap()
+					m := vm.API_toMap(desc)
+					if m != nil {
 						for k, v := range m {
 							mdesc[k] = valutil.ToString(v, "")
 						}
 					}
 				}
-				// fmt.Println("desc", desc)
-				r, err2 := sqlutil.FetchRow(obj, mdesc)
-				if err2 != nil {
-					return 0, err2
-				}
-				for k, v := range r {
-					if v != nil {
-						if tm, ok := v.(time.Time); ok {
-							v = golua.CreateGoTime(&tm)
-							r[k] = v
-						}
+				if obj.Next() {
+					r, err2 := FetchRow(obj, mdesc)
+					if err2 != nil {
+						return 0, err2
 					}
+					vva.Set(vm, r)
+					vm.API_push(true)
+				} else {
+					vm.API_push(false)
 				}
-				vva.Set(vm, r)
-				vm.API_push(r != nil)
 				return 1, nil
 			}), nil
 		case "Close":
-			return golua.NewGOF("Rows:Close", func(vm *golua.VM) (int, error) {
+			return golua.NewGOF("Rows.Close", func(vm *golua.VM, self interface{}) (int, error) {
 				vm.API_popAll()
 				obj.Close()
 				return 0, nil

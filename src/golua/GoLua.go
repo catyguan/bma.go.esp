@@ -165,10 +165,10 @@ func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
 func (this *GoLua) ParseScriptName(vm *VM, n string) string {
 	change := false
 	m, f := fileloader.SplitModuleScript(n)
-	if m == "_" && vm != nil {
+	if strings.HasPrefix(m, "_") && vm != nil {
 		cn := vm.stack.chunkName
 		m2, _ := fileloader.SplitModuleScript(cn)
-		m = m2
+		m = m2 + strings.TrimPrefix(m, "_")
 		change = true
 	}
 	if strings.HasPrefix(f, "/") {

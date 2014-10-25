@@ -12,7 +12,7 @@ func (gooTimer) Get(vm *VM, o interface{}, key string) (interface{}, error) {
 	if obj, ok := o.(*time.Timer); ok {
 		switch key {
 		case "Reset":
-			return NewGOF("timer:Reset", func(vm *VM) (int, error) {
+			return NewGOF("timer.Reset", func(vm *VM, self interface{}) (int, error) {
 				err1 := vm.API_checkstack(1)
 				if err1 != nil {
 					return 0, err1
@@ -30,7 +30,7 @@ func (gooTimer) Get(vm *VM, o interface{}, key string) (interface{}, error) {
 				return 1, nil
 			}), nil
 		case "Stop":
-			return NewGOF("timer:Stop", func(vm *VM) (int, error) {
+			return NewGOF("timer.Stop", func(vm *VM, self interface{}) (int, error) {
 				obj.Stop()
 				return 0, nil
 			}), nil
@@ -64,7 +64,7 @@ func (gooTicker) Get(vm *VM, o interface{}, key string) (interface{}, error) {
 	if obj, ok := o.(*time.Ticker); ok {
 		switch key {
 		case "Stop":
-			return NewGOF("timer:Stop", func(vm *VM) (int, error) {
+			return NewGOF("timer:Stop", func(vm *VM, self interface{}) (int, error) {
 				obj.Stop()
 				return 0, nil
 			}), nil

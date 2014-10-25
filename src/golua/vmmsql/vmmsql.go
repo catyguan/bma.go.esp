@@ -15,10 +15,14 @@ func Module() *golua.VMModule {
 	return m
 }
 
+func NewDBObject(db *sql.DB) golua.VMTable {
+	return golua.NewGOO(db, gooDB(0))
+}
+
 // sql.open(driver, dataSource) DB:object
 type GOF_sql_open int
 
-func (this GOF_sql_open) Exec(vm *golua.VM) (int, error) {
+func (this GOF_sql_open) Exec(vm *golua.VM, self interface{}) (int, error) {
 	err0 := vm.API_checkstack(2)
 	if err0 != nil {
 		return 0, err0
@@ -39,7 +43,7 @@ func (this GOF_sql_open) Exec(vm *golua.VM) (int, error) {
 	if err2 != nil {
 		return 0, err2
 	}
-	vm.API_push(golua.NewGOO(db, gooDB(0)))
+	vm.API_push(NewDBObject(db))
 	return 1, nil
 }
 

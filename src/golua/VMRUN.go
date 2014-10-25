@@ -21,8 +21,8 @@ func NewChunk(name string, node goyacc.Node) *ChunkCode {
 	return r
 }
 
-func (this *ChunkCode) Exec(vm *VM) (int, error) {
-	return vm.runChunk(this)
+func (this *ChunkCode) Exec(vm *VM, self interface{}) (int, error) {
+	return vm.runChunk(this, self)
 }
 
 func (this *ChunkCode) IsNative() bool {
@@ -80,14 +80,20 @@ func (this *VM) Call(nargs int, nresults int, locals map[string]interface{}) (ri
 		at := this.API_absindex(-n)
 		at = this.stack.stackBegin + at - 1
 		f := this.sdata[at]
+		var self interface{}
+		if mvar, ok := f.(*memberVar); ok {
+			nf, err1x := mvar.Get(this)
+			if err1x != nil {
+				return 0, err1x
+			}
+			self = mvar.obj
+			f = nf
+
+			// fmt.Println("self = ", self)
+		}
 		f, err1 = this.API_value(f)
 		if err1 != nil {
 			return 0, err1
-		}
-		var self interface{}
-		if sm, ok := f.(*selfm); ok {
-			self = sm.self
-			f = sm.mvalue
 		}
 		if !this.API_canCall(f) {
 			return 0, fmt.Errorf("can't call at '%v'", f)
@@ -95,26 +101,8 @@ func (this *VM) Call(nargs int, nresults int, locals map[string]interface{}) (ri
 		this.sdata[at] = nil
 
 		nst = newVMStack(st)
-		if self != nil {
-			if nst.stackBegin < len(this.sdata) {
-				this.sdata[nst.stackBegin] = self
-			} else {
-				this.sdata = append(this.sdata, self)
-			}
-			nst.stackTop++
-		}
-		pos := at + 1
-		for i := 0; i < nargs; i++ {
-			v := this.sdata[pos+i]
-			this.sdata[pos+i] = nil
-			npos := nst.stackBegin + nst.stackTop
-			if npos < len(this.sdata) {
-				this.sdata[npos] = v
-			} else {
-				this.sdata = append(this.sdata, v)
-			}
-			nst.stackTop++
-		}
+		nst.stackBegin = at + 1
+		nst.stackTop = nargs
 		this.stack.stackTop -= n
 		this.stack = nst
 
@@ -127,7 +115,7 @@ func (this *VM) Call(nargs int, nresults int, locals map[string]interface{}) (ri
 			if sfn, ok := f.(supportFuncName); ok {
 				nst.chunkName, nst.funcName = sfn.FuncName()
 			}
-			rc, err3 := gof.Exec(this)
+			rc, err3 := gof.Exec(this, self)
 			if err3 != nil {
 				return rc, err3
 			}
@@ -192,9 +180,12 @@ func (this *VM) Call(nargs int, nresults int, locals map[string]interface{}) (ri
 	return r, err
 }
 
-func (this *VM) runChunk(cc *ChunkCode) (int, error) {
+func (this *VM) runChunk(cc *ChunkCode, self interface{}) (int, error) {
 	st := this.stack
 	st.chunkName = cc.name
+	if self != nil {
+		st.createLocal(this, "self", self)
+	}
 	r, _, err := this.runCode(cc.node)
 	return r, err
 }
@@ -528,40 +519,6 @@ func (this *VM) runCode(node goyacc.Node) (int, ER, error) {
 			mvar.key = v2
 
 			this.API_push(mvar)
-			return 1, ER_NEXT, nil
-		case goyacc.OP_SELFM:
-			r1, er1, err1 := this.runCode(n.Child1)
-			if er1 != ER_NEXT {
-				return r1, er1, err1
-			}
-			v1, err12 := this.API_pop1X(r1, true)
-			if err12 != nil {
-				return 0, ER_ERROR, err12
-			}
-			if v1 == nil {
-				return 0, ER_ERROR, fmt.Errorf("null pointer")
-			}
-
-			r2, er2, err2 := this.runCode(n.Child2)
-			if er2 != ER_NEXT {
-				return r2, er2, err2
-			}
-			v2, err22 := this.API_pop1X(r2, true)
-			if err22 != nil {
-				return 0, ER_ERROR, err22
-			}
-			mvar := new(memberVar)
-			mvar.obj = v1
-			mvar.key = v2
-			mval, err3 := mvar.Get(this)
-			if err3 != nil {
-				return 0, ER_ERROR, err3
-			}
-
-			o := new(selfm)
-			o.self = v1
-			o.mvalue = mval
-			this.API_push(o)
 			return 1, ER_NEXT, nil
 		}
 	case *goyacc.NodeFor:

@@ -45,7 +45,7 @@ const (
 	OP_TABLE    = OP(33)
 	OP_ARRAY    = OP(34)
 	OP_FUNC     = OP(35)
-	OP_SELFM    = OP(36)
+	OP_NOUSE1   = OP(36) // OP_SELFM
 	OP_CALL     = OP(37)
 	OPF_CLOSURE = OP(38)
 	OP_BREAK    = OP(39)
@@ -71,7 +71,7 @@ var OPNames = []string{
 	"if", "until", "while", "for", "for-in",
 	"not", "#", "-sign",
 	"member", "field", "table", "array", "func",
-	"self-member", "call", "closure",
+	"no-use", "call", "closure",
 	"break", "continue",
 }
 
@@ -197,11 +197,6 @@ func nodeNames(node Node) string {
 			n2 := nodeNames(o.Child2)
 			return n1 + "." + n2
 		}
-		if o.op == OP_SELFM {
-			n1 := nodeNames(o.Child1)
-			n2 := nodeNames(o.Child2)
-			return n1 + ":" + n2
-		}
 	}
 	return ""
 }
@@ -210,28 +205,11 @@ func bindFuncName(yylex yyLexer, fval *yySymType, n *yySymType, ns string) {
 	if fval.value == nil {
 		return
 	}
-	mname := ""
 	if n != nil {
 		ns = valNames(n)
-		if n.value != nil {
-			if node, ok := n.value.(*Node2); ok {
-				if node.op == OP_SELFM {
-					node.op = OP_MEMBER
-					mname = "self"
-				}
-			}
-		}
 	}
 	fnode := fval.value.(*NodeFunc)
 	fnode.Name = ns
-	if mname != "" {
-		tmp := fnode.Params
-		fnode.Params = make([]string, 1+len(tmp))
-		fnode.Params[0] = mname
-		for i, s := range tmp {
-			fnode.Params[i+1] = s
-		}
-	}
 }
 
 func opFunc(yylex yyLexer, lval *yySymType, par *yySymType, block *yySymType) {
