@@ -22,7 +22,8 @@
 				"FL" : {
 					"Type" : "file",
 					"Dirs" : ["${CWD}/golua/test"]
-				}
+				},
+				"Startup" : ["startup.lua"]
 			},
 			"app1" : {
 				"FL" : {

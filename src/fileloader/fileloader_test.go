@@ -28,7 +28,6 @@ func TestFFLoader(t *testing.T) {
 	dirs := make([]interface{}, 0)
 	dirs = append(dirs, "./")
 	cfg["Dirs"] = dirs
-	cfg["SafeDirs"] = dirs
 
 	fl, err := CommonFileLoaderFactory.Create(cfg)
 	if err != nil {

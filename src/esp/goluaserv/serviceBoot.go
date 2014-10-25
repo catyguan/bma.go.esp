@@ -2,6 +2,7 @@ package goluaserv
 
 import (
 	"boot"
+	"context"
 	"fileloader"
 	"fmt"
 	"golua"
@@ -45,8 +46,9 @@ func (this *serviceConfigInfo) Compare(old *serviceConfigInfo) int {
 }
 
 type goluaConfigInfo struct {
-	VM *golua.VMConfig
-	FL map[string]interface{}
+	VM      *golua.VMConfig
+	FL      map[string]interface{}
+	Startup []string
 }
 
 func (this *goluaConfigInfo) Valid() error {
@@ -71,6 +73,22 @@ func (this *goluaConfigInfo) Compare(old *goluaConfigInfo) int {
 	if old == nil {
 		return boot.CCR_NEED_START
 	}
+
+	if len(this.Startup) != len(old.Startup) {
+		return boot.CCR_NEED_START
+	}
+	if true {
+		tmp := make(map[string]bool)
+		for _, k := range this.Startup {
+			tmp[k] = true
+		}
+		for _, k := range old.Startup {
+			if _, ok := tmp[k]; !ok {
+				return boot.CCR_NEED_START
+			}
+		}
+	}
+
 	fac := fileloader.CommonFileLoaderFactory
 	r2 := fac.Compare(this.FL, old.FL)
 	if !r2 {
@@ -87,6 +105,7 @@ func (this *goluaConfigInfo) Compare(old *goluaConfigInfo) int {
 			return boot.CCR_CHANGE
 		}
 	}
+
 	return boot.CCR_NONE
 }
 
@@ -126,11 +145,27 @@ func (this *Service) _create(k string, glcfg *goluaConfigInfo) bool {
 	fac := fileloader.CommonFileLoaderFactory
 	ss, err0 := fac.Create(glcfg.FL)
 	if err0 != nil {
-		logger.Error(tag, "create ScriptSource['%s', %s] fail %s", k, glcfg.FL, err0)
+		logger.Error(tag, "create ScriptSource[%s, %s] fail %s", k, glcfg.FL, err0)
 		return false
 	}
 	gl := golua.NewGoLua(k, ss, this.vmgInit, glcfg.VM)
 	this.gl[k] = gl
+
+	go func() {
+		for _, n := range glcfg.Startup {
+			ri := golua.NewRequestInfo()
+			ri.Script = n
+
+			ctx := context.Background()
+			ctx, _ = context.CreateExecId(ctx)
+			ctx = golua.CreateRequest(ctx, ri)
+			_, err := gl.Execute(ctx)
+			if err != nil {
+				logger.Warn(tag, "[%s] startup '%s' fail - %s", k, n, err)
+			}
+		}
+	}()
+
 	return true
 }
 
