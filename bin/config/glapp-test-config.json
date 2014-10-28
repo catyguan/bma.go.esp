@@ -1,0 +1,21 @@
+{
+	"goluaServ" : {
+		"GoLua" : {
+			"test" : {
+				"FL" : {
+					"Type" : "file",
+					"Dirs" : ["${CWD}/golua/test"]
+				},
+				"Startup" : ["startup.lua"]
+			}
+		}
+	},
+	"goluaMux" : {
+		"App" : [
+			{
+				"Name" : "test",
+				"Location" : "/"
+			}
+		]
+	}
+}

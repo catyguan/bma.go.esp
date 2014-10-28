@@ -1,6 +1,7 @@
 {
 	"VAR" : {
-		"AUTHOR" : "guanzhong"
+		"AUTHOR" : "guanzhong",
+		"VERSOIN" : 123
 		},
 	"global" : {
 		"Debug" : true,
@@ -50,13 +51,18 @@
 		]
 	},
 	"block" : {
-		"Value" : 123,
-		"Dir" : "${CWD}/${AUTHOR}/"
+		"Value" : "${VERSOIN}",
+		"Dir" : "${CWD}/${AUTHOR}/",
+		"Keys" : { 
+			"k1" : "v1"
+		},
+		"Slices" : [1,3,5]
 	},
 	"config2" : {
 		"INCLUDE" : "test-config2.json"
 	},
 	"config3" : {
 		"INCLUDE" : "${CWD}/../../test/test-config2.json"
-	}
+	},
+	"MERGE-3" : "test-config3.json"
 }

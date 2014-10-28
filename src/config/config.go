@@ -26,17 +26,92 @@ type context struct {
 	vars     map[string]string
 }
 
-func include(file string, ctx context) (interface{}, error) {
+const (
+	mergeDebug = false
+)
+
+func doMergeSlice(o map[string]interface{}, data []interface{}, ndata []interface{}, ctx *context) (interface{}, error) {
+	r := data
+	for _, v := range ndata {
+		nv, err := parse(o, v, ctx)
+		if err != nil {
+			return nil, err
+		}
+		r = append(r, nv)
+	}
+	return r, nil
+}
+
+func doMergeMap(o map[string]interface{}, data map[string]interface{}, ndata map[string]interface{}, ctx *context) error {
+	for k, v := range ndata {
+		cur, ok := data[k]
+		if !ok {
+			nv, err := parse(o, v, ctx)
+			if err != nil {
+				return err
+			}
+			data[k] = nv
+			if mergeDebug {
+				fmt.Printf("merge %s -> %v\n", k, nv)
+			}
+			continue
+		}
+		switch rv := v.(type) {
+		case map[string]interface{}:
+			if rcur, ok2 := cur.(map[string]interface{}); ok2 {
+				if mergeDebug {
+					fmt.Printf("try next %s\n", k)
+				}
+				err := doMergeMap(o, rcur, rv, ctx)
+				if err != nil {
+					return err
+				}
+				continue
+			}
+			return fmt.Errorf("can't merge %k to %T", k, cur)
+		case []interface{}:
+			if rcur, ok2 := cur.([]interface{}); ok2 {
+				nslice, err := doMergeSlice(data, rcur, rv, ctx)
+				if err != nil {
+					return err
+				}
+				data[k] = nslice
+				continue
+			}
+			return fmt.Errorf("can't merge %k to %T", k, cur)
+		default:
+			return fmt.Errorf("can't merge %s", k)
+		}
+	}
+	return nil
+}
+
+func merge(data map[string]interface{}, file string, ctx *context) error {
+	fname := file
+	if !filepath.IsAbs(fname) {
+		fname = filepath.Join(filepath.Dir(ctx.filename), file)
+	}
+	fmt.Printf("config '%s' merging\n", fname)
+	nctx := &context{fname, ctx.cvar, ctx.vars}
+
+	ndata, err := loadAndParse(nctx)
+	if err != nil {
+		return err
+	}
+	return doMergeMap(data, data, ndata, ctx)
+}
+
+func include(file string, ctx *context) (interface{}, error) {
 	fname := file
 	if !filepath.IsAbs(fname) {
 		fname = filepath.Join(filepath.Dir(ctx.filename), file)
 	}
 	fmt.Printf("config '%s' including\n", fname)
-	nctx := context{fname, ctx.cvar, ctx.vars}
+	nctx := &context{fname, ctx.cvar, ctx.vars}
 	return loadAndParse(nctx)
 }
 
-func var2string(name string, ctx context) string {
+func var2string(name string, ctx *context) string {
 	if v, ok := ctx.vars[name]; ok {
 		return v
 	}
@@ -53,11 +128,11 @@ func var2string(name string, ctx context) string {
 	return ""
 }
 
-func parse(v interface{}, ctx context) (interface{}, error) {
+func parse(data map[string]interface{}, v interface{}, ctx *context) (interface{}, error) {
 	switch o := v.(type) {
 	case []interface{}:
 		for i, v2 := range o {
-			nv, err := parse(v2, ctx)
+			nv, err := parse(data, v2, ctx)
 			if err != nil {
 				return v, err
 			}
@@ -72,7 +147,16 @@ func parse(v interface{}, ctx context) (interface{}, error) {
 			}
 		}
 		for k, v2 := range o {
-			nv, err := parse(v2, ctx)
+			if strings.HasPrefix(k, "MERGE") {
+				if mfile, ok := v2.(string); ok {
+					err := merge(data, mfile, ctx)
+					if err != nil {
+						return v, err
+					}
+					continue
+				}
+			}
+			nv, err := parse(data, v2, ctx)
 			if err != nil {
 				return v, err
 			}
@@ -123,7 +207,7 @@ func parse(v interface{}, ctx context) (interface{}, error) {
 	return v, nil
 }
 
-func loadAndParse(ctx context) (map[string]interface{}, error) {
+func loadAndParse(ctx *context) (map[string]interface{}, error) {
 	file, err := ioutil.ReadFile(ctx.filename)
 	if err != nil {
 		fmt.Printf("ERROR: config '%s' load fail => %s\n", ctx.filename, err)
@@ -135,9 +219,10 @@ func loadAndParse(ctx context) (map[string]interface{}, error) {
 		return nil, err
 	}
 	if varo, ok := temp["VAR"]; ok {
+		delete(temp, "VAR")
 		if varm := valutil.ToStringMap(varo); varm != nil {
 			for k, v := range varm {
-				nv, err2 := parse(v, ctx)
+				nv, err2 := parse(temp, v, ctx)
 				if err2 != nil {
 					fmt.Printf("ERROR: %s=%v parse fail => %s\n", k, v, err)
 					return nil, err
@@ -145,9 +230,8 @@ func loadAndParse(ctx context) (map[string]interface{}, error) {
 				ctx.vars[k] = valutil.ToString(nv, "")
 			}
 		}
-		delete(temp, "VAR")
 	}
-	r, err := parse(temp, ctx)
+	r, err := parse(temp, temp, ctx)
 	return r.(map[string]interface{}), err
 }
 
@@ -170,7 +254,7 @@ func InitAndParseConfig(fileName string, cvar ConfigVar) (ConfigObject, error) {
 	}
 	fileName, _ = filepath.Abs(fileName)
 	fmt.Printf("config '%s' loading\n", fileName)
-	ctx := context{fileName, cvar, make(map[string]string)}
+	ctx := &context{fileName, cvar, make(map[string]string)}
 	temp, err := loadAndParse(ctx)
 	if err != nil {
 		return nil, err

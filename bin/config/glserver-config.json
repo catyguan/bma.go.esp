@@ -18,13 +18,6 @@
 	},
 	"goluaServ" : {
 		"GoLua" : {
-			"test" : {
-				"FL" : {
-					"Type" : "file",
-					"Dirs" : ["${CWD}/golua/test"]
-				},
-				"Startup" : ["startup.lua"]
-			},
 			"app1" : {
 				"FL" : {
 					"Type" : "http",
@@ -36,13 +29,10 @@
 	"goluaMux" : {
 		"App" : [
 			{
-				"Name" : "test",
-				"Location" : "/"
-			},
-			{
 				"Name" : "app1",
 				"Location" : "/app1"
 			}
 		]
-	}
+	},
+	"MERGE-testApp" : "glapp-test-config.json"
 }
