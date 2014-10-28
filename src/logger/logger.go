@@ -405,6 +405,10 @@ func Log(tag string, lvl level, message string) {
 
 // Logf logs a formatted log message at the given log level, using the caller as
 // its source.
+func DoLog(tag string, lvl int, format string, args ...interface{}) {
+	intLogf(tag, level(lvl), format, args...)
+}
+
 func Logf(tag string, lvl level, format string, args ...interface{}) {
 	intLogf(tag, lvl, format, args...)
 }

@@ -47,8 +47,9 @@ func (this *configApp) Compare(old *configInfo) int {
 }
 
 type configInfo struct {
-	App  []*configApp
-	Skip []string
+	App                []*configApp
+	Skip               []string
+	ParseFormMaxMemory int64
 }
 
 func (this *configInfo) Valid() error {
@@ -57,6 +58,9 @@ func (this *configInfo) Valid() error {
 		if err != nil {
 			return err
 		}
+	}
+	if this.ParseFormMaxMemory <= 0 {
+		this.ParseFormMaxMemory = 1024 * 1024 * 10
 	}
 	return nil
 }

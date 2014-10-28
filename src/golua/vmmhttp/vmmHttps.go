@@ -1,10 +1,13 @@
 package vmmhttp
 
 import (
+	"bmautil/httputil"
 	"bmautil/valutil"
+	"bytes"
 	"esp/acclog"
 	"fmt"
 	"golua"
+	"io"
 	"net"
 	"net/http"
 )
@@ -25,6 +28,7 @@ func HttpServModule() *golua.VMModule {
 	m.Init("writeHeader", GOF_httpserv_writeHeader(0))
 	m.Init("setHeader", GOF_httpserv_setHeader(0))
 	m.Init("write", GOF_httpserv_write(0))
+	m.Init("formFile", GOF_httpserv_formFile(0))
 	return m
 }
 
@@ -49,10 +53,10 @@ func doQuery(vm *golua.VM, n string) (interface{}, error) {
 		return ip, nil
 	case "form":
 		o := golua.NewVMTable(nil)
-		err := req.ParseForm()
-		if err != nil {
-			return nil, err
-		}
+		// err := req.ParseForm()
+		// if err != nil {
+		// 	return nil, err
+		// }
 		for k, _ := range req.Form {
 			v := req.FormValue(k)
 			o.Rawset(k, v)
@@ -60,13 +64,20 @@ func doQuery(vm *golua.VM, n string) (interface{}, error) {
 		return o, nil
 	case "post":
 		o := golua.NewVMTable(nil)
-		err := req.ParseForm()
-		if err != nil {
-			return nil, err
-		}
-		for k, _ := range req.PostForm {
-			v := req.PostFormValue(k)
-			o.Rawset(k, v)
+		if httputil.IsMultipartForm(req) {
+			fmt.Println(req.MultipartForm)
+			for k, vs := range req.MultipartForm.Value {
+				v := ""
+				if len(vs) > 0 {
+					v = vs[0]
+				}
+				o.Rawset(k, v)
+			}
+		} else {
+			for k, _ := range req.PostForm {
+				v := req.PostFormValue(k)
+				o.Rawset(k, v)
+			}
 		}
 		return o, nil
 	case "header":
@@ -135,10 +146,10 @@ func (this GOF_httpserv_formValue) Exec(vm *golua.VM, self interface{}) (int, er
 		return 0, fmt.Errorf("formValue(%v) fail - request nil", n)
 	}
 
-	err2 := req.ParseForm()
-	if err2 != nil {
-		return 0, err2
-	}
+	// err2 := req.ParseForm()
+	// if err2 != nil {
+	// 	return 0, err2
+	// }
 
 	rv := req.FormValue(vn)
 	if rv == "" {
@@ -321,4 +332,60 @@ func (this GOF_httpserv_write) IsNative() bool {
 
 func (this GOF_httpserv_write) String() string {
 	return "GoFunc<httpserv.write>"
+}
+
+// httpserv.formFile(n:string) : bytes:Object
+type GOF_httpserv_formFile int
+
+func (this GOF_httpserv_formFile) Exec(vm *golua.VM, self interface{}) (int, error) {
+	err0 := vm.API_checkstack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	n, err1 := vm.API_pop1X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	vn := valutil.ToString(n, "")
+
+	ctx := vm.API_getContext()
+	if ctx == nil {
+		return 0, fmt.Errorf("formValue(%v) fail - context nil", n)
+	}
+	req, _ := RequestFromContext(ctx)
+	if req == nil {
+		return 0, fmt.Errorf("formValue(%v) fail - request nil", n)
+	}
+
+	if !httputil.IsMultipartForm(req) {
+		return 0, nil
+	}
+	file, fh, err2 := req.FormFile(vn)
+	if err2 == http.ErrMissingFile {
+		return 0, nil
+	}
+	if err2 != nil {
+		return 0, err2
+	}
+	fn := fh.Filename
+	buf := bytes.NewBuffer(make([]byte, 0, 1024))
+	sz, err3 := io.Copy(buf, file)
+	if err3 != nil {
+		return 0, err3
+	}
+	bo := golua.CreateGoBytes(buf.Bytes())
+
+	vm.API_push(bo)
+	vm.API_push(fn)
+	vm.API_push(sz)
+
+	return 3, nil
+}
+
+func (this GOF_httpserv_formFile) IsNative() bool {
+	return true
+}
+
+func (this GOF_httpserv_formFile) String() string {
+	return "GoFunc<httpserv.formFile>"
 }

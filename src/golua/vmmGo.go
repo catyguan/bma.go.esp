@@ -24,6 +24,9 @@ func GoModule() *VMModule {
 	m.Init("timer", GOF_go_timer(0))
 	m.Init("ticker", GOF_go_ticker(0))
 	m.Init("exec", GOF_go_exec(0))
+	m.Init("debug", GOF_go_log(logger.LEVEL_DEBUG))
+	m.Init("info", GOF_go_log(logger.LEVEL_INFO))
+	m.Init("warn", GOF_go_log(logger.LEVEL_WARN))
 	return m
 }
 
@@ -605,4 +608,40 @@ func (this GOF_go_exec) IsNative() bool {
 
 func (this GOF_go_exec) String() string {
 	return "GoFunc<go.exec>"
+}
+
+// go.debug|info|warn(tag, str, ....)
+type GOF_go_log int
+
+func (this GOF_go_log) Exec(vm *VM, self interface{}) (int, error) {
+	err1 := vm.API_checkstack(2)
+	if err1 != nil {
+		return 0, err1
+	}
+	top := vm.API_gettop()
+	vs, err2 := vm.API_popN(top, true)
+	if err2 != nil {
+		return 0, err2
+	}
+	t := vs[0]
+	sf := vs[1]
+	vt := valutil.ToString(t, "")
+	if vt == "" {
+		vt = "log"
+	}
+	vt = "golua-" + vt
+	vsf := valutil.ToString(sf, "")
+	if vsf == "" {
+		vsf = "<empty log format>"
+	}
+	logger.DoLog(vt, int(this), vsf, vs[2:]...)
+	return 0, nil
+}
+
+func (this GOF_go_log) IsNative() bool {
+	return true
+}
+
+func (this GOF_go_log) String() string {
+	return "GoFunc<go.log>"
 }

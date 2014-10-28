@@ -2,7 +2,6 @@ package golua
 
 import (
 	"bmautil/valutil"
-	"fmt"
 	"time"
 )
 
@@ -16,25 +15,8 @@ func TimeModule() *VMModule {
 	return m
 }
 
-func CreateGoTime(tm *time.Time) VMTable {
-	return NewGOO(tm, gooTime(0))
-}
-
-func ToDuration(v interface{}) (time.Duration, error) {
-	switch v.(type) {
-	case string:
-		rv := v.(string)
-		return time.ParseDuration(rv)
-	case int, uint, int8, uint8, int16, uint16, int32, int64, float32, float64:
-		rv := valutil.ToInt64(v, 0)
-		return time.Duration(rv) * time.Millisecond, nil
-	case *objectVMTable:
-		o := v.(*objectVMTable).o
-		if du, ok := o.(time.Duration); ok {
-			return du, nil
-		}
-	}
-	return 0, fmt.Errorf("duration invalid(%v)", v)
+func CreateDuration(du time.Duration) VMTable {
+	return NewGOO(du, gooDuration(0))
 }
 
 // time.parseDuration(s string) string

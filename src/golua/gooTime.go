@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+func CreateGoTime(tm *time.Time) VMTable {
+	return NewGOO(tm, gooTime(0))
+}
+
 type gooTime int
 
 func (this gooTime) Get(vm *VM, o interface{}, key string) (interface{}, error) {
@@ -237,7 +241,7 @@ func (this gooTime) Get(vm *VM, o interface{}, key string) (interface{}, error) 
 				if vo != nil {
 					if vstm, ok := vo.(*time.Time); ok {
 						du := obj.Sub(*vstm)
-						vm.API_push(NewGOO(du, gooDuration(0)))
+						vm.API_push(CreateDuration(du))
 						return 1, nil
 					}
 				}

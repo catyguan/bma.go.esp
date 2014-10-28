@@ -3,6 +3,7 @@ package httputil
 import (
 	"net"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -25,5 +26,18 @@ func NewHttpClient(timeout time.Duration) *http.Client {
 		Transport: &http.Transport{
 			Dial: TimeoutDialer(timeout),
 		},
+	}
+}
+
+func IsMultipartForm(r *http.Request) bool {
+	ct := r.Header.Get("Content-Type")
+	return strings.HasPrefix(ct, "multipart/form-data")
+}
+
+func Prepare(r *http.Request, maxMemory int64) error {
+	if IsMultipartForm(r) {
+		return r.ParseMultipartForm(maxMemory)
+	} else {
+		return r.ParseForm()
 	}
 }

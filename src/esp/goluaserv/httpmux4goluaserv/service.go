@@ -1,6 +1,7 @@
 package httpmux4goluaserv
 
 import (
+	"bmautil/httputil"
 	"bmautil/valutil"
 	"boot"
 	"context"
@@ -139,7 +140,7 @@ func (this *Service) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 func (this *Service) doInvoke(w http.ResponseWriter, req *http.Request, app *configApp, path string, adt map[string]interface{}) {
 
-	errP := req.ParseForm()
+	errP := httputil.Prepare(req, this.config.ParseFormMaxMemory)
 	if errP != nil {
 		this.Error(w, errP.Error(), http.StatusBadRequest, adt)
 		return
