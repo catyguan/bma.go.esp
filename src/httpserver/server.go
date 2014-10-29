@@ -14,28 +14,20 @@ const (
 	tag = "httpServer"
 )
 
-type HttpMuxBuilder func(mux *http.ServeMux)
-
 type HttpServer struct {
-	name        string
-	config      *HttpServerConfigInfo
-	timeout     time.Duration
-	listener    net.Listener
-	Handler     http.Handler
-	ownMux      bool
-	muxBuilders []HttpMuxBuilder
-	WhiteList   []string
-	BlackList   []string
+	name      string
+	config    *HttpServerConfigInfo
+	timeout   time.Duration
+	listener  net.Listener
+	Handler   http.Handler
+	WhiteList []string
+	BlackList []string
 }
 
 func NewHttpServer(name string, h http.Handler) *HttpServer {
 	this := new(HttpServer)
 	this.name = name
 	this.Handler = h
-	if h == nil {
-		this.ownMux = true
-		this.muxBuilders = make([]HttpMuxBuilder, 0)
-	}
 	return this
 }
 
@@ -52,10 +44,6 @@ func (this *HttpServer) InitConfig(cfg *HttpServerConfigInfo) {
 	if cfg.BlackIp != "" {
 		this.BlackList = strings.Split(cfg.BlackIp, ",")
 	}
-}
-
-func (this *HttpServer) Add(mb HttpMuxBuilder) {
-	this.muxBuilders = append(this.muxBuilders, mb)
 }
 
 func (this *HttpServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {

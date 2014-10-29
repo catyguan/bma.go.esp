@@ -1,0 +1,6 @@
+{
+	"test" : {
+		"/a/b" : { "Type" : "deny", "Users" : "*@*" },
+		"/a/b/c" : { "Type" : "pass", "Users" : ["*@127.0.0.2","*@localhost"] }
+	}
+}

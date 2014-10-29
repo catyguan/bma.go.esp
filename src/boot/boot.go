@@ -194,6 +194,17 @@ func doActions(phase Phase, ctx *BootContext) (r bool) {
 		for i := c - 1; i >= 0; i-- {
 			ainfo := phaseActions[i]
 			ctx.CheckFlag = ainfo.flag
+			if phase == GRACESTOP {
+				cr := ctx.CheckResult()
+				if cr != nil {
+					switch cr.Type {
+					case CCR_CHANGE:
+						fmt.Println("'%s' change", ainfo.name)
+					case CCR_NEED_START:
+						fmt.Println("'%s' restart", ainfo.name)
+					}
+				}
+			}
 			ar := doAction(phase, ainfo.object, ctx)
 			if !ar {
 				r = false

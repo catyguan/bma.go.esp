@@ -102,16 +102,6 @@ func (this *HttpServer) Run(ctx *boot.BootContext) bool {
 		return true
 	}
 
-	if this.ownMux {
-		logger.Debug(tag, "'%s' build http mux", this.name)
-		bl := this.muxBuilders
-		mux := http.NewServeMux()
-		for _, b := range bl {
-			b(mux)
-		}
-		this.Handler = mux
-	}
-
 	addr := this.config.Address
 	s := &http.Server{
 		Addr:         addr,
