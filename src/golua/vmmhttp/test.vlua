@@ -1,0 +1,146 @@
+<?golua
+httpserv.render("_:base/views/header.inc.php")
+httpserv.render("_:base/views/menu.inc.php")
+?>
+<script type="text/javascript">
+    <!--
+    window.UEDITOR_HOME_URL = '<?= APP_URL .. "base/ueditor/" ?>';
+    //-->
+</script>
+<script type="text/javascript" src="<?= APP_URL ?>base/ueditor/editor_config.js"></script>
+<script type="text/javascript" src="<?= APP_URL ?>base/ueditor/editor.js"></script>
+<link rel="stylesheet" href="<?= APP_URL ?>base/ueditor/themes/default/ueditor.css" />
+<div id="wpcontent">
+
+<?golua
+httpserv.render("_:base/views/main_head.view.php")
+?>
+
+    <div id="wpbody">
+
+        <div id="wpbody-content">
+
+            <?golua
+            httpserv.render("_:base/views/main_notice_and_help.view.php")
+            ?>
+
+            <!--     start -->
+            <div class="wrap">
+                <div id="icon-edit" class="icon32 icon32-posts-post"><br /></div><h2 id="add-new-user"> 修改公告</h2>
+
+                <?golua
+                if isset(error) then
+                	echo("<div class=\"form_error\">" .. error .. "</div>")
+                end
+                ?>
+                <?golua
+                if isset(tips) then
+                	echo("<div class=\"form_tips\">"" .. tips .. "</div>")
+                end
+                ?>
+
+                <form action="index.php?m=Notice&do=editNotice&id=<?= form.value("id")?>" method="post" name="editLiveProduct" class="validate" enctype="multipart/form-data">
+                    <table class="form-table">
+                        <input name="id"  type="hidden" value="<?=form.value("id")?>" />
+
+                        
+
+                        <tr class="form-field form-required">
+                            <th scope="row">标题</th>
+                            <td>
+                                <input name="title" type="text" maxlength="100" value="<?=form.value("title")?>" style="width:450px;" /><br/>
+                                <?="<span class='font_red'>" .. form.getError("title") .. "</span>" ?>
+                            </td>
+                        </tr>
+
+                        <tr class="form-field form-required">
+                            <th scope="row">作者</th>
+                            <td>
+                                <input name="author" type="text" maxlength="25" value="<?=form.value("author")?>" style="width:450px;" /><br/>
+                                <?="<span class='font_red'>" .. form.getError("author") .. "</span>" ?>
+                            </td>
+                        </tr>
+                        
+                        
+                        
+                        <tr class="form-field form-required">
+                            <th scope="row">正文</th>
+                            <td>
+                                <script type="text/plain" id="editor" style="float:left" name="content">
+<?=form.value("content") ?>
+                                </script>
+                                <?="<span class='font_red'>" .. form.getError("content") .. "</span>" ?>
+                            </td>
+                        </tr>
+
+
+                    </table>
+
+                    <p class="submit">
+                        <input type="hidden" name="editLiveProduct" id="editLiveProduct" value="修改" />
+                        <a href="#" onclick="return admin_editLiveProduct_util.formsubmit();"><input type="button" name="edit" id="edit" value="修改" class="button-primary" /></a>
+                        &nbsp;&nbsp;&nbsp;&nbsp;<a href="#" onclick="return admin_editLiveProduct_util.preview();"><input type="button" name="returnLiveProduct" id="returnLiveProduct" value="预览"  /></a>  
+                        &nbsp;&nbsp;&nbsp;&nbsp;<a href="index.php?m=Product&do=listProduct"><input type="button" name="returnLiveProduct" id="returnLiveProduct" value="返回"  /></a>
+                    </p>
+                </form>
+            </div>
+
+            <!--    end -->
+
+            <div class="clear"></div></div><!-- wpbody-content -->
+        <div class="clear"></div></div><!-- wpbody -->
+    <div class="clear"></div></div><!-- wpcontent -->
+
+<script type="text/javascript">
+    var editor = new UE.ui.Editor({autoClearinitialContent:false});
+    editor.render('editor');
+    editor.addListener('beforegetcontent',function(){
+        for(var i= 0,ci,lis = this.document.getElementsByTagName('li');ci=lis[i++];){
+            var first = ci.firstChild,tmp;
+            while(first && first.nodeType == 1 && first.tagName == 'P'){
+                while(first.firstChild){
+                    ci.insertBefore(first.firstChild,first)
+                }
+                tmp = first.nextSibling;
+                ci.removeChild(first);
+                first = tmp;
+            }
+        }
+    });
+</script>
+<script type="text/javascript">
+    $(document).ready(function(){
+        admin_editLiveProduct_util = {
+            preview:function() {
+                editor.sync(); 
+                // 定义新窗口，窗口名为："adviceDetailWin"
+                var winNew = window.open("about:blank", "adviceDetailWin");
+                // 焦点定位在新窗口中
+                winNew.focus();
+                // 提交目标定位在新窗口中，窗口名为："adviceDetailWin"
+                document.editLiveProduct.target = "adviceDetailWin";
+                // 设定提交action路径
+                document.editLiveProduct.action =  "<?php echo BLOG_URL; ?>index.php?m=Announcement&do=showPreview&type=product"; 
+                // 提交表单
+                document.editLiveProduct.submit();
+                // 将提交目标置回当前窗口
+                document.editLiveProduct.target = "_self";
+                return false;
+            },
+            formsubmit:function(){
+                editor.sync(); 
+                document.editLiveProduct.target = "_self";
+                // 设定提交action路径
+                document.editLiveProduct.action =  "<?php echo APP_URL; ?>product/index.php?m=Product&do=editLiveProduct"; 
+                // 提交表单
+                document.editLiveProduct.submit();
+                return false;
+            }
+        }
+    });
+</script>
+<script type='text/javascript' src='<?=APP_URL ?>base/js/wp-ajax-response.js'></script>
+
+<?golua
+httpserv.render("_:base/views/footer.inc.php")
+?>

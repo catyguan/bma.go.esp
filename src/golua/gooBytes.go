@@ -10,6 +10,9 @@ func ToBytes(v interface{}) []byte {
 	if bo, ok := v.(*bytesObject); ok {
 		return bo.data
 	}
+	if bs, ok := v.([]byte); ok {
+		return bs
+	}
 	return nil
 }
 

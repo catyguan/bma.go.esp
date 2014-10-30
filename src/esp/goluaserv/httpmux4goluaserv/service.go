@@ -11,7 +11,9 @@ import (
 	"golua"
 	"golua/vmmhttp"
 	"logger"
+	"mime"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -202,7 +204,7 @@ func (this *Service) doInvoke(w http.ResponseWriter, req *http.Request, app *con
 		// fmt.Println(res)
 
 		whs := w.Header()
-		ctype := "text/plain; charset=utf-8"
+		ctype := ""
 		if ctypev, ok := res["Content-Type"]; ok {
 			ctype = valutil.ToString(ctypev, ctype)
 		}
@@ -221,6 +223,17 @@ func (this *Service) doInvoke(w http.ResponseWriter, req *http.Request, app *con
 					}
 				}
 			}
+		}
+		if ctype == "" {
+			if cfile, ok := res["ContentFile"]; ok {
+				scfile := valutil.ToString(cfile, "")
+				if scfile != "" {
+					ctype = mime.TypeByExtension(filepath.Ext(scfile))
+				}
+			}
+		}
+		if ctype == "" {
+			ctype = "text/plain; charset=utf-8"
 		}
 		whs.Set("Content-Type", ctype)
 

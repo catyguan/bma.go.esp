@@ -2,6 +2,7 @@ package httpmux4goluaserv
 
 import (
 	"boot"
+	"encoding/json"
 	"fmt"
 	"logger"
 	"strings"
@@ -39,13 +40,6 @@ func (this *configApp) Valid() error {
 	return nil
 }
 
-func (this *configApp) Compare(old *configInfo) int {
-	if old == nil {
-		return boot.CCR_NEED_START
-	}
-	return boot.CCR_CHANGE
-}
-
 type configInfo struct {
 	App                []*configApp
 	Skip               []string
@@ -69,7 +63,12 @@ func (this *configInfo) Compare(old *configInfo) int {
 	if old == nil {
 		return boot.CCR_NEED_START
 	}
-	return boot.CCR_CHANGE
+	s1, _ := json.Marshal(this)
+	s2, _ := json.Marshal(old)
+	if s1 == nil || s2 == nil || string(s1) != string(s2) {
+		return boot.CCR_CHANGE
+	}
+	return boot.CCR_NONE
 }
 
 func (this *Service) Name() string {

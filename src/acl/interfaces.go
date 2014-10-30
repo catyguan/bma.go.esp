@@ -84,7 +84,7 @@ const (
 )
 
 type Rule interface {
-	Check(user *User, path []string, ctx context.Context) (CHECK_RESULT, error)
+	Check(user *User, path []string, ctx context.Context) (CHECK_RESULT, Rule, error)
 }
 
 type RuleFactory interface {
@@ -227,12 +227,12 @@ func (this *RuleTree) DoCheck(user *User, path []string, ctx context.Context) (C
 		}
 	}
 	for _, r := range this.rules {
-		cr, err := r.Check(user, path, ctx)
+		cr, rule, err := r.Check(user, path, ctx)
 		if err != nil {
-			return UNKNOW, r, err
+			return UNKNOW, rule, err
 		}
 		if cr != UNKNOW {
-			return cr, r, nil
+			return cr, rule, nil
 		}
 	}
 	return UNKNOW, nil, nil
@@ -269,9 +269,9 @@ func Assert(user *User, path []string, ctx context.Context) error {
 	if ok {
 		return nil
 	}
-	logger.Info(tag, "user(%s) assert(%s, %v) fail", user, path, rule)
+	logger.Info(tag, "user(%s) assert(%s, %v) fail", user, strings.Join(path, "/"), rule)
 	r := new(AclError)
-	r.ErrorString = fmt.Sprintf("'%s' access '%s' fail", user, strings.Join(path, "/"))
+	r.ErrorString = fmt.Sprintf("'%s' access '%s'!", user, strings.Join(path, "/"))
 	return r
 }
 

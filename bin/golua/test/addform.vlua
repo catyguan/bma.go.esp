@@ -1,0 +1,53 @@
+<html>
+<head>
+<meta charset="utf-8" />
+<title>esnp - add</title>
+<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+</head>
+<body>
+<input type="text" id="va" value="<?=a?>" size=5/> + <input id="vb" type="text" value="<?=b?>" size=5/> = <span id="ask">??</span>
+<button>Do It!</button>
+
+<pre>
+<?golua
+for i=1,5 do
+	out(i..";")
+end
+?>
+</pre>
+
+<!-- JavaScript for interactivity. -->
+<script>
+// Get a handle on the first button element in the document.
+var button = document.querySelector( "button" );
+button.addEventListener( "click", function( ev ) {
+	var va = $("#va").val()
+	var vb = $("#vb").val()
+	if(va=="" || vb=="") {
+		return
+	}
+	$.ajax({
+		url: "http://127.0.0.1:1081/test/add",
+		data: {
+			a: va,
+			b: vb
+		},		
+		type: "GET",
+		dataType : "json",
+		success: function( json ) {
+			$( "#ask" ).text( json );
+		},
+		error: function( xhr, status, errorThrown ) {
+			alert( "Sorry, there was a problem!" );
+			console.log( "Error: " + errorThrown );
+			console.log( "Status: " + status );
+			// console.dir( xhr );
+		},	
+		complete: function( xhr, status ) {
+			// alert( "The request is complete!" );
+		}
+	});
+}, false);
+</script>
+</body>
+</html>

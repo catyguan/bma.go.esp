@@ -590,7 +590,7 @@ func (this GOF_go_exec) Exec(vm *VM, self interface{}) (int, error) {
 	gl := vm.vmg.gl
 	vsn = gl.ParseScriptName(vm, vsn)
 
-	cc, err3 := gl.Load(vsn, true)
+	cc, err3 := gl.Load(vsn, true, nil)
 	if err3 != nil {
 		return 0, err3
 	}

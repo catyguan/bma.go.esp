@@ -135,3 +135,5 @@ const (
 	KEY_CONTEXT        = "_CONTEXT"
 	KEY_REQUEST        = "_REQUEST"
 )
+
+type ScriptPreprocess func(content string) (string, error)

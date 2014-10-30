@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"golua"
 	"io"
+	"mime"
 	"net"
 	"net/http"
+	"path/filepath"
 )
 
 const tag = "vmmhttp"
@@ -18,6 +20,7 @@ func HttpServModule() *golua.VMModule {
 	m := golua.NewVMModule("httpserv")
 	m.Init("query", GOF_httpserv_query(0))
 	m.Init("formValue", GOF_httpserv_formValue(0))
+	m.Init("formFile", GOF_httpserv_formFile(0))
 	m.Init("form", newQueryv("form"))
 	m.Init("host", newQueryv("host"))
 	m.Init("path", newQueryv("path"))
@@ -27,8 +30,10 @@ func HttpServModule() *golua.VMModule {
 	m.Init("remoteAddr", newQueryv("remoteAddr"))
 	m.Init("writeHeader", GOF_httpserv_writeHeader(0))
 	m.Init("setHeader", GOF_httpserv_setHeader(0))
+	m.Init("setContentType", GOF_httpserv_setContentType(0))
+	m.Init("setContentFile", GOF_httpserv_setContentFile(0))
 	m.Init("write", GOF_httpserv_write(0))
-	m.Init("formFile", GOF_httpserv_formFile(0))
+	m.Init("render", GOF_httpserv_render(0))
 	return m
 }
 
@@ -298,7 +303,7 @@ func (this GOF_httpserv_setHeader) String() string {
 	return "GoFunc<httpserv.setHeader>"
 }
 
-// httpserv.write(status:int)
+// httpserv.write(content:string)
 type GOF_httpserv_write int
 
 func (this GOF_httpserv_write) Exec(vm *golua.VM, self interface{}) (int, error) {
@@ -316,11 +321,11 @@ func (this GOF_httpserv_write) Exec(vm *golua.VM, self interface{}) (int, error)
 		return 0, err2
 	}
 
-	switch rv := v.(type) {
-	case []byte:
-		w.Write(rv)
-	default:
-		vstr := valutil.ToString(rv, "")
+	bs := golua.ToBytes(v)
+	if bs != nil {
+		w.Write(bs)
+	} else {
+		vstr := valutil.ToString(v, "")
 		w.Write([]byte(vstr))
 	}
 	return 0, nil
@@ -332,6 +337,69 @@ func (this GOF_httpserv_write) IsNative() bool {
 
 func (this GOF_httpserv_write) String() string {
 	return "GoFunc<httpserv.write>"
+}
+
+// httpserv.setContentType(ct:string)
+type GOF_httpserv_setContentType int
+
+func (this GOF_httpserv_setContentType) Exec(vm *golua.VM, self interface{}) (int, error) {
+	err0 := vm.API_checkstack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	v, err1 := vm.API_pop1X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+
+	w, err2 := respWriter(vm)
+	if err2 != nil {
+		return 0, err2
+	}
+
+	vstr := valutil.ToString(v, "")
+	w.Header().Set("Content-Type", vstr)
+	return 0, nil
+}
+
+func (this GOF_httpserv_setContentType) IsNative() bool {
+	return true
+}
+
+func (this GOF_httpserv_setContentType) String() string {
+	return "GoFunc<httpserv.setContentType>"
+}
+
+// httpserv.setContentFile(file:string)
+type GOF_httpserv_setContentFile int
+
+func (this GOF_httpserv_setContentFile) Exec(vm *golua.VM, self interface{}) (int, error) {
+	err0 := vm.API_checkstack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	v, err1 := vm.API_pop1X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+
+	w, err2 := respWriter(vm)
+	if err2 != nil {
+		return 0, err2
+	}
+
+	vstr := valutil.ToString(v, "")
+	ctype := mime.TypeByExtension(filepath.Ext(vstr))
+	w.Header().Set("Content-Type", ctype)
+	return 0, nil
+}
+
+func (this GOF_httpserv_setContentFile) IsNative() bool {
+	return true
+}
+
+func (this GOF_httpserv_setContentFile) String() string {
+	return "GoFunc<httpserv.setContentFile>"
 }
 
 // httpserv.formFile(n:string) : bytes:Object
@@ -388,4 +456,48 @@ func (this GOF_httpserv_formFile) IsNative() bool {
 
 func (this GOF_httpserv_formFile) String() string {
 	return "GoFunc<httpserv.formFile>"
+}
+
+// httpserv.render(scriptName:string , viewData:map)
+type GOF_httpserv_render int
+
+func (this GOF_httpserv_render) Exec(vm *golua.VM, self interface{}) (int, error) {
+	err1 := vm.API_checkstack(1)
+	if err1 != nil {
+		return 0, err1
+	}
+	sn, vo, err2 := vm.API_pop2X(-1, true)
+	if err2 != nil {
+		return 0, err2
+	}
+	vsn := valutil.ToString(sn, "")
+	if vsn == "" {
+		return 0, fmt.Errorf("invalid ScriptName(%v)", sn)
+	}
+	vtb := vm.API_toMap(vo)
+	if vtb == nil {
+		return 0, fmt.Errorf("invalid ViewData(%v)", vo)
+	}
+
+	gl := vm.GetGoLua()
+	vsn = gl.ParseScriptName(vm, vsn)
+
+	cc, err3 := gl.Load(vsn, true, RenderScriptPreprocess)
+	if err3 != nil {
+		return 0, err3
+	}
+	vm.API_push(cc)
+	rc, err4 := vm.Call(0, 0, vtb)
+	if err4 != nil {
+		return rc, err4
+	}
+	return rc, nil
+}
+
+func (this GOF_httpserv_render) IsNative() bool {
+	return true
+}
+
+func (this GOF_httpserv_render) String() string {
+	return "GoFunc<httpserv.render>"
 }

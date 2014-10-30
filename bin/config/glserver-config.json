@@ -7,6 +7,16 @@
 	"httpPoint" : {
 		"Port" : "1080"
 	},
+	"acl" : {
+		"http" : { "Type":"pass", "Users":["*@*"] },
+		"http/smm.api" : {
+			"Type": "mix", 
+			"Rules" : [
+				{ "Type":"pass", "Users":["*@127.0.0.1"] },
+				{ "Type":"deny", "Users":["*@*"] }
+			]
+		}
+	},
 	"acclog": {
 		"Nodes" : [
 			{

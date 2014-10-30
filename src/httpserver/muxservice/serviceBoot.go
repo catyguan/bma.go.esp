@@ -13,7 +13,7 @@ func (this *Service) Name() string {
 func (this *Service) Prepare() {
 }
 func (this *Service) CheckConfig(ctx *boot.BootContext) bool {
-	ccr := boot.NewConfigCheckResult(boot.CCR_CHANGE, nil)
+	ccr := boot.NewConfigCheckResult(boot.CCR_NONE, nil)
 	ctx.CheckFlag = ccr
 	return true
 }

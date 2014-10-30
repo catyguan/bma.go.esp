@@ -6,7 +6,10 @@ import (
 	"fileloader"
 	"fmt"
 	"golua/goyacc"
+	"io/ioutil"
 	"logger"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -50,7 +53,7 @@ func (this *GoLua) Close() {
 	this.vmg.gl = nil
 }
 
-func (this *GoLua) Load(script string, save bool) (*ChunkCode, error) {
+func (this *GoLua) Load(script string, save bool, spp ScriptPreprocess) (*ChunkCode, error) {
 	// compile
 	bs, err := this.ss.Load(script)
 	if err != nil {
@@ -64,12 +67,33 @@ func (this *GoLua) Load(script string, save bool) (*ChunkCode, error) {
 		return nil, err0
 	}
 	logger.Debug(tag, "%s: load('%s') done", this, script)
-
 	content := string(bs)
+	if spp != nil {
+		str, err0 := spp(content)
+		if err0 != nil {
+			logger.Debug(tag, "%s: preprocess('%s') fail - %s", this, script, err0)
+			return nil, err0
+		}
+		content = str
+
+		if boot.DevMode {
+			m, file := fileloader.SplitModuleScript(script)
+			fn, _ := filepath.Abs("tmp/" + m + "/" + file)
+			dir := filepath.Dir(fn)
+			os.MkdirAll(dir, os.ModePerm)
+			errF2 := ioutil.WriteFile(fn, []byte(content), os.ModePerm)
+			if errF2 != nil {
+				logger.Debug(tag, "write %s fail - %s", fn, errF2)
+			} else {
+				logger.Debug(tag, "'%s' preprocess -> %s", script, fn)
+			}
+		}
+	}
+
 	p := goyacc.NewParser(script, content)
 	node, err2 := p.Parse()
 	if err2 != nil {
-		err0 := fmt.Errorf("compile '%s' fail - %s", script, err)
+		err0 := fmt.Errorf("compile '%s' fail - %s", script, err2)
 		logger.Debug(tag, "%s: %s", this, err0)
 		return nil, err0
 	}
@@ -110,7 +134,7 @@ func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
 
 	if cc == nil {
 		var err2 error
-		cc, err2 = this.Load(script, true)
+		cc, err2 = this.Load(script, true, nil)
 		if err2 != nil {
 			return nil, err2
 		}
@@ -195,7 +219,7 @@ func (this *GoLua) Require(pvm *VM, n string) error {
 	}
 
 	var err2 error
-	cc, err2 = this.Load(n, true)
+	cc, err2 = this.Load(n, true, nil)
 	if err2 != nil {
 		return err2
 	}

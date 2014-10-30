@@ -2,19 +2,19 @@ package httpmux4boot
 
 import (
 	"boot"
-	"fmt"
+	"encoding/json"
 	"net/http"
 )
 
-func InitMux(mux *http.ServeMux, path string) {
-	if path == "" {
-		path = "/"
-	}
-	mux.HandleFunc(path+"reload", func(w http.ResponseWriter, req *http.Request) {
-		msg := "ok"
+func InitMuxReload(mux *http.ServeMux, path string) {
+	mux.HandleFunc(path, func(w http.ResponseWriter, req *http.Request) {
+		r := make(map[string]interface{})
+		r["Status"] = 200
+		r["Result"] = "ok"
 		if !boot.Restart() {
-			msg = "fail"
+			r["Result"] = "fail"
 		}
-		fmt.Fprintf(w, msg)
+		jbs, _ := json.Marshal(r)
+		w.Write(jbs)
 	})
 }

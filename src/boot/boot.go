@@ -199,9 +199,9 @@ func doActions(phase Phase, ctx *BootContext) (r bool) {
 				if cr != nil {
 					switch cr.Type {
 					case CCR_CHANGE:
-						fmt.Println("'%s' change", ainfo.name)
+						fmt.Printf("'%s' change\n", ainfo.name)
 					case CCR_NEED_START:
-						fmt.Println("'%s' restart", ainfo.name)
+						fmt.Printf("'%s' restart\n", ainfo.name)
 					}
 				}
 			}

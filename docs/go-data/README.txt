@@ -1,0 +1,1 @@
+https://github.com/jteeuwen/go-bindata

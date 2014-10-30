@@ -235,3 +235,7 @@ func (this *VM) DumpStack() string {
 	s := this.stack.Dump(this.sdata)
 	return fmt.Sprintf("%sSDATA: %v\n", s, this.sdata)
 }
+
+func (this *VM) GetGoLua() *GoLua {
+	return this.vmg.gl
+}

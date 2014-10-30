@@ -2,7 +2,9 @@ package main
 
 import (
 	"boot"
+	"boot/httpmux4boot"
 	"esp/acclog"
+	"esp/aclserv"
 	"esp/goluaserv"
 	"esp/goluaserv/httpmux4goluaserv"
 	"fileloader"
@@ -12,6 +14,7 @@ import (
 	"golua/vmmjson"
 	"golua/vmmsql"
 	"httpserver"
+	"httpserver/aclmux"
 	"net/http"
 	"os"
 
@@ -27,6 +30,9 @@ const (
 func main() {
 	cfile := "config/glserver-config.json"
 
+	acls := aclserv.NewService("acl")
+	boot.AddService(acls)
+
 	acclog := acclog.NewService("acclog")
 	boot.AddService(acclog)
 
@@ -41,6 +47,9 @@ func main() {
 	var wd, _ = os.Getwd()
 
 	mux := http.NewServeMux()
+
+	httpmux4boot.InitMuxReload(mux, "/smm.api/boot/reload")
+
 	mux.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir(wd+"/public"))))
 
 	mux4gl := httpmux4goluaserv.NewService("goluaMux", service)
@@ -48,7 +57,11 @@ func main() {
 	mux4gl.InitMux(mux, "/")
 	boot.AddService(mux4gl)
 
-	httpService := httpserver.NewHttpServer("httpPoint", mux)
+	mux4gl.InitMuxReset(mux, "/smm.api/golua/reset")
+
+	amux := aclmux.NewAclServerMux("http", mux)
+
+	httpService := httpserver.NewHttpServer("httpPoint", amux)
 	boot.AddService(httpService)
 
 	boot.Go(cfile)

@@ -9,11 +9,13 @@ import (
 )
 
 type AclServerMux struct {
-	h http.Handler
+	name string
+	h    http.Handler
 }
 
-func NewAclServerMux(h http.Handler) *AclServerMux {
+func NewAclServerMux(n string, h http.Handler) *AclServerMux {
 	r := new(AclServerMux)
+	r.name = n
 	r.h = h
 	return r
 }
@@ -23,6 +25,11 @@ func (this *AclServerMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	user := acl.NewUser("anonymous", ip, nil)
 
 	path := r.URL.Path
+	if strings.HasPrefix(path, "/") {
+		path = this.name + path
+	} else {
+		path = this.name + "/" + path
+	}
 	ps := strings.Split(path, "/")
 
 	err := acl.Assert(user, ps, nil)

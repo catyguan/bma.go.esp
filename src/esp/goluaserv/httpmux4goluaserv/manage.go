@@ -1,15 +1,12 @@
 package httpmux4goluaserv
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
 )
 
-func (this *Service) InitManageMux(mux *http.ServeMux, path string) {
-	if path == "" {
-		path = "/"
-	}
-	mux.HandleFunc(path+"reset", func(w http.ResponseWriter, req *http.Request) {
+func (this *Service) InitMuxReset(mux *http.ServeMux, path string) {
+	mux.HandleFunc(path, func(w http.ResponseWriter, req *http.Request) {
 		this.doReset(w, req)
 	})
 }
@@ -21,9 +18,12 @@ func (this *Service) doReset(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	ok := this.gls.ResetGoLua(g)
-	resp := "ok"
+	r := make(map[string]interface{})
+	r["Status"] = 200
+	r["Result"] = "ok"
 	if !ok {
-		resp = "fail"
+		r["Result"] = "fail"
 	}
-	fmt.Fprintf(w, resp)
+	jbs, _ := json.Marshal(r)
+	w.Write(jbs)
 }

@@ -18,7 +18,7 @@ func safeCall() {
 	})
 }
 
-func TestHttpclient(t *testing.T) {
+func T2estHttpclient(t *testing.T) {
 	if true {
 		runtime.GOMAXPROCS(5)
 		safeCall()
