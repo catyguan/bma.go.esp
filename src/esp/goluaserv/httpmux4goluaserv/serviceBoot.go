@@ -2,7 +2,6 @@ package httpmux4goluaserv
 
 import (
 	"boot"
-	"encoding/json"
 	"fmt"
 	"logger"
 	"strings"
@@ -40,6 +39,25 @@ func (this *configApp) Valid() error {
 	return nil
 }
 
+func (this *configApp) Compare(old *configApp) bool {
+	if old == nil {
+		return false
+	}
+	if this.Location != old.Location {
+		return false
+	}
+	if this.IndexName != old.IndexName {
+		return false
+	}
+	if this.Script != old.Script {
+		return false
+	}
+	if this.TimeoutMS != old.TimeoutMS {
+		return false
+	}
+	return true
+}
+
 type configInfo struct {
 	App                []*configApp
 	Skip               []string
@@ -63,9 +81,38 @@ func (this *configInfo) Compare(old *configInfo) int {
 	if old == nil {
 		return boot.CCR_NEED_START
 	}
-	s1, _ := json.Marshal(this)
-	s2, _ := json.Marshal(old)
-	if s1 == nil || s2 == nil || string(s1) != string(s2) {
+	if true {
+		if len(this.App) != len(old.App) {
+			return boot.CCR_CHANGE
+		}
+		tmp := make(map[string]*configApp)
+		for _, app := range this.App {
+			tmp[app.Name] = app
+		}
+		for _, app := range old.App {
+			if oapp, ok := tmp[app.Name]; ok {
+				if app.Compare(oapp) {
+					continue
+				}
+			}
+			return boot.CCR_CHANGE
+		}
+	}
+	if true {
+		if len(this.Skip) != len(old.Skip) {
+			return boot.CCR_CHANGE
+		}
+		tmp := make(map[string]bool)
+		for _, k := range this.Skip {
+			tmp[k] = true
+		}
+		for _, k := range this.Skip {
+			if !tmp[k] {
+				return boot.CCR_CHANGE
+			}
+		}
+	}
+	if this.ParseFormMaxMemory != old.ParseFormMaxMemory {
 		return boot.CCR_CHANGE
 	}
 	return boot.CCR_NONE

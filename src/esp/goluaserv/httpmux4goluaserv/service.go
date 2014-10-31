@@ -187,11 +187,12 @@ func (this *Service) doInvoke(w http.ResponseWriter, req *http.Request, app *con
 			}
 		}
 		rst := http.StatusOK
+		rcontent := ""
 		if v, ok := res["Status"]; ok {
 			rst = valutil.ToInt(v, http.StatusOK)
+			rcontent = http.StatusText(rst)
 		}
 
-		rcontent := ""
 		if true {
 			if v, ok := res["Content"]; ok {
 				rcontent = valutil.ToString(v, "")

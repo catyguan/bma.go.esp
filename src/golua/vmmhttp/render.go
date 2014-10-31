@@ -27,7 +27,7 @@ var (
 )
 
 func addEscapes(str string) string {
-	retval := bytes.NewBuffer([]byte{})
+	retval := bytes.NewBuffer(make([]byte, 0, 64))
 	for _, c := range []rune(str) {
 		switch c {
 		case 0:
@@ -118,7 +118,7 @@ func RenderScriptPreprocess(content string) (string, error) {
 				}
 			}
 			word.WriteRune(ch)
-		case 2: // <?=
+		case 2: // <?golua
 			if ch == '?' {
 				if ok, idx := renderMatch(clist, i, kEnd); ok {
 					status = 0

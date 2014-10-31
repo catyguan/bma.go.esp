@@ -201,17 +201,25 @@ func (this *Service) GraceStop(ctx *boot.BootContext) bool {
 		return true
 	}
 	cfg := ccr.Config.(*serviceConfigInfo)
-	for k, _ := range this.config.GoLua {
-		if ccr.Type != boot.CCR_NEED_START {
-			if cfg.GoLua != nil {
-				if _, ok := cfg.GoLua[k]; ok {
-					continue
+	for k, oglcfg := range this.config.GoLua {
+		closed := false
+		if cfg.GoLua != nil {
+			glcfg, ok := cfg.GoLua[k]
+			if ok {
+				cr := glcfg.Compare(oglcfg)
+				if cr != boot.CCR_NONE {
+					closed = true
 				}
+			} else {
+				closed = true
 			}
 		}
-		gl := this.removeGoLua(k)
-		if gl != nil {
-			gl.Close()
+		if closed {
+			gl := this.removeGoLua(k)
+			if gl != nil {
+				gl.Close()
+				fmt.Printf("close GoLua '%s'\n", k)
+			}
 		}
 	}
 	return true

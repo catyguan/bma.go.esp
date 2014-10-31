@@ -44,5 +44,6 @@
 			}
 		]
 	},
-	"MERGE-testApp" : "glapp-test-config.json"
+	"MERGE-testApp" : "glapp-test-config.json",
+	"MERGE-smmuiApp" : "glapp-smmui-config.json"
 }
