@@ -1,13 +1,11 @@
 package golua
 
 import (
-	"bmautil/syncutil"
 	"boot"
 	"bytes"
 	"context"
 	"fmt"
 	"logger"
-	"sync/atomic"
 	"time"
 )
 
@@ -63,12 +61,10 @@ func init() {
 type VM struct {
 	id         uint32
 	name       string
-	running    int32
-	vmg        *VMG
+	gl         *GoLua
 	stack      *VMStack
 	numOfStack int
 	sdata      []interface{}
-	syncutil.CloseState
 
 	config           *VMConfig
 	maxExecutionTime int
@@ -80,11 +76,10 @@ type VM struct {
 	defers []interface{}
 }
 
-func newVM(vmg *VMG, id uint32) *VM {
+func newVM(gl *GoLua, id uint32) *VM {
 	vm := new(VM)
 	vm.id = id
-	vm.vmg = vmg
-	vm.InitCloseState()
+	vm.gl = gl
 	vm.sdata = make([]interface{}, 0, 16)
 	vm.config = &defaultConfig
 	vm.maxExecutionTime = -1
@@ -119,33 +114,11 @@ func (this *VM) Id() uint32 {
 	return this.id
 }
 
-func (this *VM) GetVMG() *VMG {
-	return this.vmg
-}
-
 func (this *VM) String() string {
 	return fmt.Sprintf("VM(%s)", this.name)
 }
 
-func (this *VM) Spawn(n string) (*VM, error) {
-	vm2, err := this.vmg.newVM()
-	if err != nil {
-		return nil, err
-	}
-	vm2.name = fmt.Sprintf("%s-%d", this.name, vm2.id)
-	vm2.config = this.config
-	vm2.trace = this.trace
-	st := newVMStack(nil)
-	if n == "" {
-		n = fmt.Sprintf("VM<%s>", vm2.name)
-	}
-	st.chunkName = n
-	vm2.initStack(st)
-	logger.Debug(tag, "%s spawn -> %s", this, vm2)
-	return vm2, nil
-}
-
-func (this *VM) CleanDefer() {
+func (this *VM) Finish() {
 	if this.defers != nil {
 		l := len(this.defers)
 		for i := l - 1; i >= 0; i-- {
@@ -159,21 +132,7 @@ func (this *VM) CleanDefer() {
 			}
 		}
 	}
-}
 
-func (this *VM) Destroy() {
-	if this.IsRunning() {
-		//therefore we are in a different goroutine
-		this.AskClose()
-		return
-	}
-	if this.IsClosed() {
-		return
-	}
-	if !this.vmg.removeVM(this.id) {
-		return
-	}
-	logger.Debug(tag, "%s destoryed", this)
 	st := this.stack
 	for st != nil {
 		p := st.parent
@@ -184,20 +143,13 @@ func (this *VM) Destroy() {
 	for i := 0; i < len(this.sdata); i++ {
 		this.sdata[i] = nil
 	}
+
+	this.gl.ReturnVM(this)
+}
+
+func (this *VM) Destroy() {
+	logger.Debug(tag, "%s destoryed", this)
 	this.sdata = nil
-	this.DoneClose()
-}
-
-func (this *VM) IsRunning() bool {
-	return atomic.LoadInt32(&this.running) > 0
-}
-
-func (this *VM) PrepareRun(b bool) {
-	if b {
-		atomic.AddInt32(&this.running, 1)
-	} else {
-		atomic.AddInt32(&this.running, -1)
-	}
 }
 
 type StackTraceError struct {
@@ -237,5 +189,5 @@ func (this *VM) DumpStack() string {
 }
 
 func (this *VM) GetGoLua() *GoLua {
-	return this.vmg.gl
+	return this.gl
 }

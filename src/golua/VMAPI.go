@@ -7,7 +7,11 @@ import (
 	"time"
 )
 
-func (this *VM) API_checkExecuteTime() error {
+func (this *VM) API_checkRun() error {
+	err := this.gl.CheckClose()
+	if err != nil {
+		return err
+	}
 	du := time.Since(this.executeTime).Seconds()
 	if int(du*1000) > this.GetMaxExecutionTime() {
 		return fmt.Errorf("max execute time(%f)", du)
@@ -15,7 +19,7 @@ func (this *VM) API_checkExecuteTime() error {
 	return nil
 }
 
-func (this *VM) API_checkstack(n int) error {
+func (this *VM) API_checkStack(n int) error {
 	st := this.stack
 	if st.stackTop < n {
 		return fmt.Errorf("stack invalid, size=%d expect=%d", st.stackTop, n)
@@ -47,24 +51,25 @@ func (this *VM) API_absindex(idx int) int {
 	return p
 }
 
-func (this *VM) API_canCall(v interface{}) bool {
+func canCall(v interface{}) bool {
 	if _, ok := v.(GoFunction); ok {
 		return true
 	}
-	if mv, ok := v.(*memberVar); ok {
-		f, err := mv.Get(this)
-		if err != nil {
-			return false
-		}
-		if _, ok := f.(GoFunction); ok {
-			return true
-		}
+	return false
+}
+
+func (this *VM) API_canCall(v interface{}) bool {
+	if canCall(v) {
+		return true
+	}
+	if mv, ok := v.(*memberCall); ok {
+		return canCall(mv.f)
 	}
 	return false
 }
 
 func (this *VM) API_getglobal(name string) (interface{}, bool) {
-	return this.vmg.GetGlobal(name)
+	return this.gl.GetGlobal(name)
 }
 
 // Returns the index of the top element in the stack.
@@ -336,7 +341,7 @@ func (this *VM) API_replace(idx int, v interface{}) error {
 }
 
 func (this *VM) API_setglobal(n string, v interface{}) {
-	this.vmg.SetGlobal(n, v)
+	this.gl.SetGlobal(n, v)
 }
 
 func (this *VM) API_value(v interface{}) (interface{}, error) {
@@ -437,7 +442,17 @@ func (this *VM) API_getMember(obj interface{}, key interface{}) (interface{}, er
 		return v, nil
 	case VMTable:
 		s := valutil.ToString(key, "")
-		return o.Get(this, s)
+		v, err := o.Get(this, s)
+		if err != nil {
+			return nil, err
+		}
+		if canCall(v) {
+			mc := new(memberCall)
+			mc.obj = o
+			mc.f = v
+			v = mc
+		}
+		return v, nil
 
 	}
 	return nil, fmt.Errorf("unknow memberObject(%T)", obj)
@@ -501,4 +516,8 @@ func (this *VM) API_cleanDefer(f interface{}) error {
 	}
 	this.defers = append(this.defers, f)
 	return nil
+}
+
+func (this *VM) API_require(n string) error {
+	return this.gl.Require(this, n)
 }

@@ -23,7 +23,7 @@ func CreateDuration(du time.Duration) VMTable {
 type GOF_time_parseDuration int
 
 func (this GOF_time_parseDuration) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -52,7 +52,7 @@ func (this GOF_time_parseDuration) String() string {
 type GOF_time_date int
 
 func (this GOF_time_date) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(6)
+	err0 := vm.API_checkStack(6)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -115,7 +115,7 @@ func (this GOF_time_now) String() string {
 type GOF_time_parse int
 
 func (this GOF_time_parse) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -149,7 +149,7 @@ func (this GOF_time_parse) String() string {
 type GOF_time_unix int
 
 func (this GOF_time_unix) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}

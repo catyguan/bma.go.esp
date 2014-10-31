@@ -108,7 +108,7 @@ func (this gooTime) Get(vm *VM, o interface{}, key string) (interface{}, error) 
 			}), nil
 		case "Add":
 			return NewGOF("Time.Add", func(vm *VM, self interface{}) (int, error) {
-				err0 := vm.API_checkstack(1)
+				err0 := vm.API_checkStack(1)
 				if err0 != nil {
 					return 0, err0
 				}
@@ -126,7 +126,7 @@ func (this gooTime) Get(vm *VM, o interface{}, key string) (interface{}, error) 
 			}), nil
 		case "AddDate":
 			return NewGOF("Time.AddDate", func(vm *VM, self interface{}) (int, error) {
-				err0 := vm.API_checkstack(3)
+				err0 := vm.API_checkStack(3)
 				if err0 != nil {
 					return 0, err0
 				}
@@ -143,7 +143,7 @@ func (this gooTime) Get(vm *VM, o interface{}, key string) (interface{}, error) 
 			}), nil
 		case "After", "Before", "Equal":
 			return NewGOF("Time.After", func(vm *VM, self interface{}) (int, error) {
-				err0 := vm.API_checkstack(1)
+				err0 := vm.API_checkStack(1)
 				if err0 != nil {
 					return 0, err0
 				}
@@ -170,7 +170,7 @@ func (this gooTime) Get(vm *VM, o interface{}, key string) (interface{}, error) 
 			}), nil
 		case "Format":
 			return NewGOF("Time.Format", func(vm *VM, self interface{}) (int, error) {
-				err0 := vm.API_checkstack(1)
+				err0 := vm.API_checkStack(1)
 				if err0 != nil {
 					return 0, err0
 				}
@@ -185,7 +185,7 @@ func (this gooTime) Get(vm *VM, o interface{}, key string) (interface{}, error) 
 			}), nil
 		case "In":
 			return NewGOF("Time.In", func(vm *VM, self interface{}) (int, error) {
-				err0 := vm.API_checkstack(1)
+				err0 := vm.API_checkStack(1)
 				if err0 != nil {
 					return 0, err0
 				}
@@ -211,7 +211,7 @@ func (this gooTime) Get(vm *VM, o interface{}, key string) (interface{}, error) 
 			}), nil
 		case "Round":
 			return NewGOF("Time.Round", func(vm *VM, self interface{}) (int, error) {
-				err0 := vm.API_checkstack(1)
+				err0 := vm.API_checkStack(1)
 				if err0 != nil {
 					return 0, err0
 				}
@@ -229,7 +229,7 @@ func (this gooTime) Get(vm *VM, o interface{}, key string) (interface{}, error) 
 			}), nil
 		case "Sub":
 			return NewGOF("Time.Sub", func(vm *VM, self interface{}) (int, error) {
-				err0 := vm.API_checkstack(1)
+				err0 := vm.API_checkStack(1)
 				if err0 != nil {
 					return 0, err0
 				}
@@ -249,7 +249,7 @@ func (this gooTime) Get(vm *VM, o interface{}, key string) (interface{}, error) 
 			}), nil
 		case "Truncate":
 			return NewGOF("Time.Truncate", func(vm *VM, self interface{}) (int, error) {
-				err0 := vm.API_checkstack(1)
+				err0 := vm.API_checkStack(1)
 				if err0 != nil {
 					return 0, err0
 				}

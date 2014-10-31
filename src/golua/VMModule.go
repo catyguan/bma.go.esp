@@ -23,8 +23,8 @@ func (this *VMModule) Name() string {
 	return this.name
 }
 
-func (this *VMModule) Bind(vmg *VMG) {
-	vmg.SetGlobal(this.name, this)
+func (this *VMModule) Bind(gl *GoLua) {
+	gl.SetGlobal(this.name, this)
 }
 
 func (this *VMModule) Init(key string, f GoFunction) {

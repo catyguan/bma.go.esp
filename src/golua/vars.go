@@ -32,8 +32,8 @@ type globalVar struct {
 }
 
 func (this *globalVar) Get(vm *VM) (interface{}, error) {
-	vmg := vm.GetVMG()
-	v, ok := vmg.GetGlobal(this.name)
+	gl := vm.GetGoLua()
+	v, ok := gl.GetGlobal(this.name)
 	if ok {
 		return v, nil
 	}
@@ -41,8 +41,8 @@ func (this *globalVar) Get(vm *VM) (interface{}, error) {
 }
 
 func (this *globalVar) Set(vm *VM, v interface{}) (bool, error) {
-	vmg := vm.GetVMG()
-	vmg.SetGlobal(this.name, v)
+	gl := vm.GetGoLua()
+	gl.SetGlobal(this.name, v)
 	return true, nil
 }
 
@@ -85,6 +85,16 @@ func (this *localVar) EnableSafe() {
 
 func (this *localVar) String() string {
 	return fmt.Sprintf("localVar(%v)", this.value)
+}
+
+// memberCall
+type memberCall struct {
+	obj interface{}
+	f   interface{}
+}
+
+func (this *memberCall) String() string {
+	return fmt.Sprintf("memberCall(%v, %v)", this.obj, this.f)
 }
 
 // memberVar

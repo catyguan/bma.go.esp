@@ -13,7 +13,7 @@ func (gooTimer) Get(vm *VM, o interface{}, key string) (interface{}, error) {
 		switch key {
 		case "Reset":
 			return NewGOF("timer.Reset", func(vm *VM, self interface{}) (int, error) {
-				err1 := vm.API_checkstack(1)
+				err1 := vm.API_checkStack(1)
 				if err1 != nil {
 					return 0, err1
 				}

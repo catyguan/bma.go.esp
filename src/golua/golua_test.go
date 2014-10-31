@@ -20,16 +20,16 @@ func TestExecute(t *testing.T) {
 		sr := new(fileloader.FileFileLoader)
 		sr.Dirs = dirs
 
-		golua := NewGoLua("test", sr, func(vmg *VMG) {
-			CoreModule(vmg)
-			GoModule().Bind(vmg)
-			TypesModule().Bind(vmg)
+		golua := NewGoLua("test", 10, sr, func(gl *GoLua) {
+			CoreModule(gl)
+			GoModule().Bind(gl)
+			TypesModule().Bind(gl)
 		}, nil)
 		defer golua.Close()
 
 		trace := false
-		f := "/s_add.lua"
-		// f := "test_vmmGo.lua"
+		// f := "/s_add.lua"
+		f := "test_vmmGo.lua"
 		data["a"] = 1
 		data["b"] = 2
 

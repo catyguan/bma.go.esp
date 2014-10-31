@@ -6,7 +6,6 @@ import (
 	"golua/goyacc"
 	"logger"
 	"runtime"
-	"sync/atomic"
 )
 
 type ChunkCode struct {
@@ -34,8 +33,9 @@ func (this *ChunkCode) String() string {
 }
 
 func (this *VM) Call(nargs int, nresults int, locals map[string]interface{}) (rint int, rerr error) {
-	if this.IsClosing() {
-		return 0, fmt.Errorf("%s closed", this)
+	errCR := this.API_checkRun()
+	if errCR != nil {
+		return 0, errCR
 	}
 	this.numOfStack++
 	if this.numOfStack >= this.config.MaxStack {
@@ -44,7 +44,6 @@ func (this *VM) Call(nargs int, nresults int, locals map[string]interface{}) (ri
 	st := this.stack
 	var nst *VMStack
 	r, err := func(nargs int, nresults int) (rint int, rerr error) {
-		atomic.AddInt32(&this.running, 1)
 		defer func() {
 			if x := recover(); x != nil {
 				trace := make([]byte, 1024)
@@ -69,10 +68,9 @@ func (this *VM) Call(nargs int, nresults int, locals map[string]interface{}) (ri
 					}
 				}
 			}
-			atomic.AddInt32(&this.running, -1)
 		}()
 		n := nargs + 1
-		err1 := this.API_checkstack(n)
+		err1 := this.API_checkStack(n)
 		if err1 != nil {
 			return 0, err1
 		}
@@ -80,20 +78,17 @@ func (this *VM) Call(nargs int, nresults int, locals map[string]interface{}) (ri
 		at := this.API_absindex(-n)
 		at = this.stack.stackBegin + at - 1
 		f := this.sdata[at]
-		var self interface{}
-		if mvar, ok := f.(*memberVar); ok {
-			nf, err1x := mvar.Get(this)
-			if err1x != nil {
-				return 0, err1x
-			}
-			self = mvar.obj
-			f = nf
-
-			// fmt.Println("self = ", self)
-		}
 		f, err1 = this.API_value(f)
 		if err1 != nil {
 			return 0, err1
+		}
+
+		var self interface{}
+		if mc, ok := f.(*memberCall); ok {
+			self = mc.obj
+			f = mc.f
+
+			// fmt.Println("self = ", self)
 		}
 		if !this.API_canCall(f) {
 			return 0, fmt.Errorf("can't call at '%v'", f)
@@ -197,7 +192,7 @@ func (this *VM) runCode(node goyacc.Node) (int, ER, error) {
 	this.numOfTime++
 	if this.numOfTime > this.config.TimeCheck {
 		this.numOfTime = 0
-		err := this.API_checkExecuteTime()
+		err := this.API_checkRun()
 		if err != nil {
 			return 0, ER_ERROR, err
 		}

@@ -21,7 +21,7 @@ func TypesModule() *VMModule {
 type GOF_types_name int
 
 func (this GOF_types_name) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -112,7 +112,7 @@ func types_pop_v(vm *VM) (interface{}, interface{}, error) {
 		}
 		return v, dv, nil
 	}
-	return nil, nil, vm.API_checkstack(1)
+	return nil, nil, vm.API_checkStack(1)
 
 }
 

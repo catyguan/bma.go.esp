@@ -27,7 +27,7 @@ func (this GOF_test) String() string {
 
 func T2estVMStack(t *testing.T) {
 	safeCall()
-	vmg := NewVMG("test")
+	vmg := NewGoLua("test", 10, nil, nil, nil)
 	defer vmg.Close()
 	vm, _ := vmg.CreateVM()
 
@@ -44,7 +44,7 @@ func T2estVMStack(t *testing.T) {
 
 func T2estVMAPI(t *testing.T) {
 	safeCall()
-	vmg := NewVMG("test")
+	vmg := NewGoLua("test", 10, nil, nil, nil)
 	defer vmg.Close()
 	vm, _ := vmg.CreateVM()
 

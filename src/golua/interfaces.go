@@ -18,7 +18,7 @@ type GoObject interface {
 	Close(o interface{})
 }
 
-type VMGInitor func(vmg *VMG)
+type GoLuaInitor func(golua *GoLua)
 
 type supportFuncName interface {
 	FuncName() (string, string)

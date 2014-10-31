@@ -54,7 +54,7 @@ func T2estParserBuildRun(t *testing.T) {
 		fmt.Println(goyacc.DumpNode("", node))
 
 		fmt.Println("--------------- RUN ---------------")
-		vmg := NewVMG("test")
+		vmg := NewGoLua("test", 10, nil, nil, nil)
 		CoreModule(vmg)
 		GoModule().Bind(vmg)
 		TypesModule().Bind(vmg)

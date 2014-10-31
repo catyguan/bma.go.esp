@@ -30,43 +30,34 @@ func GoModule() *VMModule {
 	return m
 }
 
-// go.run(func() [,vmname string])
+// go.run(func())
 type GOF_go_run int
 
 func (this GOF_go_run) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
-	n := ""
-	f, nv, err1 := vm.API_pop2X(-1, false)
+	f, err1 := vm.API_pop1X(-1, true)
 	if err1 != nil {
 		return 0, err1
-	}
-	nv, err1 = vm.API_value(nv)
-	if err1 != nil {
-		return 0, err1
-	}
-	if nv != nil {
-		n = valutil.ToString(nv, "")
 	}
 	if !vm.API_canCall(f) {
 		return 0, fmt.Errorf("param1(%T) can't call", f)
 	}
-	vm2, err3 := vm.Spawn(n)
+	vm2, err3 := vm.gl.GetVM()
 	if err3 != nil {
 		return 0, err3
 	}
 	vm.Trace("go.run %s", vm2)
 	// vm2.PrepareRun(true)
 	go func() {
+		defer vm2.Finish()
 		vm2.API_push(f)
 		_, errX := vm2.Call(0, 0, nil)
 		if errX != nil {
 			logger.Debug(tag, "go.run %s fail - %s", vm2, errX)
 		}
-		// vm2.PrepareRun(false)
-		vm2.Destroy()
 	}()
 	return 0, nil
 }
@@ -84,7 +75,7 @@ func (this GOF_go_run) String() string {
 type GOF_go_defer int
 
 func (this GOF_go_defer) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -115,7 +106,7 @@ func (this GOF_go_defer) String() string {
 type GOF_go_cleanDefer int
 
 func (this GOF_go_cleanDefer) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -139,7 +130,7 @@ func (this GOF_go_cleanDefer) String() string {
 type GOF_go_chan int
 
 func (this GOF_go_chan) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -168,7 +159,7 @@ func (this GOF_go_chan) String() string {
 type GOF_go_write int
 
 func (this GOF_go_write) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(2)
+	err0 := vm.API_checkStack(2)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -202,12 +193,12 @@ func (this GOF_go_write) String() string {
 	return "GoFunc<go.write>"
 }
 
-// go.read(ch [,timeoutMS:int]) value
-// go.read(array<ch> [,timeoutMS:int]) (idx, value)
+// go.read(ch [,timeoutMS:int]) value,(isTimeout bool)
+// go.read(array<ch> [,timeoutMS:int]) (idx, value,(isTimeout bool))
 type GOF_go_read int
 
 func (this GOF_go_read) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -219,55 +210,64 @@ func (this GOF_go_read) Exec(vm *VM, self interface{}) (int, error) {
 	if tm != nil {
 		vtm = valutil.ToInt(tm, 0)
 	}
+	if vtm <= 0 {
+		vtm = 5000
+	}
 	if vch, ok := ch.(chan interface{}); ok {
-		if vtm <= 0 {
-			val := <-vch
-			vm.API_push(val)
-			return 1, nil
-		}
 		to := time.NewTimer(time.Duration(vtm) * time.Millisecond)
+		var rv interface{}
+		rb := false
 		select {
 		case <-to.C:
-			return 0, fmt.Errorf("read tiemout(%dms)", vtm)
+			rb = true
 		case val := <-vch:
 			to.Stop()
-			vm.API_push(val)
-			return 1, nil
+			rv = val
 		}
-	} else if arr, ok := ch.([]interface{}); ok {
-		var to *time.Timer
-		c := len(arr)
-		if vtm > 0 {
-			c++
-			to = time.NewTimer(time.Duration(vtm) * time.Millisecond)
+		errC := vm.API_checkRun()
+		if errC != nil {
+			return 0, errC
 		}
-		cases := make([]reflect.SelectCase, c)
-		for i, tmp := range arr {
-			cho, ok := tmp.(chan interface{})
-			if !ok {
-				return 0, fmt.Errorf("chan invalid at array[%d]", i)
-			}
-			cases[i] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(cho)}
-		}
-		if vtm > 0 {
-			cases[c-1] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(to.C)}
-		}
-		chosen, value, ok := reflect.Select(cases)
-		to.Stop()
-		if vtm > 0 {
-			if chosen == c-1 {
-				return 0, fmt.Errorf("read tiemout(%dms)", vtm)
-			}
-		}
-		var val interface{}
-		if ok && value.IsValid() {
-			val = value.Interface()
-		}
-		vm.API_push(chosen)
-		vm.API_push(val)
+		vm.API_push(rv)
+		vm.API_push(rb)
 		return 2, nil
 	} else {
-		return 0, fmt.Errorf("chan invalid (%v)", ch)
+		arr := vm.API_toSlice(ch)
+		if arr != nil {
+			var to *time.Timer
+			c := len(arr) + 1
+			to = time.NewTimer(time.Duration(vtm) * time.Millisecond)
+			cases := make([]reflect.SelectCase, c)
+			for i, tmp := range arr {
+				cho, ok := tmp.(chan interface{})
+				if !ok {
+					return 0, fmt.Errorf("chan invalid at array[%d]", i)
+				}
+				cases[i] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(cho)}
+			}
+			cases[c-1] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(to.C)}
+
+			var val interface{}
+			rb := false
+			chosen, value, ok := reflect.Select(cases)
+			to.Stop()
+			errC := vm.API_checkRun()
+			if errC != nil {
+				return 0, errC
+			}
+			if chosen == c-1 {
+				rb = true
+			}
+			if ok && value.IsValid() {
+				val = value.Interface()
+			}
+			vm.API_push(chosen)
+			vm.API_push(val)
+			vm.API_push(rb)
+			return 3, nil
+		} else {
+			return 0, fmt.Errorf("chan invalid (%v)", ch)
+		}
 	}
 }
 
@@ -283,7 +283,7 @@ func (this GOF_go_read) String() string {
 type GOF_go_select int
 
 func (this GOF_go_select) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -334,9 +334,14 @@ func doClose(o interface{}) bool {
 	}
 	switch ro := o.(type) {
 	case chan interface{}:
+		defer func() {
+			recover()
+		}()
 		close(ro)
+		return true
 	case *objectVMTable:
 		ro.p.Close(ro.o)
+		return true
 	}
 	return false
 }
@@ -346,7 +351,7 @@ func doClose(o interface{}) bool {
 type GOF_go_close int
 
 func (this GOF_go_close) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -357,7 +362,7 @@ func (this GOF_go_close) Exec(vm *VM, self interface{}) (int, error) {
 	if doClose(ch) {
 		return 0, nil
 	} else {
-		return 0, fmt.Errorf("invalid close object(%v)", ch)
+		return 0, fmt.Errorf("invalid close object(%T)", ch)
 	}
 }
 
@@ -374,7 +379,7 @@ func (this GOF_go_close) String() string {
 type GOF_go_enableSafe int
 
 func (this GOF_go_enableSafe) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -446,6 +451,10 @@ func (this GOF_go_sleep) Exec(vm *VM, self interface{}) (int, error) {
 		return 0, fmt.Errorf("invalid sleep time(%v)", tm)
 	}
 	time.Sleep(time.Duration(vtm) * time.Millisecond)
+	errC := vm.API_checkRun()
+	if errC != nil {
+		return 0, errC
+	}
 	return 0, nil
 }
 
@@ -461,7 +470,7 @@ func (this GOF_go_sleep) String() string {
 type GOF_go_timer int
 
 func (this GOF_go_timer) Exec(vm *VM, self interface{}) (int, error) {
-	err1 := vm.API_checkstack(2)
+	err1 := vm.API_checkStack(2)
 	if err1 != nil {
 		return 0, err1
 	}
@@ -476,20 +485,23 @@ func (this GOF_go_timer) Exec(vm *VM, self interface{}) (int, error) {
 	if !vm.API_canCall(f) {
 		return 0, fmt.Errorf("timer func(%T) can't call", f)
 	}
-	vm2, err3 := vm.Spawn("")
+	vm2, err3 := vm.gl.GetVM()
 	if err3 != nil {
 		return 0, err3
 	}
 	timer := time.AfterFunc(time.Duration(vtm)*time.Millisecond, func() {
-		if vm2.IsClosing() {
+		defer vm2.Finish()
+		vm2.ResetExecutionTime()
+		err0 := vm2.API_checkRun()
+		if err0 != nil {
+			logger.Debug(tag, "go.timer %s start fail - %s", vm2, err0)
 			return
 		}
 		vm2.API_push(f)
 		_, errX := vm2.Call(0, 0, nil)
 		if errX != nil {
-			logger.Debug(tag, "go.timer %s fail - %s", vm2, errX)
+			logger.Debug(tag, "go.timer %s call fail - %s", vm2, errX)
 		}
-		vm2.Destroy()
 	})
 	r := NewGOO(timer, gooTimer(0))
 	vm.API_push(r)
@@ -508,7 +520,7 @@ func (this GOF_go_timer) String() string {
 type GOF_go_ticker int
 
 func (this GOF_go_ticker) Exec(vm *VM, self interface{}) (int, error) {
-	err1 := vm.API_checkstack(2)
+	err1 := vm.API_checkStack(2)
 	if err1 != nil {
 		return 0, err1
 	}
@@ -521,28 +533,27 @@ func (this GOF_go_ticker) Exec(vm *VM, self interface{}) (int, error) {
 		return 0, fmt.Errorf("invalid timer time(%v)", tm)
 	}
 	if !vm.API_canCall(f) {
-		return 0, fmt.Errorf("timer func(%T) can't call", f)
+		return 0, fmt.Errorf("ticker func(%T) can't call", f)
 	}
-	vm2, err3 := vm.Spawn("")
-	if err3 != nil {
-		return 0, err3
-	}
+	gl := vm.GetGoLua()
 	ticker := time.NewTicker(time.Duration(vtm) * time.Millisecond)
 	go func() {
-		defer vm2.Destroy()
 		for {
 			_, ok := <-ticker.C
 			if !ok {
 				break
 			}
-			if vm2.IsClosing() {
-				break
+			vm2, err := gl.GetVM()
+			if err != nil {
+				logger.Debug(tag, "go.ticker %s start fail - %s", gl, err)
+				return
 			}
 			vm2.API_push(f)
 			_, errX := vm2.Call(0, 0, nil)
 			if errX != nil {
-				logger.Debug(tag, "go.ticker %s fail - %s", vm2, errX)
+				logger.Debug(tag, "go.ticker %s call fail - %s", vm2, errX)
 			}
+			vm2.Finish()
 		}
 	}()
 	r := NewGOO(ticker, gooTicker(0))
@@ -562,7 +573,7 @@ func (this GOF_go_ticker) String() string {
 type GOF_go_exec int
 
 func (this GOF_go_exec) Exec(vm *VM, self interface{}) (int, error) {
-	err1 := vm.API_checkstack(1)
+	err1 := vm.API_checkStack(1)
 	if err1 != nil {
 		return 0, err1
 	}
@@ -587,7 +598,7 @@ func (this GOF_go_exec) Exec(vm *VM, self interface{}) (int, error) {
 		}
 	}
 
-	gl := vm.vmg.gl
+	gl := vm.gl
 	vsn = gl.ParseScriptName(vm, vsn)
 
 	cc, err3 := gl.Load(vsn, true, nil)
@@ -614,7 +625,7 @@ func (this GOF_go_exec) String() string {
 type GOF_go_log int
 
 func (this GOF_go_log) Exec(vm *VM, self interface{}) (int, error) {
-	err1 := vm.API_checkstack(2)
+	err1 := vm.API_checkStack(2)
 	if err1 != nil {
 		return 0, err1
 	}

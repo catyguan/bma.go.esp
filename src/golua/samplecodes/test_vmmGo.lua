@@ -3,7 +3,7 @@ local vr
 -- local function f()
 -- 	print("run in go")
 -- end
--- go.run(f, "test")
+-- go.run(f)
 -- go.defer(function()
 -- 	print("run in defer")
 -- end)
@@ -11,21 +11,21 @@ local vr
 -- local ch = go.chan(1)
 -- go.defer(ch)
 -- local ch2 = go.chan(1)
--- go.deferClose(ch2)
+-- go.defer(ch2)
 
 -- go.write(ch2, 123)
 -- print(go.read([ch, ch2], 50))
 -- vr = go.read(ch, 50)
 -- go.close(ch)
 
--- local mux = go.mutex(true)
+local mux = go.mutex(true)
 -- mux:Lock()
 -- go.defer(mux)
 -- local rmux = mux:RLocker()
 -- rmux:Lock()
--- vr = rmux:Sync(function()
--- 	return 1
--- end)
+vr = mux.Sync(function()
+	return 1
+end)
 
 -- local timer = go.ticker(40, function()
 -- 	print("i'm in timer")
@@ -41,6 +41,6 @@ local vr
 -- print("pcall =>", v1, v2,"\n-------\n")
 -- error(v2)
 
-vr =  go.exec("s_add.lua", {_REQUEST=_REQUEST})
+-- vr =  go.exec("s_add.lua", {_REQUEST=_REQUEST})
 
 return vr

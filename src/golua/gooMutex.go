@@ -58,7 +58,7 @@ func (gooLocker) Get(vm *VM, o interface{}, key string) (interface{}, error) {
 		case "Sync":
 			return NewGOF("locker:Sync", func(vm *VM, self interface{}) (int, error) {
 				// o:Sync(f)
-				f, err0 := vm.API_pop1X(-1, false)
+				f, err0 := vm.API_pop1X(-1, true)
 				if err0 != nil {
 					return 0, err0
 				}

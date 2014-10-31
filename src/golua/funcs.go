@@ -85,7 +85,7 @@ func (this GOF_error) String() string {
 type GOF_setmetatable int
 
 func (this GOF_setmetatable) Exec(vm *VM, self interface{}) (int, error) {
-	err00 := vm.API_checkstack(2)
+	err00 := vm.API_checkStack(2)
 	if err00 != nil {
 		return 0, err00
 	}
@@ -125,7 +125,7 @@ func (this GOF_setmetatable) String() string {
 type GOF_getmetatable int
 
 func (this GOF_getmetatable) Exec(vm *VM, self interface{}) (int, error) {
-	err00 := vm.API_checkstack(1)
+	err00 := vm.API_checkStack(1)
 	if err00 != nil {
 		return 0, err00
 	}
@@ -158,7 +158,7 @@ func (this GOF_getmetatable) String() string {
 type GOF_rawget int
 
 func (this GOF_rawget) Exec(vm *VM, self interface{}) (int, error) {
-	err00 := vm.API_checkstack(2)
+	err00 := vm.API_checkStack(2)
 	if err00 != nil {
 		return 0, err00
 	}
@@ -196,7 +196,7 @@ func (this GOF_rawget) String() string {
 type GOF_rawset int
 
 func (this GOF_rawset) Exec(vm *VM, self interface{}) (int, error) {
-	err00 := vm.API_checkstack(2)
+	err00 := vm.API_checkStack(2)
 	if err00 != nil {
 		return 0, err00
 	}
@@ -290,10 +290,7 @@ func (this GOF_require) Exec(vm *VM, self interface{}) (int, error) {
 	if vn == "" {
 		return 0, fmt.Errorf("require script invalid(%v)", n)
 	}
-	if vm.vmg.gl == nil {
-		return 0, fmt.Errorf("VMG can't require")
-	}
-	err2 := vm.vmg.gl.Require(vm, vn)
+	err2 := vm.API_require(vn)
 	if err2 != nil {
 		return 0, err2
 	}
@@ -309,13 +306,13 @@ func (this GOF_require) String() string {
 }
 
 // core module
-func CoreModule(vmg *VMG) {
-	vmg.SetGlobal("print", GOF_print(0))
-	vmg.SetGlobal("error", GOF_error(0))
-	vmg.SetGlobal("setmetatable", GOF_setmetatable(0))
-	vmg.SetGlobal("getmetatable", GOF_getmetatable(0))
-	vmg.SetGlobal("rawget", GOF_rawget(0))
-	vmg.SetGlobal("rawset", GOF_rawset(0))
-	vmg.SetGlobal("pcall", GOF_pcall(0))
-	vmg.SetGlobal("require", GOF_require(0))
+func CoreModule(gl *GoLua) {
+	gl.SetGlobal("print", GOF_print(0))
+	gl.SetGlobal("error", GOF_error(0))
+	gl.SetGlobal("setmetatable", GOF_setmetatable(0))
+	gl.SetGlobal("getmetatable", GOF_getmetatable(0))
+	gl.SetGlobal("rawget", GOF_rawget(0))
+	gl.SetGlobal("rawset", GOF_rawset(0))
+	gl.SetGlobal("pcall", GOF_pcall(0))
+	gl.SetGlobal("require", GOF_require(0))
 }

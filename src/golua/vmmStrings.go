@@ -32,7 +32,7 @@ func StringsModule() *VMModule {
 type GOF_strings_contains int
 
 func (this GOF_strings_contains) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(2)
+	err0 := vm.API_checkStack(2)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -59,7 +59,7 @@ func (this GOF_strings_contains) String() string {
 type GOF_strings_hasPrefix int
 
 func (this GOF_strings_hasPrefix) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(2)
+	err0 := vm.API_checkStack(2)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -86,7 +86,7 @@ func (this GOF_strings_hasPrefix) String() string {
 type GOF_strings_hasSuffix int
 
 func (this GOF_strings_hasSuffix) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(2)
+	err0 := vm.API_checkStack(2)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -113,7 +113,7 @@ func (this GOF_strings_hasSuffix) String() string {
 type GOF_strings_index int
 
 func (this GOF_strings_index) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(2)
+	err0 := vm.API_checkStack(2)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -140,7 +140,7 @@ func (this GOF_strings_index) String() string {
 type GOF_strings_lastIndex int
 
 func (this GOF_strings_lastIndex) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(2)
+	err0 := vm.API_checkStack(2)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -167,7 +167,7 @@ func (this GOF_strings_lastIndex) String() string {
 type GOF_strings_replace int
 
 func (this GOF_strings_replace) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(3)
+	err0 := vm.API_checkStack(3)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -196,7 +196,7 @@ func (this GOF_strings_replace) String() string {
 type GOF_strings_split int
 
 func (this GOF_strings_split) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(2)
+	err0 := vm.API_checkStack(2)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -232,7 +232,7 @@ func (this GOF_strings_split) String() string {
 type GOF_strings_toLower int
 
 func (this GOF_strings_toLower) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -258,7 +258,7 @@ func (this GOF_strings_toLower) String() string {
 type GOF_strings_toUpper int
 
 func (this GOF_strings_toUpper) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -284,7 +284,7 @@ func (this GOF_strings_toUpper) String() string {
 type GOF_strings_trim int
 
 func (this GOF_strings_trim) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -316,7 +316,7 @@ func (this GOF_strings_trim) String() string {
 type GOF_strings_trimLeft int
 
 func (this GOF_strings_trimLeft) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -348,7 +348,7 @@ func (this GOF_strings_trimLeft) String() string {
 type GOF_strings_trimRight int
 
 func (this GOF_strings_trimRight) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -380,7 +380,7 @@ func (this GOF_strings_trimRight) String() string {
 type GOF_strings_trimPrefix int
 
 func (this GOF_strings_trimPrefix) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(2)
+	err0 := vm.API_checkStack(2)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -407,7 +407,7 @@ func (this GOF_strings_trimPrefix) String() string {
 type GOF_strings_trimSuffix int
 
 func (this GOF_strings_trimSuffix) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(2)
+	err0 := vm.API_checkStack(2)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -434,7 +434,7 @@ func (this GOF_strings_trimSuffix) String() string {
 type GOF_strings_substr int
 
 func (this GOF_strings_substr) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(2)
+	err0 := vm.API_checkStack(2)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -472,7 +472,7 @@ func (this GOF_strings_substr) String() string {
 type GOF_strings_format int
 
 func (this GOF_strings_format) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}

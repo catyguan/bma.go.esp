@@ -20,7 +20,7 @@ func TableModule() *VMModule {
 type GOF_table_concat int
 
 func (this GOF_table_concat) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -64,7 +64,7 @@ func (this GOF_table_concat) String() string {
 type GOF_table_insert int
 
 func (this GOF_table_insert) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(2)
+	err0 := vm.API_checkStack(2)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -107,7 +107,7 @@ func (this GOF_table_insert) String() string {
 type GOF_table_remove int
 
 func (this GOF_table_remove) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(2)
+	err0 := vm.API_checkStack(2)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -155,7 +155,7 @@ func (this GOF_table_remove) String() string {
 type GOF_table_subtable int
 
 func (this GOF_table_subtable) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(2)
+	err0 := vm.API_checkStack(2)
 	if err0 != nil {
 		return 0, err0
 	}
