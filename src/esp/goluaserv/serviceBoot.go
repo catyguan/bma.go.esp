@@ -10,10 +10,14 @@ import (
 )
 
 type serviceConfigInfo struct {
-	GoLua map[string]*goluaConfigInfo
+	PoolSize int
+	GoLua    map[string]*goluaConfigInfo
 }
 
 func (this *serviceConfigInfo) Valid() error {
+	if this.PoolSize <= 0 {
+		this.PoolSize = 16
+	}
 	for k, glcfg := range this.GoLua {
 		err := glcfg.Valid()
 		if err != nil {
@@ -148,7 +152,7 @@ func (this *Service) _create(k string, glcfg *goluaConfigInfo) bool {
 		logger.Error(tag, "create ScriptSource[%s, %s] fail %s", k, glcfg.FL, err0)
 		return false
 	}
-	gl := golua.NewGoLua(k, ss, this.vmgInit, glcfg.VM)
+	gl := golua.NewGoLua(k, this.config.PoolSize, ss, this.glInit, glcfg.VM)
 	this.gl[k] = gl
 
 	go func() {

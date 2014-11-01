@@ -8,7 +8,7 @@ local vr
 -- 	print("run in defer")
 -- end)
 
--- local ch = go.chan(1)
+local ch = go.chan(1, true)
 -- go.defer(ch)
 -- local ch2 = go.chan(1)
 -- go.defer(ch2)
@@ -18,19 +18,18 @@ local vr
 -- vr = go.read(ch, 50)
 -- go.close(ch)
 
-local mux = go.mutex(true)
+-- local mux = go.mutex(true)
 -- mux:Lock()
 -- go.defer(mux)
 -- local rmux = mux:RLocker()
 -- rmux:Lock()
-vr = mux.Sync(function()
-	return 1
-end)
+-- vr = mux.Sync(function()
+-- 	return 1
+-- end)
 
 -- local timer = go.ticker(40, function()
 -- 	print("i'm in timer")
 -- end)
--- go.defer(timer)
 -- go.sleep(100)
 
 -- local v1, v2

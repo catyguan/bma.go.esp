@@ -39,8 +39,8 @@ func main() {
 	fl := fileloader.NewService("fileloader")
 	boot.AddService(fl)
 
-	service := goluaserv.NewService("goluaServ", func(vmg *golua.VMG) {
-		myInitor(vmg, acclog)
+	service := goluaserv.NewService("goluaServ", func(gl *golua.GoLua) {
+		myInitor(gl, acclog)
 	})
 	boot.AddService(service)
 
@@ -67,16 +67,17 @@ func main() {
 	boot.Go(cfile)
 }
 
-func myInitor(vmg *golua.VMG, acclog *acclog.Service) {
-	golua.CoreModule(vmg)
-	golua.GoModule().Bind(vmg)
-	golua.TypesModule().Bind(vmg)
-	golua.TableModule().Bind(vmg)
-	golua.StringsModule().Bind(vmg)
-	golua.TimeModule().Bind(vmg)
-	vmmhttp.HttpServModule().Bind(vmg)
-	vmmhttp.HttpClientModule(acclog, "httpclient").Bind(vmg)
-	vmmacclog.Module().Bind(vmg)
-	vmmjson.Module().Bind(vmg)
-	vmmsql.Module().Bind(vmg)
+func myInitor(gl *golua.GoLua, acclog *acclog.Service) {
+	golua.CoreModule(gl)
+	golua.GoModule().Bind(gl)
+	golua.TypesModule().Bind(gl)
+	golua.TableModule().Bind(gl)
+	golua.StringsModule().Bind(gl)
+	golua.TimeModule().Bind(gl)
+	golua.ConfigModule().Bind(gl)
+	vmmhttp.HttpServModule().Bind(gl)
+	vmmhttp.HttpClientModule(acclog, "httpclient").Bind(gl)
+	vmmacclog.Module().Bind(gl)
+	vmmjson.Module().Bind(gl)
+	vmmsql.Module().Bind(gl)
 }

@@ -134,12 +134,12 @@ func (this *VM) Finish() {
 	}
 
 	st := this.stack
-	for st != nil {
+	for st.parent != nil {
 		p := st.parent
 		st.clear()
 		st = p
 	}
-	this.stack = nil
+	this.stack = st
 	for i := 0; i < len(this.sdata); i++ {
 		this.sdata[i] = nil
 	}
@@ -149,6 +149,7 @@ func (this *VM) Finish() {
 
 func (this *VM) Destroy() {
 	logger.Debug(tag, "%s destoryed", this)
+	this.stack = nil
 	this.sdata = nil
 }
 

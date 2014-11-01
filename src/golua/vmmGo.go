@@ -27,6 +27,9 @@ func GoModule() *VMModule {
 	m.Init("debug", GOF_go_log(logger.LEVEL_DEBUG))
 	m.Init("info", GOF_go_log(logger.LEVEL_INFO))
 	m.Init("warn", GOF_go_log(logger.LEVEL_WARN))
+	m.Init("setGlobal", GOF_go_setGlobal(0))
+	m.Init("getGlobal", GOF_go_getGlobal(0))
+	m.Init("new", GOF_go_new(0))
 	return m
 }
 
@@ -126,7 +129,7 @@ func (this GOF_go_cleanDefer) String() string {
 	return "GoFunc<go.cleanDefer>"
 }
 
-// go.chan(sz)
+// go.chan(sz[, closeOnShutdown:bool])
 type GOF_go_chan int
 
 func (this GOF_go_chan) Exec(vm *VM, self interface{}) (int, error) {
@@ -134,16 +137,22 @@ func (this GOF_go_chan) Exec(vm *VM, self interface{}) (int, error) {
 	if err0 != nil {
 		return 0, err0
 	}
-	sz, err2 := vm.API_pop1X(-1, true)
+	sz, cos, err2 := vm.API_pop2X(-1, true)
 	if err2 != nil {
 		return 0, err2
 	}
 	vsz := valutil.ToInt(sz, 0)
+	vcos := valutil.ToBool(cos, false)
 	if vsz <= 0 {
 		return 0, fmt.Errorf("size invalid (%v)", sz)
 	}
 	ch := make(chan interface{}, vsz)
 	vm.API_push(ch)
+	if vcos {
+		vm.GetGoLua().CreateGoService("chan", ch, func() {
+			doClose(ch)
+		})
+	}
 	return 1, nil
 }
 
@@ -322,6 +331,8 @@ func canClose(o interface{}) bool {
 	switch ro := o.(type) {
 	case chan interface{}:
 		return true
+	case SupportClose:
+		return true
 	case *objectVMTable:
 		return ro.p.CanClose()
 	}
@@ -338,6 +349,9 @@ func doClose(o interface{}) bool {
 			recover()
 		}()
 		close(ro)
+		return true
+	case SupportClose:
+		ro.Close()
 		return true
 	case *objectVMTable:
 		ro.p.Close(ro.o)
@@ -485,25 +499,23 @@ func (this GOF_go_timer) Exec(vm *VM, self interface{}) (int, error) {
 	if !vm.API_canCall(f) {
 		return 0, fmt.Errorf("timer func(%T) can't call", f)
 	}
-	vm2, err3 := vm.gl.GetVM()
-	if err3 != nil {
-		return 0, err3
-	}
+	gos := vm.GetGoLua().CreateGoService("timer", nil, nil)
 	timer := time.AfterFunc(time.Duration(vtm)*time.Millisecond, func() {
-		defer vm2.Finish()
-		vm2.ResetExecutionTime()
-		err0 := vm2.API_checkRun()
-		if err0 != nil {
-			logger.Debug(tag, "go.timer %s start fail - %s", vm2, err0)
+		gos.Close()
+		vm2, err3 := gos.GL.GetVM()
+		if err3 != nil {
+			logger.Debug(tag, "go.timer start fail - %s", err3)
 			return
 		}
+		defer vm2.Finish()
+
 		vm2.API_push(f)
 		_, errX := vm2.Call(0, 0, nil)
 		if errX != nil {
 			logger.Debug(tag, "go.timer %s call fail - %s", vm2, errX)
 		}
 	})
-	r := NewGOO(timer, gooTimer(0))
+	r := CreateGoTimer(timer, gos)
 	vm.API_push(r)
 	return 1, nil
 }
@@ -535,7 +547,7 @@ func (this GOF_go_ticker) Exec(vm *VM, self interface{}) (int, error) {
 	if !vm.API_canCall(f) {
 		return 0, fmt.Errorf("ticker func(%T) can't call", f)
 	}
-	gl := vm.GetGoLua()
+	gos := vm.GetGoLua().CreateGoService("ticker", nil, nil)
 	ticker := time.NewTicker(time.Duration(vtm) * time.Millisecond)
 	go func() {
 		for {
@@ -543,9 +555,9 @@ func (this GOF_go_ticker) Exec(vm *VM, self interface{}) (int, error) {
 			if !ok {
 				break
 			}
-			vm2, err := gl.GetVM()
+			vm2, err := gos.GL.GetVM()
 			if err != nil {
-				logger.Debug(tag, "go.ticker %s start fail - %s", gl, err)
+				logger.Debug(tag, "go.ticker start fail - %s", err)
 				return
 			}
 			vm2.API_push(f)
@@ -556,7 +568,7 @@ func (this GOF_go_ticker) Exec(vm *VM, self interface{}) (int, error) {
 			vm2.Finish()
 		}
 	}()
-	r := NewGOO(ticker, gooTicker(0))
+	r := CreateGoTicker(ticker, gos)
 	vm.API_push(r)
 	return 1, nil
 }
@@ -655,4 +667,84 @@ func (this GOF_go_log) IsNative() bool {
 
 func (this GOF_go_log) String() string {
 	return "GoFunc<go.log>"
+}
+
+// go.setGlobal(n, v)
+type GOF_go_setGlobal int
+
+func (this GOF_go_setGlobal) Exec(vm *VM, self interface{}) (int, error) {
+	err0 := vm.API_checkStack(2)
+	if err0 != nil {
+		return 0, err0
+	}
+	n, v, err2 := vm.API_pop2X(-1, true)
+	if err2 != nil {
+		return 0, err2
+	}
+	vn := valutil.ToString(n, "")
+	vm.API_setglobal(vn, v)
+	return 0, nil
+}
+
+func (this GOF_go_setGlobal) IsNative() bool {
+	return true
+}
+
+func (this GOF_go_setGlobal) String() string {
+	return "GoFunc<go.setGlobal>"
+}
+
+// go.getGlobal(n)
+type GOF_go_getGlobal int
+
+func (this GOF_go_getGlobal) Exec(vm *VM, self interface{}) (int, error) {
+	err0 := vm.API_checkStack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	n, err2 := vm.API_pop1X(-1, true)
+	if err2 != nil {
+		return 0, err2
+	}
+	vn := valutil.ToString(n, "")
+	v, _ := vm.API_getglobal(vn)
+	vm.API_push(v)
+	return 1, nil
+}
+
+func (this GOF_go_getGlobal) IsNative() bool {
+	return true
+}
+
+func (this GOF_go_getGlobal) String() string {
+	return "GoFunc<go.getGlobal>"
+}
+
+// go.new(n)
+type GOF_go_new int
+
+func (this GOF_go_new) Exec(vm *VM, self interface{}) (int, error) {
+	err0 := vm.API_checkStack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	n, err2 := vm.API_pop1X(-1, true)
+	if err2 != nil {
+		return 0, err2
+	}
+	vn := valutil.ToString(n, "")
+	o, err3 := vm.API_newObject(vn)
+	if err3 != nil {
+		return 0, err3
+	}
+	vm.API_push(o)
+	return 1, nil
+}
+
+func (this GOF_go_new) IsNative() bool {
+	return true
+}
+
+func (this GOF_go_new) String() string {
+	return "GoFunc<go.new>"
 }

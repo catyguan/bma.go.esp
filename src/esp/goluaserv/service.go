@@ -11,18 +11,18 @@ const (
 )
 
 type Service struct {
-	name    string
-	config  *serviceConfigInfo
-	vmgInit golua.VMGInitor
+	name   string
+	config *serviceConfigInfo
+	glInit golua.GoLuaInitor
 
 	lock sync.RWMutex
 	gl   map[string]*golua.GoLua
 }
 
-func NewService(n string, initor golua.VMGInitor) *Service {
+func NewService(n string, initor golua.GoLuaInitor) *Service {
 	r := new(Service)
 	r.name = n
-	r.vmgInit = initor
+	r.glInit = initor
 	r.gl = make(map[string]*golua.GoLua)
 	return r
 }

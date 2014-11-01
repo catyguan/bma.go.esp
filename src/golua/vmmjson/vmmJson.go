@@ -19,7 +19,7 @@ func Module() *golua.VMModule {
 type GOF_json_encode int
 
 func (this GOF_json_encode) Exec(vm *golua.VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -48,7 +48,7 @@ func (this GOF_json_encode) String() string {
 type GOF_json_decode int
 
 func (this GOF_json_decode) Exec(vm *golua.VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}

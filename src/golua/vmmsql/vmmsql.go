@@ -23,7 +23,7 @@ func NewDBObject(db *sql.DB) golua.VMTable {
 type GOF_sql_open int
 
 func (this GOF_sql_open) Exec(vm *golua.VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(2)
+	err0 := vm.API_checkStack(2)
 	if err0 != nil {
 		return 0, err0
 	}

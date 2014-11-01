@@ -22,15 +22,25 @@ type GoLua struct {
 
 	vmpool chan *VM
 
-	globalMutex sync.RWMutex
-	globals     map[string]interface{}
+	globalMutex  sync.RWMutex
+	globals      map[string]interface{}
+	configMutex  sync.RWMutex
+	configs      map[string]interface{}
+	serviceMutex sync.RWMutex
+	services     map[string]interface{}
+	sid          uint32
+
+	ofMap map[string]GoObjectFactory
 }
 
 func NewGoLua(n string, poolSize int, ss fileloader.FileLoader, init GoLuaInitor, cfg *VMConfig) *GoLua {
 	r := new(GoLua)
 	r.name = n
 	r.vmpool = make(chan *VM, poolSize)
+	r.configs = make(map[string]interface{})
 	r.globals = make(map[string]interface{})
+	r.services = make(map[string]interface{})
+
 	r.ss = ss
 	init(r)
 	r.cfg = cfg
@@ -53,6 +63,17 @@ func (this *GoLua) Close() {
 		}
 	}()
 	close(this.vmpool)
+
+	this.serviceMutex.Lock()
+	tmp := this.services
+	this.services = make(map[string]interface{})
+	this.serviceMutex.Unlock()
+
+	for k, o := range tmp {
+		if doClose(o) {
+			logger.Debug(tag, "%s shutdown service '%s'", this, k)
+		}
+	}
 }
 
 func (this *GoLua) String() string {

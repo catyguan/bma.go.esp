@@ -20,7 +20,7 @@ func (this GOF_acclog_log) Exec(vm *golua.VM, self interface{}) (int, error) {
 	if ctx != nil {
 		adt, ok := acclog.AcclogDataFromContext(ctx)
 		if ok {
-			err0 := vm.API_checkstack(2)
+			err0 := vm.API_checkStack(2)
 			if err0 != nil {
 				return 0, err0
 			}

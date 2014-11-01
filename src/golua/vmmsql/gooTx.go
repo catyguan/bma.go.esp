@@ -33,7 +33,7 @@ func (gooTx) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 			}), nil
 		case "Stmt":
 			return golua.NewGOF("Tx.Stmt", func(vm *golua.VM, self interface{}) (int, error) {
-				err0 := vm.API_checkstack(1)
+				err0 := vm.API_checkStack(1)
 				if err0 != nil {
 					return 0, err0
 				}
@@ -62,7 +62,7 @@ func (gooTx) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 			}), nil
 		case "Exec":
 			return golua.NewGOF("Tx.Exec", func(vm *golua.VM, self interface{}) (int, error) {
-				err0 := vm.API_checkstack(1)
+				err0 := vm.API_checkStack(1)
 				if err0 != nil {
 					return 0, err0
 				}
@@ -88,7 +88,7 @@ func (gooTx) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 			}), nil
 		case "ExecLastId":
 			return golua.NewGOF("Tx.ExecLastId", func(vm *golua.VM, self interface{}) (int, error) {
-				err0 := vm.API_checkstack(1)
+				err0 := vm.API_checkStack(1)
 				if err0 != nil {
 					return 0, err0
 				}
@@ -123,7 +123,7 @@ func (gooTx) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 			}), nil
 		case "Prepare":
 			return golua.NewGOF("Tx.Prepare", func(vm *golua.VM, self interface{}) (int, error) {
-				err0 := vm.API_checkstack(1)
+				err0 := vm.API_checkStack(1)
 				if err0 != nil {
 					return 0, err0
 				}
@@ -149,7 +149,7 @@ func (gooTx) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 			}), nil
 		case "Query":
 			return golua.NewGOF("Tx.Query", func(vm *golua.VM, self interface{}) (int, error) {
-				err0 := vm.API_checkstack(1)
+				err0 := vm.API_checkStack(1)
 				if err0 != nil {
 					return 0, err0
 				}

@@ -521,3 +521,7 @@ func (this *VM) API_cleanDefer(f interface{}) error {
 func (this *VM) API_require(n string) error {
 	return this.gl.Require(this, n)
 }
+
+func (this *VM) API_newObject(n string) (interface{}, error) {
+	return this.gl.NewObject(n)
+}

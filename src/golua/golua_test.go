@@ -25,7 +25,10 @@ func TestExecute(t *testing.T) {
 			GoModule().Bind(gl)
 			TypesModule().Bind(gl)
 		}, nil)
-		defer golua.Close()
+		defer func() {
+			golua.Close()
+			time.Sleep(100 * time.Millisecond)
+		}()
 
 		trace := false
 		// f := "/s_add.lua"

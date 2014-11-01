@@ -6,10 +6,20 @@ import (
 	"time"
 )
 
+func CreateGoTimer(tm *time.Timer, gos *GoService) VMTable {
+	gos.CloseFunc = func() {
+		tm.Stop()
+	}
+	gos.Data = tm
+	goo := NewGOO(gos, gooTimer(0))
+	return goo
+}
+
 type gooTimer int
 
 func (gooTimer) Get(vm *VM, o interface{}, key string) (interface{}, error) {
-	if obj, ok := o.(*time.Timer); ok {
+	if gos, ok := o.(*GoService); ok {
+		obj := gos.Data.(*time.Timer)
 		switch key {
 		case "Reset":
 			return NewGOF("timer.Reset", func(vm *VM, self interface{}) (int, error) {
@@ -31,7 +41,7 @@ func (gooTimer) Get(vm *VM, o interface{}, key string) (interface{}, error) {
 			}), nil
 		case "Stop":
 			return NewGOF("timer.Stop", func(vm *VM, self interface{}) (int, error) {
-				obj.Stop()
+				gos.Close()
 				return 0, nil
 			}), nil
 		}
@@ -49,23 +59,33 @@ func (gooTimer) ToMap(o interface{}) map[string]interface{} {
 }
 
 func (gooTimer) CanClose() bool {
-	return true
+	return false
 }
 
 func (gooTimer) Close(o interface{}) {
-	if obj, ok := o.(*time.Timer); ok {
-		obj.Stop()
+}
+
+//////////////////////////// Ticker
+func CreateGoTicker(tm *time.Ticker, gos *GoService) VMTable {
+	gos.CloseFunc = func() {
+		tm.Stop()
 	}
+	gos.Data = tm
+	goo := NewGOO(gos, gooTicker(0))
+	return goo
 }
 
 type gooTicker int
 
 func (gooTicker) Get(vm *VM, o interface{}, key string) (interface{}, error) {
-	if obj, ok := o.(*time.Ticker); ok {
+	if gos, ok := o.(*GoService); ok {
+		obj := gos.Data.(*time.Ticker)
 		switch key {
 		case "Stop":
 			return NewGOF("timer:Stop", func(vm *VM, self interface{}) (int, error) {
-				obj.Stop()
+				if obj != nil {
+					gos.Close()
+				}
 				return 0, nil
 			}), nil
 		}
@@ -83,11 +103,8 @@ func (gooTicker) ToMap(o interface{}) map[string]interface{} {
 }
 
 func (gooTicker) CanClose() bool {
-	return true
+	return false
 }
 
 func (gooTicker) Close(o interface{}) {
-	if obj, ok := o.(*time.Ticker); ok {
-		obj.Stop()
-	}
 }

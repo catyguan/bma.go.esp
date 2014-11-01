@@ -100,7 +100,7 @@ func doQuery(vm *golua.VM, n string) (interface{}, error) {
 type GOF_httpserv_query int
 
 func (this GOF_httpserv_query) Exec(vm *golua.VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -132,7 +132,7 @@ func (this GOF_httpserv_query) String() string {
 type GOF_httpserv_formValue int
 
 func (this GOF_httpserv_formValue) Exec(vm *golua.VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -215,7 +215,7 @@ func respWriter(vm *golua.VM) (http.ResponseWriter, error) {
 type GOF_httpserv_writeHeader int
 
 func (this GOF_httpserv_writeHeader) Exec(vm *golua.VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -307,7 +307,7 @@ func (this GOF_httpserv_setHeader) String() string {
 type GOF_httpserv_write int
 
 func (this GOF_httpserv_write) Exec(vm *golua.VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -343,7 +343,7 @@ func (this GOF_httpserv_write) String() string {
 type GOF_httpserv_setContentType int
 
 func (this GOF_httpserv_setContentType) Exec(vm *golua.VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -374,7 +374,7 @@ func (this GOF_httpserv_setContentType) String() string {
 type GOF_httpserv_setContentFile int
 
 func (this GOF_httpserv_setContentFile) Exec(vm *golua.VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -406,7 +406,7 @@ func (this GOF_httpserv_setContentFile) String() string {
 type GOF_httpserv_formFile int
 
 func (this GOF_httpserv_formFile) Exec(vm *golua.VM, self interface{}) (int, error) {
-	err0 := vm.API_checkstack(1)
+	err0 := vm.API_checkStack(1)
 	if err0 != nil {
 		return 0, err0
 	}
@@ -462,7 +462,7 @@ func (this GOF_httpserv_formFile) String() string {
 type GOF_httpserv_render int
 
 func (this GOF_httpserv_render) Exec(vm *golua.VM, self interface{}) (int, error) {
-	err1 := vm.API_checkstack(1)
+	err1 := vm.API_checkStack(1)
 	if err1 != nil {
 		return 0, err1
 	}

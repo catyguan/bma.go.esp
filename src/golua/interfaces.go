@@ -18,6 +18,8 @@ type GoObject interface {
 	Close(o interface{})
 }
 
+type GoObjectFactory func(n string) (interface{}, error)
+
 type GoLuaInitor func(golua *GoLua)
 
 type supportFuncName interface {
@@ -137,3 +139,7 @@ const (
 )
 
 type ScriptPreprocess func(content string) (string, error)
+
+type SupportClose interface {
+	Close()
+}

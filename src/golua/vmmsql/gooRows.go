@@ -14,7 +14,7 @@ func (gooRows) Get(vm *golua.VM, o interface{}, key string) (interface{}, error)
 		switch key {
 		case "Fetch":
 			return golua.NewGOF("Rows.Fetch", func(vm *golua.VM, self interface{}) (int, error) {
-				errX := vm.API_checkstack(1)
+				errX := vm.API_checkStack(1)
 				if errX != nil {
 					return 0, errX
 				}
