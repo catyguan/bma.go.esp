@@ -31,7 +31,7 @@ func (this *configApp) Valid() error {
 		this.IndexName = "index"
 	}
 	if this.Script == "" {
-		this.Script = "main.lua"
+		this.Script = "httpmain.lua"
 	}
 	if this.TimeoutMS <= 0 {
 		this.TimeoutMS = 30 * 1000

@@ -22,7 +22,30 @@ func (this *GoLua) ResetCodes() {
 	}
 }
 
-func (this *GoLua) Load(script string, save bool, spp ScriptPreprocess) (*ChunkCode, error) {
+func (this *GoLua) FileLoad(vm *VM, fn string) ([]byte, error) {
+	fn = this.ParseScriptName(vm, fn)
+	bs, err := this.ss.Load(fn)
+	if err != nil {
+		err0 := fmt.Errorf("fileLoad '%s' fail - %s", fn, err)
+		logger.Debug(tag, "%s: %s", this, err0)
+		return nil, err0
+	}
+	return bs, nil
+}
+
+func (this *GoLua) ChunkLoad(vm *VM, script string, save bool, spp ScriptPreprocess) (*ChunkCode, error) {
+	n := this.ParseScriptName(vm, script)
+	var cc *ChunkCode
+	this.codeMutex.RLock()
+	cc = this.codes[script]
+	this.codeMutex.RUnlock()
+	if cc == nil {
+		return this.compile(n, save, spp)
+	}
+	return cc, nil
+}
+
+func (this *GoLua) compile(script string, save bool, spp ScriptPreprocess) (*ChunkCode, error) {
 	// compile
 	bs, err := this.ss.Load(script)
 	if err != nil {
@@ -103,7 +126,7 @@ func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
 
 	if cc == nil {
 		var err2 error
-		cc, err2 = this.Load(script, true, nil)
+		cc, err2 = this.compile(script, true, nil)
 		if err2 != nil {
 			return nil, err2
 		}
@@ -187,7 +210,7 @@ func (this *GoLua) Require(pvm *VM, n string) error {
 	}
 
 	var err2 error
-	cc, err2 = this.Load(n, true, nil)
+	cc, err2 = this.compile(n, true, nil)
 	if err2 != nil {
 		return err2
 	}

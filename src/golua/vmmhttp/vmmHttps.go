@@ -34,6 +34,7 @@ func HttpServModule() *golua.VMModule {
 	m.Init("setContentFile", GOF_httpserv_setContentFile(0))
 	m.Init("write", GOF_httpserv_write(0))
 	m.Init("render", GOF_httpserv_render(0))
+	m.Init("writeFile", GOF_httpserv_writeFile(0))
 	return m
 }
 
@@ -480,9 +481,7 @@ func (this GOF_httpserv_render) Exec(vm *golua.VM, self interface{}) (int, error
 	}
 
 	gl := vm.GetGoLua()
-	vsn = gl.ParseScriptName(vm, vsn)
-
-	cc, err3 := gl.Load(vsn, true, RenderScriptPreprocess)
+	cc, err3 := gl.ChunkLoad(vm, vsn, true, RenderScriptPreprocess)
 	if err3 != nil {
 		return 0, err3
 	}
@@ -500,4 +499,49 @@ func (this GOF_httpserv_render) IsNative() bool {
 
 func (this GOF_httpserv_render) String() string {
 	return "GoFunc<httpserv.render>"
+}
+
+// httpserv.writeFile(fileName:string)
+type GOF_httpserv_writeFile int
+
+func (this GOF_httpserv_writeFile) Exec(vm *golua.VM, self interface{}) (int, error) {
+	err1 := vm.API_checkStack(1)
+	if err1 != nil {
+		return 0, err1
+	}
+	n, err2 := vm.API_pop1X(-1, true)
+	if err2 != nil {
+		return 0, err2
+	}
+	vn := valutil.ToString(n, "")
+	if vn == "" {
+		return 0, fmt.Errorf("invalid FileName(%v)", n)
+	}
+
+	gl := vm.GetGoLua()
+	bs, err3 := gl.FileLoad(vm, vn)
+	if err3 != nil {
+		return 0, err3
+	}
+
+	w, err4 := respWriter(vm)
+	if err4 != nil {
+		return 0, err4
+	}
+
+	if bs != nil {
+		w.Write(bs)
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(http.StatusText(http.StatusNotFound)))
+	}
+	return 0, nil
+}
+
+func (this GOF_httpserv_writeFile) IsNative() bool {
+	return true
+}
+
+func (this GOF_httpserv_writeFile) String() string {
+	return "GoFunc<httpserv.writeFile>"
 }

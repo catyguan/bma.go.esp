@@ -316,3 +316,14 @@ func CoreModule(gl *GoLua) {
 	gl.SetGlobal("pcall", GOF_pcall(0))
 	gl.SetGlobal("require", GOF_require(0))
 }
+
+func InitCoreLibs(gl *GoLua) {
+	CoreModule(gl)
+	GoModule().Bind(gl)
+	TypesModule().Bind(gl)
+	TableModule().Bind(gl)
+	StringsModule().Bind(gl)
+	TimeModule().Bind(gl)
+	ConfigModule().Bind(gl)
+	FilePathModule().Bind(gl)
+}

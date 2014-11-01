@@ -68,13 +68,7 @@ func main() {
 }
 
 func myInitor(gl *golua.GoLua, acclog *acclog.Service) {
-	golua.CoreModule(gl)
-	golua.GoModule().Bind(gl)
-	golua.TypesModule().Bind(gl)
-	golua.TableModule().Bind(gl)
-	golua.StringsModule().Bind(gl)
-	golua.TimeModule().Bind(gl)
-	golua.ConfigModule().Bind(gl)
+	golua.InitCoreLibs(gl)
 	vmmhttp.HttpServModule().Bind(gl)
 	vmmhttp.HttpClientModule(acclog, "httpclient").Bind(gl)
 	vmmacclog.Module().Bind(gl)
