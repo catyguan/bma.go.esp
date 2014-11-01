@@ -15,7 +15,7 @@ import (
 )
 
 func safeCall() {
-	time.AfterFunc(1*time.Second, func() {
+	time.AfterFunc(3*time.Second, func() {
 		fmt.Println("os exit!!!")
 		os.Exit(-1)
 	})
@@ -26,22 +26,23 @@ func TestSQL(t *testing.T) {
 		runtime.GOMAXPROCS(5)
 		safeCall()
 
+		doSmartDB()
+
 		data := make(map[string]interface{})
 
 		dirs := []string{"../samplecodes/"}
 		sr := new(fileloader.FileFileLoader)
 		sr.Dirs = dirs
 
-		gl := golua.NewGoLua("test", sr, func(vmg *golua.VMG) {
-			golua.CoreModule(vmg)
-			golua.GoModule().Bind(vmg)
-			golua.TypesModule().Bind(vmg)
-			Module().Bind(vmg)
+		gl := golua.NewGoLua("test", 8, sr, func(gl *golua.GoLua) {
+			golua.InitCoreLibs(gl)
+			InitGoLua(gl)
 		}, nil)
 		defer gl.Close()
 
 		trace := false
-		f := "test_vmmSQL.lua"
+		// f := "test_vmmSQL.lua"
+		f := "test_SmartDB.lua"
 
 		req := golua.NewRequestInfo()
 		req.Script = f

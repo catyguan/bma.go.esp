@@ -4,6 +4,7 @@ import (
 	"fileloader"
 	"fmt"
 	"logger"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -40,6 +41,7 @@ func NewGoLua(n string, poolSize int, ss fileloader.FileLoader, init GoLuaInitor
 	r.configs = make(map[string]interface{})
 	r.globals = make(map[string]interface{})
 	r.services = make(map[string]interface{})
+	r.ofMap = make(map[string]GoObjectFactory)
 
 	r.ss = ss
 	init(r)
@@ -71,7 +73,14 @@ func (this *GoLua) Close() {
 
 	for k, o := range tmp {
 		if doClose(o) {
-			logger.Debug(tag, "%s shutdown service '%s'", this, k)
+			if logger.EnableDebug(tag) {
+				s := k
+				idx := strings.Index(s, "!!")
+				if idx != -1 {
+					s = s[:idx] + "..."
+				}
+				logger.Debug(tag, "%s shutdown service '%s'", this, s)
+			}
 		}
 	}
 }

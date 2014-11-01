@@ -1,19 +1,16 @@
 local vr
 
 local db = sql.open("mysql", "root:root@tcp(172.19.16.195:3306)/test_db")
-go.defer(function()
-	closure(db)
-	db:Close()
-end)
+-- db2 = sql.open("mysql", "root:root@tcp(172.19.16.195:3306)/test_db")
 -- sql.open("sqlite3","test.db")
-db:Ping()
+db.Ping()
 
-local rs = db:Query("select * from test4")
+local rs = db.Query("select * from test4")
 -- go.defer(rs)
 
 local data
 local desc = {id="int",dt="time"}
-while rs:Fetch(data, desc) do
+while rs.Fetch(data, desc) do
 	print(data)
 	print(types.name(data["id"]))
 end

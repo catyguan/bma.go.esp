@@ -79,6 +79,28 @@ func (this *GoLua) AddService(title string, v interface{}) string {
 	}
 }
 
+func (this *GoLua) SingletonService(n string, creator func() (interface{}, error)) (interface{}, error) {
+	this.serviceMutex.RLock()
+	o, ok := this.services[n]
+	this.serviceMutex.RUnlock()
+	if ok {
+		return o, nil
+	}
+	this.serviceMutex.Lock()
+	defer this.serviceMutex.Unlock()
+	o, ok = this.services[n]
+	if ok {
+		return o, nil
+	}
+	var err error
+	o, err = creator()
+	if err != nil {
+		return nil, err
+	}
+	this.services[n] = o
+	return o, nil
+}
+
 func (this *GoLua) RemoveService(id string) bool {
 	this.serviceMutex.Lock()
 	_, ok := this.services[id]
@@ -107,6 +129,7 @@ type GoService struct {
 	SID       string
 	CloseFunc func()
 	Data      interface{}
+	Attr      interface{}
 }
 
 func (this *GoService) Close() {

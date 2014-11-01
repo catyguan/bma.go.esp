@@ -7,10 +7,18 @@ import (
 	"golua"
 )
 
+func NewDBObject(vm *golua.VM, db *sql.DB) golua.VMTable {
+	gos := vm.GetGoLua().CreateGoService("db", db, func() {
+		db.Close()
+	})
+	return golua.NewGOO(gos, gooDB(0))
+}
+
 type gooDB int
 
 func (gooDB) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
-	if obj, ok := o.(*sql.DB); ok {
+	if gos, ok := o.(*golua.GoService); ok {
+		obj := gos.Data.(*sql.DB)
 		switch key {
 		case "Begin":
 			return golua.NewGOF("DB.Begin", func(vm *golua.VM, self interface{}) (int, error) {
@@ -30,7 +38,7 @@ func (gooDB) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 		case "Close":
 			return golua.NewGOF("DB.Close", func(vm *golua.VM, self interface{}) (int, error) {
 				vm.API_popAll()
-				obj.Close()
+				gos.Close()
 				return 0, nil
 			}), nil
 		case "Exec":
