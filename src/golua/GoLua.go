@@ -124,6 +124,7 @@ func (this *GoLua) GetVM() (*VM, error) {
 	case vm := <-this.vmpool:
 		if vm != nil {
 			logger.Debug(tag, "%s leave pool", vm)
+			vm.ResetExecutionTime()
 			return vm, nil
 		}
 	default:
