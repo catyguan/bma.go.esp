@@ -1,6 +1,7 @@
 package golua
 
 import (
+	"config"
 	"context"
 	"fileloader"
 	"fmt"
@@ -14,6 +15,8 @@ func TestExecute(t *testing.T) {
 		runtime.GOMAXPROCS(5)
 		safeCall()
 
+		config.InitGlobalConfig("../../bin/config/glserver-config.json")
+
 		data := make(map[string]interface{})
 
 		dirs := []string{"samplecodes/"}
@@ -21,9 +24,7 @@ func TestExecute(t *testing.T) {
 		sr.Dirs = dirs
 
 		golua := NewGoLua("test", 10, sr, func(gl *GoLua) {
-			CoreModule(gl)
-			GoModule().Bind(gl)
-			TypesModule().Bind(gl)
+			InitCoreLibs(gl)
 		}, nil)
 		defer func() {
 			golua.Close()
@@ -32,7 +33,8 @@ func TestExecute(t *testing.T) {
 
 		trace := false
 		// f := "/s_add.lua"
-		f := "test_vmmGo.lua"
+		// f := "test_vmmGo.lua"
+		f := "test_vmmConfig.lua"
 		data["a"] = 1
 		data["b"] = 2
 

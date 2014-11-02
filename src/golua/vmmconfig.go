@@ -11,6 +11,7 @@ func ConfigModule() *VMModule {
 	m.Init("get", GOF_config_get(0))
 	m.Init("query", GOF_config_query(0))
 	m.Init("asTable", GOF_config_asTable(0))
+	m.Init("parse", GOF_config_parse(0))
 	return m
 }
 
@@ -98,6 +99,35 @@ func (this GOF_config_query) IsNative() bool {
 
 func (this GOF_config_query) String() string {
 	return "GoFunc<config.query>"
+}
+
+// config.parse(v string) string
+type GOF_config_parse int
+
+func (this GOF_config_parse) Exec(vm *VM, self interface{}) (int, error) {
+	err0 := vm.API_checkStack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	n, err1 := vm.API_pop1X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	vn := valutil.ToString(n, "")
+	v, err2 := vm.gl.ParseConfig(vn)
+	if err2 != nil {
+		return 0, err2
+	}
+	vm.API_push(v)
+	return 1, nil
+}
+
+func (this GOF_config_parse) IsNative() bool {
+	return true
+}
+
+func (this GOF_config_parse) String() string {
+	return "GoFunc<config.parse>"
 }
 
 // config.asTable(prex)
