@@ -10,6 +10,7 @@ import (
 	"fileloader"
 	"golua"
 	"golua/vmmacclog"
+	"golua/vmmclass"
 	"golua/vmmhttp"
 	"golua/vmmjson"
 	"golua/vmmsql"
@@ -74,4 +75,5 @@ func myInitor(gl *golua.GoLua, acclog *acclog.Service) {
 	vmmacclog.Module().Bind(gl)
 	vmmjson.Module().Bind(gl)
 	vmmsql.Module().Bind(gl)
+	vmmclass.InitGoLua(gl)
 }
