@@ -150,10 +150,11 @@ func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
 		vm.config = this.cfg
 	}
 	vm.EnableTrace(req.Trace)
+	vm.ResetExecutionTime()
+
 	tm, ok := ctx.Deadline()
 	if ok {
 		du := tm.Sub(time.Now())
-		vm.ResetExecutionTime()
 		vm.SetMaxExecutionTime(int(du.Seconds() * 1000))
 	}
 	vm.context = ctx

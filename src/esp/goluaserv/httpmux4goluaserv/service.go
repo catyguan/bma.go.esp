@@ -151,7 +151,11 @@ func (this *Service) doInvoke(w http.ResponseWriter, req *http.Request, app *con
 	ri := golua.NewRequestInfo()
 	ri.Script = app.Script
 
-	gl := this.gls.GetGoLua(app.Name)
+	gl, errG := this.gls.GetGoLua(app.Name)
+	if errG != nil {
+		this.Error(w, errG.Error(), http.StatusBadRequest, adt)
+		return
+	}
 	if gl == nil {
 		this.Error(w, fmt.Sprintf("%s invalid App - %s", req.URL.Path, app.Name), http.StatusBadRequest, adt)
 		return

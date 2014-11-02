@@ -7,16 +7,25 @@ import (
 	"fmt"
 	"golua"
 	"logger"
+	"time"
 )
 
 type serviceConfigInfo struct {
-	PoolSize int
-	GoLua    map[string]*goluaConfigInfo
+	PoolSize       int
+	GetTimeoutMS   int
+	StartupRetryMS int
+	GoLua          map[string]*goluaConfigInfo
 }
 
 func (this *serviceConfigInfo) Valid() error {
 	if this.PoolSize <= 0 {
 		this.PoolSize = 16
+	}
+	if this.GetTimeoutMS <= 0 {
+		this.GetTimeoutMS = 5000
+	}
+	if this.StartupRetryMS <= 0 {
+		this.StartupRetryMS = 5000
 	}
 	for k, glcfg := range this.GoLua {
 		err := glcfg.Valid()
@@ -52,7 +61,7 @@ func (this *serviceConfigInfo) Compare(old *serviceConfigInfo) int {
 type goluaConfigInfo struct {
 	VM      *golua.VMConfig
 	FL      map[string]interface{}
-	Startup []string
+	Startup string
 }
 
 func (this *goluaConfigInfo) Valid() error {
@@ -78,19 +87,8 @@ func (this *goluaConfigInfo) Compare(old *goluaConfigInfo) int {
 		return boot.CCR_NEED_START
 	}
 
-	if len(this.Startup) != len(old.Startup) {
+	if this.Startup != old.Startup {
 		return boot.CCR_NEED_START
-	}
-	if true {
-		tmp := make(map[string]bool)
-		for _, k := range this.Startup {
-			tmp[k] = true
-		}
-		for _, k := range old.Startup {
-			if _, ok := tmp[k]; !ok {
-				return boot.CCR_NEED_START
-			}
-		}
 	}
 
 	fac := fileloader.CommonFileLoaderFactory
@@ -145,6 +143,42 @@ func (this *Service) Init(ctx *boot.BootContext) bool {
 	return true
 }
 
+func (this *Service) startupApp(k string, gli *glInfo, startup string) {
+	go func() {
+		this.lock.RLock()
+		cgli, ok := this.gli[k]
+		this.lock.RUnlock()
+		if !ok {
+			return
+		}
+		if cgli != gli {
+			return
+		}
+
+		gl := gli.gl
+		ri := golua.NewRequestInfo()
+		ri.Script = startup
+
+		ctx := context.Background()
+		ctx, _ = context.CreateExecId(ctx)
+		ctx = golua.CreateRequest(ctx, ri)
+		_, err := gl.Execute(ctx)
+
+		this.lock.Lock()
+		defer this.lock.Unlock()
+		if err != nil {
+			logger.Warn(tag, "[%s] startup '%s' fail - %s", k, startup, err)
+			gli.startErr = err
+
+			time.AfterFunc(time.Duration(this.config.StartupRetryMS)*time.Millisecond, func() {
+				this.startupApp(k, gli, startup)
+			})
+		} else {
+			gli.status = 1
+		}
+	}()
+}
+
 func (this *Service) _create(k string, glcfg *goluaConfigInfo) bool {
 	fac := fileloader.CommonFileLoaderFactory
 	ss, err0 := fac.Create(glcfg.FL)
@@ -152,23 +186,16 @@ func (this *Service) _create(k string, glcfg *goluaConfigInfo) bool {
 		logger.Error(tag, "create ScriptSource[%s, %s] fail %s", k, glcfg.FL, err0)
 		return false
 	}
+	gli := new(glInfo)
 	gl := golua.NewGoLua(k, this.config.PoolSize, ss, this.glInit, glcfg.VM)
-	this.gl[k] = gl
+	gli.gl = gl
+	this.gli[k] = gli
 
-	go func() {
-		for _, n := range glcfg.Startup {
-			ri := golua.NewRequestInfo()
-			ri.Script = n
-
-			ctx := context.Background()
-			ctx, _ = context.CreateExecId(ctx)
-			ctx = golua.CreateRequest(ctx, ri)
-			_, err := gl.Execute(ctx)
-			if err != nil {
-				logger.Warn(tag, "[%s] startup '%s' fail - %s", k, n, err)
-			}
-		}
-	}()
+	if glcfg.Startup != "" {
+		this.startupApp(k, gli, glcfg.Startup)
+	} else {
+		gli.status = 1
+	}
 
 	return true
 }
@@ -181,7 +208,7 @@ func (this *Service) Start(ctx *boot.BootContext) bool {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	for k, glcfg := range this.config.GoLua {
-		if _, ok := this.gl[k]; ok {
+		if _, ok := this.gli[k]; ok {
 			continue
 		}
 		if !this._create(k, glcfg) {
@@ -219,9 +246,9 @@ func (this *Service) GraceStop(ctx *boot.BootContext) bool {
 			}
 		}
 		if closed {
-			gl := this.removeGoLua(k)
-			if gl != nil {
-				gl.Close()
+			gli := this.removeGoLua(k)
+			if gli != nil && gli.gl != nil {
+				gli.gl.Close()
 				fmt.Printf("close GoLua '%s'\n", k)
 			}
 		}
@@ -232,9 +259,11 @@ func (this *Service) GraceStop(ctx *boot.BootContext) bool {
 func (this *Service) Stop() bool {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	for k, gl := range this.gl {
-		gl.Close()
-		delete(this.gl, k)
+	for k, gli := range this.gli {
+		if gli.gl != nil {
+			gli.gl.Close()
+		}
+		delete(this.gli, k)
 	}
 	return true
 }
