@@ -525,3 +525,11 @@ func (this *VM) API_require(n string) error {
 func (this *VM) API_newObject(n string) (interface{}, error) {
 	return this.gl.NewObject(n)
 }
+
+func (this *VM) API_pushMemberCall(o interface{}, f interface{}) error {
+	mc := new(memberCall)
+	mc.obj = o
+	mc.f = f
+	this.API_push(mc)
+	return nil
+}

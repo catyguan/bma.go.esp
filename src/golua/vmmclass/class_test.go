@@ -1,53 +1,53 @@
-package golua
+package vmmclass
 
 import (
-	"config"
 	"context"
 	"fileloader"
 	"fmt"
+	"golua"
+	"os"
 	"runtime"
 	"testing"
 	"time"
 )
 
-func TestExecute(t *testing.T) {
+func safeCall() {
+	time.AfterFunc(1*time.Second, func() {
+		fmt.Println("os exit!!!")
+		os.Exit(-1)
+	})
+}
+
+func TestClass(t *testing.T) {
 	if true {
 		runtime.GOMAXPROCS(5)
 		safeCall()
 
-		config.InitGlobalConfig("../../bin/config/glserver-config.json")
-
 		data := make(map[string]interface{})
 
-		dirs := []string{"samplecodes/"}
+		dirs := []string{"../samplecodes/"}
 		sr := new(fileloader.FileFileLoader)
 		sr.Dirs = dirs
 
-		golua := NewGoLua("test", 10, sr, func(gl *GoLua) {
-			InitCoreLibs(gl)
+		gl := golua.NewGoLua("test", 8, sr, func(gl *golua.GoLua) {
+			golua.InitCoreLibs(gl)
+			InitGoLua(gl)
 		}, nil)
-		defer func() {
-			golua.Close()
-			time.Sleep(100 * time.Millisecond)
-		}()
+		defer gl.Close()
 
 		trace := false
-		// f := "/s_add.lua"
-		// f := "test_vmmGo.lua"
-		f := "test_vmmConfig.lua"
-		data["a"] = 1
-		data["b"] = 2
+		f := "test_vmmClass.lua"
 
-		req := new(RequestInfo)
+		req := golua.NewRequestInfo()
 		req.Script = f
 		req.Data = data
 		req.Trace = trace
 		ctx := context.Background()
 		ctx, _ = context.CreateExecId(ctx)
-		ctx = CreateRequest(ctx, req)
+		ctx = golua.CreateRequest(ctx, req)
 
 		fmt.Println("--------------- RUN ---------------")
-		rval, err4 := golua.Execute(ctx)
+		rval, err4 := gl.Execute(ctx)
 		if err4 != nil {
 			t.Error("golua call error:", err4)
 			return

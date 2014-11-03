@@ -6,7 +6,7 @@
 					"Type" : "file",
 					"Dirs" : ["${CWD}/golua/test"]
 				},
-				"Startup" : ["startup.lua"]
+				"Startup" : "startup.lua"
 			}
 		}
 	},

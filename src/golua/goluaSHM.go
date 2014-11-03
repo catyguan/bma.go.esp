@@ -1,6 +1,9 @@
 package golua
 
 import (
+	"bmautil/valutil"
+	"bytes"
+	"config"
 	"fmt"
 	"logger"
 	"sync/atomic"
@@ -33,10 +36,68 @@ func (this *GoLua) NewObject(n string) (interface{}, error) {
 }
 
 func (this *GoLua) GetConfig(n string) (interface{}, bool) {
+	if len(n) > 0 && n[0] == '!' {
+		return config.Global.GetConfig(n[1:])
+	}
+
 	this.configMutex.RLock()
 	defer this.configMutex.RUnlock()
 	v, ok := this.configs[n]
 	return v, ok
+}
+
+func (this *GoLua) ParseConfig(str string) (string, error) {
+	out := bytes.NewBuffer(make([]byte, 0))
+	var c1 rune = 0
+	word := bytes.NewBuffer(make([]byte, 0))
+
+	this.configMutex.RLock()
+	defer this.configMutex.RUnlock()
+
+	for _, c := range []rune(str) {
+		switch c1 {
+		case 0:
+			if c == '$' {
+				c1 = c
+			} else {
+				out.WriteRune(c)
+			}
+		case '$':
+			if c == '{' {
+				c1 = '{'
+			} else {
+				out.WriteRune(c1)
+				out.WriteRune(c)
+				c1 = 0
+			}
+		case '{':
+			if c == '}' {
+				varname := word.String()
+				word.Reset()
+
+				var nv interface{}
+				ok := false
+				if len(varname) > 0 && varname[0] == '!' {
+					nv, ok = config.Global.GetConfig(varname[1:])
+				} else {
+					nv, ok = this.configs[varname]
+				}
+				if !ok {
+					return "", fmt.Errorf("invalid config(%s)", varname)
+				}
+				out.WriteString(valutil.ToString(nv, ""))
+				c1 = 0
+			} else {
+				word.WriteRune(c)
+			}
+		}
+	}
+
+	if word.Len() > 0 {
+		return "", fmt.Errorf("invalid parse format(%s)", str)
+	}
+
+	return out.String(), nil
 }
 
 func (this *GoLua) SetConfig(n string, v interface{}) bool {
