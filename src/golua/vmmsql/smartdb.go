@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"logger"
+	"strings"
 	"sync"
 )
 
@@ -58,6 +59,7 @@ func (this *smartDB) Update(dbi *dbInfo, tbs []string) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	for _, tb := range tbs {
+		tb = strings.ToLower(tb)
 		dbl, ok := this.tables[tb]
 		if ok {
 			dbl = append(dbl, dbi)
@@ -89,6 +91,7 @@ func (this *smartDB) Remove(n string) {
 }
 
 func (this *smartDB) Select(tableName string, write bool) *dbInfo {
+	tableName = strings.ToLower(tableName)
 	this.lock.RLock()
 	dbiList, ok := this.tables[tableName]
 	this.lock.RUnlock()
@@ -103,6 +106,7 @@ func (this *smartDB) Select(tableName string, write bool) *dbInfo {
 		}
 		if o.Priority > pri {
 			dbi = o
+			pri = o.Priority
 		}
 	}
 	return dbi

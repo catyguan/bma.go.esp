@@ -1,9 +1,15 @@
 local vr
 
 local sdb = go.new("SmartDB")
-sdb.Add({Name="test", Driver="mysql", DataSource="root:root@tcp(172.19.16.195:3306)/test_db"})
+local cfg = {
+	Name="test",
+	Driver="mysql", DataSource="root:root@tcp(172.19.16.195:3306)/test_db",
+	MaxIdleConns=10, MaxOpenConns=100,
+	ReadOnly=false, Priority=5
+}
+sdb.Add(cfg)
 
-local db = sdb.Select("test4")
+local db = sdb.Select("tEST4")
 db.Ping()
 
 local rs = db.Query("select * from test4")

@@ -64,11 +64,13 @@ func (gooSmartDB) Get(vm *golua.VM, o interface{}, key string) (interface{}, err
 				vwrite := valutil.ToBool(write, false)
 				dbi := obj.Select(vtbn, vwrite)
 				if dbi == nil {
-					return 0, fmt.Errorf("lookup DB for '%s' fail", vtbn)
+					return 0, fmt.Errorf("Select(%s) fail", vtbn)
 				}
-				logger.Debug(tag, "'%s' => %s", vtbn, dbi)
+				logger.Debug(tag, "select '%s' => %s", vtbn, dbi)
 				vm.API_push(dbi.Driver)
 				vm.API_push(dbi.DataSource)
+				vm.API_push(dbi.MaxOpenConns)
+				vm.API_push(dbi.MaxIdleConns)
 				return GOF_sql_open(0).Exec(vm, self)
 			}), nil
 		case "Refresh":

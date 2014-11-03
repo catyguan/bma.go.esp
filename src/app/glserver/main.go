@@ -73,5 +73,5 @@ func myInitor(gl *golua.GoLua, acclog *acclog.Service) {
 	vmmhttp.HttpClientModule(acclog, "httpclient").Bind(gl)
 	vmmacclog.Module().Bind(gl)
 	vmmjson.Module().Bind(gl)
-	vmmsql.Module().Bind(gl)
+	vmmsql.InitGoLua(gl)
 }

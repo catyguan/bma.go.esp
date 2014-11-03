@@ -66,7 +66,7 @@ func (this GOF_sql_create) String() string {
 	return "GoFunc<sql.create>"
 }
 
-// sql.open(driver, dataSource) DB:object
+// sql.open(driver, dataSource, maxConn, maxIdle) DB:object
 type GOF_sql_open int
 
 func (this GOF_sql_open) Exec(vm *golua.VM, self interface{}) (int, error) {
