@@ -26,6 +26,7 @@ package goyacc
 %token UNTIL
 %token WHILE
 %token CLOSURE
+%token CONTINUE
 
 %token NUMBER
 %token STRING
@@ -93,6 +94,7 @@ Cond:
 
 LastStat:
 	BREAK { op0(yylex, &$$, OP_BREAK, &$1) }
+	| CONTINUE { op0(yylex, &$$, OP_CONTINUE, &$1) }
 	| RETURN { op1(yylex, &$$, OP_RETURN, nil) }
 	| RETURN ExpList { op1(yylex, &$$,OP_RETURN, &$2) }
 
@@ -137,8 +139,13 @@ Exp:
 	| '#' Exp { op1(yylex, &$$, OP_LEN, &$2) }
 	| '-' Exp %prec'*' { op1(yylex, &$$, OP_NSIGN, &$2) }
 	| Exp OR Exp { op2(yylex, &$$, OP_OR, &$1, &$3) }
-	| Exp AND Exp { op2(yylex, &$$, OP_AND, &$1, &$3) }
-	| Exp LogicOp Exp { op2(yylex, &$$, $2.op, &$1, &$3) }
+	| Exp AND Exp { op2(yylex, &$$, OP_AND, &$1, &$3) }	
+	| Exp '<' Exp { op2(yylex, &$$, OP_LT, &$1, &$3) }
+	| Exp '>' Exp { op2(yylex, &$$, OP_GT, &$1, &$3) }
+	| Exp SLTEQ Exp { op2(yylex, &$$, OP_LTEQ, &$1, &$3) }
+	| Exp SGTEQ Exp { op2(yylex, &$$, OP_GTEQ, &$1, &$3) }
+	| Exp SEQ Exp { op2(yylex, &$$, OP_EQ, &$1, &$3) }
+	| Exp SNOTEQ Exp { op2(yylex, &$$, OP_NOTEQ, &$1, &$3) }
 	| Exp STRADD Exp { op2(yylex, &$$, OP_STRADD, &$1, &$3) }
 	| Exp '-' Exp { op2(yylex, &$$, OP_SUB, &$1, &$3) }
 	| Exp '+' Exp { op2(yylex, &$$, OP_ADD, &$1, &$3) }
@@ -146,14 +153,6 @@ Exp:
 	| Exp '/' Exp { op2(yylex, &$$, OP_DIV, &$1, &$3) }
 	| Exp '^' Exp { op2(yylex, &$$, OP_PMUL, &$1, &$3) }
 	| Exp '%' Exp { op2(yylex, &$$, OP_MOD, &$1, &$3) }
-
-LogicOp:
-	'<' { opFlag(&$$, OP_LT) }
-	| '>' { opFlag(&$$, OP_GT) }
-	| SLTEQ { opFlag(&$$, OP_LTEQ) }
-	| SGTEQ { opFlag(&$$, OP_GTEQ) }
-	| SEQ { opFlag(&$$, OP_EQ) }
-	| SNOTEQ { opFlag(&$$, OP_NOTEQ) }
 
 Var:
 	NAME { opVar(&$$, &$1) }

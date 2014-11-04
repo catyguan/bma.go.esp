@@ -35,6 +35,8 @@ func (this GOF_types_name) Exec(vm *VM, self interface{}) (int, error) {
 
 	if v == nil {
 		n = "nil"
+	} else if vm.API_canCall(v) {
+		n = "function"
 	} else {
 		switch ro := v.(type) {
 		case bool:

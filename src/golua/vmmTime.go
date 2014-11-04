@@ -48,7 +48,7 @@ func (this GOF_time_parseDuration) String() string {
 	return "GoFunc<time.contains>"
 }
 
-// time.date(year int, month, day, hour, min, sec int[, loc string]) Time:object
+// time.date(year, month, day, hour, min, sec int[, loc string]) Time:object
 type GOF_time_date int
 
 func (this GOF_time_date) Exec(vm *VM, self interface{}) (int, error) {

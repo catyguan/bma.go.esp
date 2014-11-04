@@ -345,6 +345,14 @@ func (this *VM) runCode(node goyacc.Node) (int, ER, error) {
 			}
 			_, rv, err := goyacc.ExecOp2(op, v1, v2)
 			if err != nil {
+				if op == goyacc.OP_EQ {
+					this.API_push(false)
+					return 1, ER_NEXT, nil
+				}
+				if op == goyacc.OP_NOTEQ {
+					this.API_push(true)
+					return 1, ER_NEXT, nil
+				}
 				return 0, ER_ERROR, err
 			}
 			this.API_push(rv)

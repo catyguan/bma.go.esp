@@ -59,9 +59,10 @@ func (this *serviceConfigInfo) Compare(old *serviceConfigInfo) int {
 }
 
 type goluaConfigInfo struct {
-	VM      *golua.VMConfig
-	FL      map[string]interface{}
-	Startup string
+	VM       *golua.VMConfig
+	FL       map[string]interface{}
+	FastBoot bool
+	Startup  []string
 }
 
 func (this *goluaConfigInfo) Valid() error {
@@ -87,7 +88,22 @@ func (this *goluaConfigInfo) Compare(old *goluaConfigInfo) int {
 		return boot.CCR_NEED_START
 	}
 
-	if this.Startup != old.Startup {
+	if len(this.Startup) != len(old.Startup) {
+		return boot.CCR_NEED_START
+	}
+	if true {
+		tmp := make(map[string]bool)
+		for _, k := range this.Startup {
+			tmp[k] = true
+		}
+		for _, k := range old.Startup {
+			if _, ok := tmp[k]; !ok {
+				return boot.CCR_NEED_START
+			}
+		}
+	}
+
+	if this.FastBoot != old.FastBoot {
 		return boot.CCR_NEED_START
 	}
 
@@ -143,7 +159,7 @@ func (this *Service) Init(ctx *boot.BootContext) bool {
 	return true
 }
 
-func (this *Service) startupApp(k string, gli *glInfo, startup string) {
+func (this *Service) startupApp(k string, gli *glInfo, startup []string) {
 	go func() {
 		this.lock.RLock()
 		cgli, ok := this.gli[k]
@@ -155,14 +171,22 @@ func (this *Service) startupApp(k string, gli *glInfo, startup string) {
 			return
 		}
 
-		gl := gli.gl
-		ri := golua.NewRequestInfo()
-		ri.Script = startup
+		err := func() error {
+			for _, ss := range startup {
+				gl := gli.gl
+				ri := golua.NewRequestInfo()
+				ri.Script = ss
 
-		ctx := context.Background()
-		ctx, _ = context.CreateExecId(ctx)
-		ctx = golua.CreateRequest(ctx, ri)
-		_, err := gl.Execute(ctx)
+				ctx := context.Background()
+				ctx, _ = context.CreateExecId(ctx)
+				ctx = golua.CreateRequest(ctx, ri)
+				_, err := gl.Execute(ctx)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		}()
 
 		this.lock.Lock()
 		defer this.lock.Unlock()
@@ -191,8 +215,11 @@ func (this *Service) _create(k string, glcfg *goluaConfigInfo) bool {
 	gli.gl = gl
 	this.gli[k] = gli
 
-	if glcfg.Startup != "" {
+	if len(glcfg.Startup) > 0 {
 		this.startupApp(k, gli, glcfg.Startup)
+		if glcfg.FastBoot {
+			gli.status = 1
+		}
 	} else {
 		gli.status = 1
 	}

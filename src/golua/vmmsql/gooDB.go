@@ -248,7 +248,7 @@ func (gooDB) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 				}
 
 				buf := bytes.NewBuffer(make([]byte, 0, 128))
-				buf.WriteString("DELETE ")
+				buf.WriteString("DELETE FROM ")
 				buf.WriteString(vtn)
 				buf.WriteString(" WHERE ")
 				ps := make([]interface{}, 0)

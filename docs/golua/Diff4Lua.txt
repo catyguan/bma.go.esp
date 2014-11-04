@@ -9,3 +9,4 @@
 8. table & array
 9. array index start at 0
 10. remove : use
+11. continue

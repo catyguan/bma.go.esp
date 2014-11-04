@@ -31,6 +31,7 @@ const (
 
 // Logging level strings
 var (
+	DebugFlag         = true
 	levelStrings      = [...]string{"ALL", "DEBUG", "INFO", "WARN", "ERROR", "NONE", "NOUSE"}
 	levelPrintStrings = [...]string{" ALL ", "DEBUG", "INFO ", "WARN ", "ERROR", "NONE ", "NOUSE"}
 )
@@ -425,10 +426,16 @@ func Enable(tag string, lvl level) bool {
 }
 
 func EnableDebug(tag string) bool {
+	if !DebugFlag {
+		return false
+	}
 	return Enable(tag, LEVEL_DEBUG)
 }
 
 func Debug(tag string, arg0 interface{}, args ...interface{}) {
+	if !DebugFlag {
+		return
+	}
 	const (
 		lvl = LEVEL_DEBUG
 	)

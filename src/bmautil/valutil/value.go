@@ -8,6 +8,9 @@ import (
 )
 
 func ToBool(v interface{}, defv bool) bool {
+	if v == nil {
+		return false
+	}
 	if r, ok := Convert(v, reflect.TypeOf(defv)); ok {
 		return r.(bool)
 	}

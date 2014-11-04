@@ -341,6 +341,7 @@ func doInit(ctx *BootContext) bool {
 	}
 	DevMode = config.Global.GetBoolConfig("global.DevMode", false)
 	Debug = config.Global.GetBoolConfig("global.Debug", false)
+	logger.DebugFlag = Debug
 
 	if !ctx.IsRestart {
 		lcfg := logger.Config()

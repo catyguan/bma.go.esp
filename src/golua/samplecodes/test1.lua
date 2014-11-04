@@ -32,6 +32,10 @@
 -- a, b, c = 1, 2
 -- print(v1, a, b, c)
 
+if v~=nil or v==0 then
+	ok = false
+end
+
 -- print("hello world", v1, 1)
 local obj = {
 	p = print

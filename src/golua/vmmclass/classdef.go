@@ -234,7 +234,7 @@ type ciVMTable struct {
 }
 
 func (this *ciVMTable) String() string {
-	return fmt.Sprintf("@%s%v", this.cls.name, this.data)
+	return fmt.Sprintf("@%s,%v", this.cls.name, this.data)
 }
 
 func (this *ciVMTable) EnableSafe() {

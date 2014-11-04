@@ -30,6 +30,7 @@ func GoModule() *VMModule {
 	m.Init("setGlobal", GOF_go_setGlobal(0))
 	m.Init("getGlobal", GOF_go_getGlobal(0))
 	m.Init("new", GOF_go_new(0))
+	m.Init("invoke", GOF_go_invoke(0))
 	return m
 }
 
@@ -745,4 +746,38 @@ func (this GOF_go_new) IsNative() bool {
 
 func (this GOF_go_new) String() string {
 	return "GoFunc<go.new>"
+}
+
+// go.invoke(self, f, ...) ...
+type GOF_go_invoke int
+
+func (this GOF_go_invoke) Exec(vm *VM, self interface{}) (int, error) {
+	err0 := vm.API_checkStack(2)
+	if err0 != nil {
+		return 0, err0
+	}
+	top := vm.API_gettop()
+	ns, err2 := vm.API_popN(top, true)
+	if err2 != nil {
+		return 0, err2
+	}
+	se := ns[0]
+	f := ns[1]
+	if se == nil {
+		vm.API_push(f)
+	} else {
+		vm.API_pushMemberCall(se, f)
+	}
+	for _, v := range ns[2:] {
+		vm.API_push(v)
+	}
+	return vm.Call(top-2, -1, nil)
+}
+
+func (this GOF_go_invoke) IsNative() bool {
+	return true
+}
+
+func (this GOF_go_invoke) String() string {
+	return "GoFunc<go.invoke>"
 }

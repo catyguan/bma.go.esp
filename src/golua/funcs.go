@@ -45,32 +45,19 @@ func (this GOF_print) String() string {
 type GOF_error int
 
 func (this GOF_error) Exec(vm *VM, self interface{}) (int, error) {
-	buf := bytes.NewBuffer(make([]byte, 0, 32))
 	top := vm.API_gettop()
-	for i := 1; i <= top; i++ {
-		v, err := vm.API_peek(i, true)
-		if err != nil {
-			return 0, err
-		}
-		v, err = vm.API_value(v)
-		if err != nil {
-			return 0, err
-		}
-		if i != 1 {
-			buf.WriteString(",")
-		} else {
-			if top == 1 {
-				if err, ok := v.(error); ok {
-					vm.API_pop(top)
-					// fmt.Println("ReError %T", err)
-					return 0, err
-				}
-			}
-		}
-		buf.WriteString(fmt.Sprintf("%v", v))
+	if top == 0 {
+		return 0, errors.New("<unknow error>")
 	}
-	vm.API_pop(top)
-	return 0, errors.New(buf.String())
+	ns, err1 := vm.API_popN(top, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	errf := valutil.ToString(ns[0], "")
+	if top > 1 {
+		return 0, fmt.Errorf(errf, ns[1:]...)
+	}
+	return 0, errors.New(errf)
 }
 
 func (this GOF_error) IsNative() bool {

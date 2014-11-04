@@ -1,5 +1,32 @@
 local Class = class.define("NodesManager")
 
+require("glf.mfc:service/DataModel.lua")
+local dmNode = class.new("DataModel")
+dmNode.Create({
+	id={
+		type="int",
+		default=0
+	},
+	name={
+		type="string",
+		valid="not.empty"
+	},
+	host_name={
+		type="string",
+		valid="not.empty"
+	},
+	api_url={
+		type="string",
+		valid="not.empty"
+	},
+	remark={
+		type="string",
+		default=""
+	}
+})
+
+Class.DM_NODE = dmNode
+
 function Class.getDB()
 	if not self.db then
 		local sdb = go.new("SmartDB")
@@ -22,7 +49,7 @@ end
 
 function Class.Get(id)
 	local db = self.getDB()
-	local rs = db.Query("select * from smm_nodes order where id = ?", id)
+	local rs = db.Query("select * from smm_nodes where id = ?", id)
 	local data
 	local desc = {id="int",status="int"}
 	if rs.Fetch(data, desc) then
@@ -31,10 +58,19 @@ function Class.Get(id)
 	return nil
 end
 
+function Class.Valid(data)
+	local ok, vdata = self.DM_NODE.Valid(data)
+	if not ok then
+		return ok, vdata
+	end
+	-- other valid
+	return ok, vdata
+end
+
 function Class.Insert(data)
 	local db = self.getDB()
 	local fv = table.clone(data)
-	fv.create_time = time.unix()
+	fv.create_time = time.now().Unix()
 	fv.modify_time = fv.create_time
 	local id
 	_, id = db.ExecInsert("smm_nodes", fv, true)
@@ -44,7 +80,7 @@ end
 function Class.Update(data, id)
 	local db = self.getDB()
 	local fv = table.clone(data)
-	fv.modify_time = time.unix()
+	fv.modify_time = time.now().Unix()
 	tj = {id=id}
 	return db.ExecUpdate("smm_nodes", fv, tj)
 end

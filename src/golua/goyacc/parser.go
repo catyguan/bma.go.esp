@@ -72,7 +72,7 @@ var keywords []string = []string{
 	"if", "in", "local", "nil",
 	"not", "or", "return",
 	"repeat", "then", "true",
-	"until", "while", "closure",
+	"until", "while", "closure", "continue",
 }
 
 func (this *Parser) fillToken(lval *yySymType, k, p int) int {
@@ -218,7 +218,7 @@ func (this *Parser) lex(lval *yySymType) int {
 			buf.WriteRune(c1)
 		}
 	}
-	if ch >= 0x21 && ch <= 0x3f {
+	if ch == '~' || (ch >= 0x21 && ch <= 0x3f) {
 		switch ch {
 		// case '+':
 		// 	if this.stream.checkNext('=') {
@@ -255,7 +255,7 @@ func (this *Parser) lex(lval *yySymType) int {
 				// }
 				return this.fillToken(lval, SEQ, sp)
 			}
-		case '!':
+		case '~':
 			if this.stream.checkNext('=') {
 				return this.fillToken(lval, SNOTEQ, sp)
 			}
