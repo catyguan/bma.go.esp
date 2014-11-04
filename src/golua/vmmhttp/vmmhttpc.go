@@ -15,6 +15,10 @@ import (
 	"time"
 )
 
+func InitGoLuaWithHttpClient(gl *golua.GoLua, accLog *acclog.Service, accName string) {
+	HttpClientModule(accLog, accName).Bind(gl)
+}
+
 type httpClientModule struct {
 	accLog  *acclog.Service
 	accName string

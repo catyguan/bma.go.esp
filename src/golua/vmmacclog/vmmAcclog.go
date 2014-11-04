@@ -6,6 +6,10 @@ import (
 	"golua"
 )
 
+func InitGoLua(gl *golua.GoLua) {
+	Module().Bind(gl)
+}
+
 func Module() *golua.VMModule {
 	m := golua.NewVMModule("acclog")
 	m.Init("log", GOF_acclog_log(0))

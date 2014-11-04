@@ -1,0 +1,35 @@
+<html>
+<head>
+<meta charset="utf-8" />
+<title>smm.ui - nodes list</title>
+<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+</head>
+<body>
+<a href="addNode.gl">Add Node</a>
+<hr>
+<table border="1">
+	<tr>
+		<td>Name</td>
+		<td>Host</td>
+		<td>Status</td>
+		<td>Command</td>
+	</tr>
+<?golua
+for node in nodes do
+?>
+	<tr>
+		<td><?=node.name?></td>
+		<td><?=node.host_name?></td>
+		<td><?=node.status?></td>
+		<td>
+			<a href="node.gl?id=<?=node.id?>">Detail</a>
+			<a href="editNode.gl?id=<?=node.id?>">Edit</a>
+			<a href="deleteNode.gl?id=<?=node.id?>" onclick="return confirm('Sure Delete?')">Delete</a>
+		</td>
+	</tr>
+<?golua
+end
+?>
+</table>
+</body>
+</html>

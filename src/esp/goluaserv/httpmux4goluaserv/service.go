@@ -87,9 +87,10 @@ func (this *Service) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 	}()
 
-	host := req.Host
-	if !strings.Contains(host, ":") {
-		host = host + ":80"
+	host := strings.ToLower(req.Host)
+	idx := strings.Index(host, ":")
+	if idx != -1 {
+		host = host[:idx]
 	}
 	path := req.URL.Path
 	if !strings.HasPrefix(path, "/") {

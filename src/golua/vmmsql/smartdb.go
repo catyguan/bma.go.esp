@@ -20,11 +20,12 @@ func updateGlobal(dr, ds string, ts []string) {
 	sdbGlobal.dbtables[n] = ts
 }
 
-func queryGlobal(dr, ds string) []string {
+func queryGlobal(dr, ds string) ([]string, bool) {
 	n := fmt.Sprintf("%s_%s", dr, ds)
 	sdbGlobal.lock.RLock()
 	defer sdbGlobal.lock.RUnlock()
-	return sdbGlobal.dbtables[n]
+	r, ok := sdbGlobal.dbtables[n]
+	return r, ok
 }
 
 var (
@@ -43,6 +44,16 @@ type dbInfo struct {
 	MaxOpenConns int
 	ReadOnly     bool
 	Priority     int
+}
+
+func (this *dbInfo) CheckSame(other *dbInfo) bool {
+	if this.Driver == other.Driver && this.DataSource == other.DataSource {
+		if this.Name != other.Name {
+			logger.Warn(tag, "same smartDB diff name(%s, %s)", this.Name, other.Name)
+		}
+		return true
+	}
+	return false
 }
 
 func (this *dbInfo) String() string {
@@ -70,20 +81,42 @@ func (this *smartDB) Update(dbi *dbInfo, tbs []string) {
 	}
 }
 
-func (this *smartDB) Add(dbi *dbInfo) {
+func (this *smartDB) Add(dbi *dbInfo, syncRefresh bool) error {
+	ok := true
 	this.lock.Lock()
-	this.dbinfos = append(this.dbinfos, dbi)
+	for _, oi := range this.dbinfos {
+		if dbi.CheckSame(oi) {
+			ok = false
+			break
+		}
+	}
+	if ok {
+		this.dbinfos = append(this.dbinfos, dbi)
+	}
 	this.lock.Unlock()
 
-	tbs := queryGlobal(dbi.Driver, dbi.DataSource)
+	if !ok {
+		return nil
+	}
+
+	tbs, exists := queryGlobal(dbi.Driver, dbi.DataSource)
 	this.Update(dbi, tbs)
 
-	go func() {
-		err := this.Refresh(dbi)
-		if err != nil {
-			logger.Warn(tag, "refresh %s fail - %s", dbi, err)
-		}
-	}()
+	if exists {
+		syncRefresh = false
+	}
+
+	if syncRefresh {
+		return this.Refresh(dbi)
+	} else {
+		go func() {
+			err := this.Refresh(dbi)
+			if err != nil {
+				logger.Warn(tag, "refresh %s fail - %s", dbi, err)
+			}
+		}()
+		return nil
+	}
 }
 
 func (this *smartDB) Remove(n string) {

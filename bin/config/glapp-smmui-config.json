@@ -14,7 +14,8 @@
 				"FL" : {
 					"Type" : "file",
 					"Dirs" : ["${CWD}/../golua.src"]
-				}
+				},
+				"Startup" : "smm.ui:startup.lua"
 			}
 		}
 	},
@@ -23,7 +24,8 @@
 			{
 				"Name" : "smm.ui",
 				"Location" : "/smm.ui/",
-				"Script" : "smm.ui/main.lua"
+				"Script" : "smm.ui:httpmain.lua",
+				"IndexName" : "index.gl"
 			}
 		]
 	}

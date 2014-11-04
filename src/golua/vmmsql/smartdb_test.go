@@ -23,7 +23,7 @@ func doSmartDB() {
 		o, _ := createSmartDB()
 		sdb := o.(*smartDB)
 
-		sdb.Add(dbi)
+		sdb.Add(dbi, true)
 
 		time.Sleep(1000 * time.Millisecond)
 

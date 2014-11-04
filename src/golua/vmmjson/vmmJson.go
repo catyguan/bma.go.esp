@@ -8,6 +8,10 @@ import (
 
 const tag = "vmmjson"
 
+func InitGoLua(gl *golua.GoLua) {
+	Module().Bind(gl)
+}
+
 func Module() *golua.VMModule {
 	m := golua.NewVMModule("json")
 	m.Init("encode", GOF_json_encode(0))

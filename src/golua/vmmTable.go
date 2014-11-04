@@ -8,12 +8,38 @@ import (
 
 func TableModule() *VMModule {
 	m := NewVMModule("table")
+	m.Init("clone", GOF_table_clone(0))
 	m.Init("concat", GOF_table_concat(0))
 	m.Init("insert", GOF_table_insert(0))
 	m.Init("remove", GOF_table_remove(0))
 	m.Init("subtable", GOF_table_subtable(0))
 	m.Init("newArray", GOF_table_newArray(0))
 	return m
+}
+
+// table.clone(v) table
+type GOF_table_clone int
+
+func (this GOF_table_clone) Exec(vm *VM, self interface{}) (int, error) {
+	err0 := vm.API_checkStack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	o, err1 := vm.API_pop1X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	v := GoData(o)
+	vm.API_push(v)
+	return 1, nil
+}
+
+func (this GOF_table_clone) IsNative() bool {
+	return true
+}
+
+func (this GOF_table_clone) String() string {
+	return "GoFunc<table.clone>"
 }
 
 // table.concat(array[, sep,  start, end])

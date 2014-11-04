@@ -2,6 +2,7 @@ package vmmsql
 
 import (
 	"bmautil/valutil"
+	"bytes"
 	"database/sql"
 	"fmt"
 	"golua"
@@ -101,6 +102,177 @@ func (gooDB) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 					vm.API_push(0)
 				}
 				return 2, nil
+			}), nil
+		case "ExecInsert":
+			// ExecInsert(tableName:string, fv:table[, lastId:bool]) int
+			return golua.NewGOF("DB.ExecInsert", func(vm *golua.VM, self interface{}) (int, error) {
+				err0 := vm.API_checkStack(2)
+				if err0 != nil {
+					return 0, err0
+				}
+				tn, fv, lid, err1 := vm.API_pop3X(-1, true)
+				if err1 != nil {
+					return 0, err1
+				}
+				vtn := valutil.ToString(tn, "")
+				if vtn == "" {
+					return 0, fmt.Errorf("insert table name invalid(%v)", tn)
+				}
+				vfv := vm.API_toMap(fv)
+				if len(vfv) == 0 {
+					return 0, fmt.Errorf("insert fields invalid")
+				}
+
+				buf := bytes.NewBuffer(make([]byte, 0, 128))
+				buf2 := bytes.NewBuffer(make([]byte, 0, 128))
+				buf.WriteString("INSERT INTO ")
+				buf.WriteString(vtn)
+				buf.WriteString(" (")
+				buf2.WriteString(" VALUES (")
+				ps := make([]interface{}, 0)
+				first := true
+				for k, v := range vfv {
+					if !first {
+						buf.WriteString(",")
+						buf2.WriteString(",")
+					} else {
+						first = false
+					}
+					buf.WriteString(k)
+					buf2.WriteString("?")
+					ps = append(ps, v)
+				}
+				buf.WriteString(")")
+				buf2.WriteString(")")
+				sql := buf.String() + buf2.String()
+
+				rs, err2 := obj.Exec(sql, ps...)
+				if err2 != nil {
+					return 0, err2
+				}
+				ra, err3 := rs.RowsAffected()
+				if err3 != nil {
+					return 0, err3
+				}
+				vm.API_push(ra)
+				if ra > 0 && valutil.ToBool(lid, false) {
+					rid, err4 := rs.LastInsertId()
+					if err4 != nil {
+						return 1, err4
+					}
+					vm.API_push(rid)
+				}
+				return 2, nil
+			}), nil
+		case "ExecUpdate":
+			// ExecUpdate(tableName:string, fv:table, tj:table) int
+			return golua.NewGOF("DB.ExecUpdate", func(vm *golua.VM, self interface{}) (int, error) {
+				err0 := vm.API_checkStack(3)
+				if err0 != nil {
+					return 0, err0
+				}
+				tn, fv, tj, err1 := vm.API_pop3X(-1, true)
+				if err1 != nil {
+					return 0, err1
+				}
+				vtn := valutil.ToString(tn, "")
+				if vtn == "" {
+					return 0, fmt.Errorf("update table name invalid(%v)", tn)
+				}
+				vfv := vm.API_toMap(fv)
+				if len(vfv) == 0 {
+					return 0, fmt.Errorf("update fields invalid")
+				}
+				vtj := vm.API_toMap(tj)
+				if len(vtj) == 0 {
+					return 0, fmt.Errorf("update condition invalid")
+				}
+
+				buf := bytes.NewBuffer(make([]byte, 0, 128))
+				buf.WriteString("UPDATE ")
+				buf.WriteString(vtn)
+				buf.WriteString(" SET ")
+				ps := make([]interface{}, 0)
+				first := true
+				for k, v := range vfv {
+					if !first {
+						buf.WriteString(",")
+					} else {
+						first = false
+					}
+					buf.WriteString(k)
+					buf.WriteString("=?")
+					ps = append(ps, v)
+				}
+				buf.WriteString(" WHERE ")
+				first = true
+				for k, v := range vtj {
+					if !first {
+						buf.WriteString(" AND ")
+					} else {
+						first = false
+					}
+					buf.WriteString(k)
+					buf.WriteString("=?")
+					ps = append(ps, v)
+				}
+				rs, err2 := obj.Exec(buf.String(), ps...)
+				if err2 != nil {
+					return 0, err2
+				}
+				ra, err3 := rs.RowsAffected()
+				if err3 != nil {
+					return 0, err3
+				}
+				vm.API_push(ra)
+				return 1, nil
+			}), nil
+		case "ExecDelete":
+			// ExecDelete(tableName:string, tj:table) int
+			return golua.NewGOF("DB.ExecDelete", func(vm *golua.VM, self interface{}) (int, error) {
+				err0 := vm.API_checkStack(2)
+				if err0 != nil {
+					return 0, err0
+				}
+				tn, tj, err1 := vm.API_pop2X(-1, true)
+				if err1 != nil {
+					return 0, err1
+				}
+				vtn := valutil.ToString(tn, "")
+				if vtn == "" {
+					return 0, fmt.Errorf("delete table name invalid(%v)", tn)
+				}
+				vtj := vm.API_toMap(tj)
+				if len(vtj) == 0 {
+					return 0, fmt.Errorf("delete condition invalid")
+				}
+
+				buf := bytes.NewBuffer(make([]byte, 0, 128))
+				buf.WriteString("DELETE ")
+				buf.WriteString(vtn)
+				buf.WriteString(" WHERE ")
+				ps := make([]interface{}, 0)
+				first := true
+				for k, v := range vtj {
+					if !first {
+						buf.WriteString(" AND ")
+					} else {
+						first = false
+					}
+					buf.WriteString(k)
+					buf.WriteString("=?")
+					ps = append(ps, v)
+				}
+				rs, err2 := obj.Exec(buf.String(), ps...)
+				if err2 != nil {
+					return 0, err2
+				}
+				ra, err3 := rs.RowsAffected()
+				if err3 != nil {
+					return 0, err3
+				}
+				vm.API_push(ra)
+				return 1, nil
 			}), nil
 		case "Ping":
 			return golua.NewGOF("DB.Ping", func(vm *golua.VM, self interface{}) (int, error) {

@@ -16,6 +16,10 @@ import (
 
 const tag = "vmmhttp"
 
+func InitGoLuaWithHttpServ(gl *golua.GoLua) {
+	HttpServModule().Bind(gl)
+}
+
 func HttpServModule() *golua.VMModule {
 	m := golua.NewVMModule("httpserv")
 	m.Init("query", GOF_httpserv_query(0))

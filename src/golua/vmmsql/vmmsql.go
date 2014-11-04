@@ -22,7 +22,7 @@ func InitGoLua(gl *golua.GoLua) {
 	gl.SetObjectFactory("SmartDB", SmartDBFactory)
 }
 
-// sql.create(driver, dataSource, maxConn, maxIdle) DB:object
+// sql.create(driver, dataSource[, maxConn, maxIdle]) DB:object
 type GOF_sql_create int
 
 func (this GOF_sql_create) Exec(vm *golua.VM, self interface{}) (int, error) {
@@ -66,7 +66,7 @@ func (this GOF_sql_create) String() string {
 	return "GoFunc<sql.create>"
 }
 
-// sql.open(driver, dataSource, maxConn, maxIdle) DB:object
+// sql.open(driver, dataSource[, maxConn, maxIdle]) DB:object
 type GOF_sql_open int
 
 func (this GOF_sql_open) Exec(vm *golua.VM, self interface{}) (int, error) {

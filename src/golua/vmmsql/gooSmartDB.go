@@ -21,16 +21,19 @@ func (gooSmartDB) Get(vm *golua.VM, o interface{}, key string) (interface{}, err
 	if obj, ok := gos.(*smartDB); ok {
 		switch key {
 		case "Add":
+			// SmartDB.Add(dbi:table, syncRefresh:bool)
 			return golua.NewGOF("SmartDB.Add", func(vm *golua.VM, self interface{}) (int, error) {
 				err0 := vm.API_checkStack(1)
 				if err0 != nil {
 					return 0, err0
 				}
-				o, err1 := vm.API_pop1X(-1, true)
+				o, sr, err1 := vm.API_pop2X(-1, true)
 				if err1 != nil {
 					return 0, err1
 				}
 				mo := vm.API_toMap(o)
+				vsr := valutil.ToBool(sr, false)
+
 				dbi := new(dbInfo)
 				if !valutil.ToBean(mo, dbi) {
 					return 0, fmt.Errorf("convert dbInfo fail - %v", mo)
@@ -44,7 +47,10 @@ func (gooSmartDB) Get(vm *golua.VM, o interface{}, key string) (interface{}, err
 				if dbi.DataSource == "" {
 					return 0, fmt.Errorf("dbInfo.DataSource invalid")
 				}
-				obj.Add(dbi)
+				err2 := obj.Add(dbi, vsr)
+				if err2 != nil {
+					return 0, err2
+				}
 				return 0, nil
 			}), nil
 		case "Select":

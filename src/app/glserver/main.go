@@ -70,10 +70,10 @@ func main() {
 
 func myInitor(gl *golua.GoLua, acclog *acclog.Service) {
 	golua.InitCoreLibs(gl)
-	vmmhttp.HttpServModule().Bind(gl)
-	vmmhttp.HttpClientModule(acclog, "httpclient").Bind(gl)
-	vmmacclog.Module().Bind(gl)
-	vmmjson.Module().Bind(gl)
+	vmmhttp.InitGoLuaWithHttpServ(gl)
+	vmmhttp.InitGoLuaWithHttpClient(gl, acclog, "httpclient")
+	vmmacclog.InitGoLua(gl)
+	vmmjson.InitGoLua(gl)
 	vmmsql.InitGoLua(gl)
 	vmmclass.InitGoLua(gl)
 }
