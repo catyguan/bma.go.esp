@@ -12,6 +12,9 @@ local vr
 -- vr = strings.trimSuffix(" a,b,c ","c ")
 -- print(#vr)
 -- vr = strings.substr("中文abcde", 1, 2)
-vr = strings.format("a = %d, b=%v",1, "string")
+-- vr = strings.format("a = %d, b=%v",1, "string")
+vr = strings.parsef("a = ${2d}, b= ${1v}", "string", 1)
+vr = strings.parsef("a = ${2d}, b= const", "string", 1)
+vr = strings.parsef("a = ${2d}, b= ${1v}", "string")
 
 return vr

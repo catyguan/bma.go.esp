@@ -1,4 +1,4 @@
-require("_:service/NodesManager.lua")
+require("_:service/NodesManager.class.lua")
 
 local form = httpserv.form()
 local id = types.int(form,"id",0)
@@ -11,4 +11,4 @@ if c~=1 then
 	msg = "Delete Fail"
 end
 
-httpserv.render("_:http/done.view",{msg=msg})
+httpserv.render("_:http/done.view.htm",{msg=msg})

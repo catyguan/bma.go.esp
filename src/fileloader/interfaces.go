@@ -13,6 +13,7 @@ const (
 
 type FileLoader interface {
 	Load(script string) ([]byte, error)
+	Check(script string) (uint64, error)
 }
 
 type FileLoaderFactory interface {

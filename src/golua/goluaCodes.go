@@ -35,10 +35,7 @@ func (this *GoLua) FileLoad(vm *VM, fn string) ([]byte, error) {
 
 func (this *GoLua) ChunkLoad(vm *VM, script string, save bool, spp ScriptPreprocess) (*ChunkCode, error) {
 	n := this.ParseScriptName(vm, script)
-	var cc *ChunkCode
-	this.codeMutex.RLock()
-	cc = this.codes[script]
-	this.codeMutex.RUnlock()
+	cc := this.getChunkCode(n)
 	if cc == nil {
 		return this.compile(n, save, spp)
 	}
@@ -93,12 +90,32 @@ func (this *GoLua) compile(script string, save bool, spp ScriptPreprocess) (*Chu
 	r := NewChunk(script, node)
 
 	if save {
+		if boot.DevMode {
+			r.mtime, _ = this.ss.Check(script)
+		}
 		this.codeMutex.Lock()
 		this.codes[script] = r
 		this.codeMutex.Unlock()
 		logger.Debug(tag, "%s: update('%s')", this, script)
 	}
 	return r, nil
+}
+
+func (this *GoLua) getChunkCode(script string) *ChunkCode {
+	this.codeMutex.RLock()
+	cc := this.codes[script]
+	if boot.DevMode && cc != nil {
+		if cc.mtime > 0 {
+			mt, _ := this.ss.Check(cc.name)
+			if mt > cc.mtime {
+				// logger.Debug(tag, "Remove Deving Script '%s'", script)
+				delete(this.codes, script)
+				cc = nil
+			}
+		}
+	}
+	this.codeMutex.RUnlock()
+	return cc
 }
 
 func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
@@ -113,17 +130,7 @@ func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
 
 	script := this.ParseScriptName(nil, req.Script)
 
-	var cc *ChunkCode
-	this.codeMutex.RLock()
-	if boot.DevMode {
-		for k, _ := range this.codes {
-			delete(this.codes, k)
-		}
-	} else {
-		cc = this.codes[script]
-	}
-	this.codeMutex.RUnlock()
-
+	cc := this.getChunkCode(script)
 	if cc == nil {
 		var err2 error
 		cc, err2 = this.compile(script, true, nil)
@@ -208,11 +215,7 @@ func (this *GoLua) ParseScriptName(vm *VM, n string) string {
 func (this *GoLua) Require(pvm *VM, n string) error {
 	n = this.ParseScriptName(pvm, n)
 
-	var cc *ChunkCode
-	this.codeMutex.RLock()
-	cc = this.codes[n]
-	this.codeMutex.RUnlock()
-
+	cc := this.getChunkCode(n)
 	if cc != nil {
 		logger.Debug(tag, "%s: require '%s' exists", this, n)
 		return nil

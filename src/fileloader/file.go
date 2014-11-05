@@ -4,7 +4,6 @@ import (
 	"bmautil/valutil"
 	"fmt"
 	"io/ioutil"
-	"logger"
 	"os"
 	"path"
 	"path/filepath"
@@ -19,7 +18,7 @@ type FileFileLoader struct {
 	Dirs []string
 }
 
-func (this *FileFileLoader) Load(script string) ([]byte, error) {
+func (this *FileFileLoader) vfile(script string) (string, error) {
 	module, n := SplitModuleScript(script)
 	n = filepath.Clean("/" + n)[1:]
 	for _, dir := range this.Dirs {
@@ -39,23 +38,43 @@ func (this *FileFileLoader) Load(script string) ([]byte, error) {
 		var err0 error
 		fn, err0 = filepath.Abs(fn)
 		if err0 != nil {
-			return nil, err0
+			return "", err0
 		}
-		logger.Debug("file.fl", "%s, %s -> %s", dir, script, fn)
+		// logger.Debug("file.fl", "%s, %s -> %s", dir, script, fn)
 		_, err := os.Stat(fn)
 		if err != nil {
 			if os.IsNotExist(err) {
 				continue
 			}
-			return nil, err
+			return "", err
 		}
-		content, err2 := ioutil.ReadFile(fn)
-		if err != nil {
-			return nil, err2
-		}
-		return content, nil
+		return fn, nil
 	}
-	return nil, nil
+	return "", nil
+}
+
+func (this *FileFileLoader) Load(script string) ([]byte, error) {
+	fn, err := this.vfile(script)
+	if err != nil {
+		return nil, err
+	}
+	content, err2 := ioutil.ReadFile(fn)
+	if err != nil {
+		return nil, err2
+	}
+	return content, nil
+}
+
+func (this *FileFileLoader) Check(script string) (uint64, error) {
+	fn, err := this.vfile(script)
+	if err != nil {
+		return 0, err
+	}
+	info, err2 := os.Stat(fn)
+	if err2 != nil {
+		return 0, err2
+	}
+	return uint64(info.ModTime().Unix()), nil
 }
 
 type fflConfig struct {

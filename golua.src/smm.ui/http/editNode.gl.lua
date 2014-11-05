@@ -1,4 +1,5 @@
-require("_:service/NodesManager.lua")
+require("_:service/NodesManager.class.lua")
+require("_:http/NodeForm.class.lua")
 
 local form = httpserv.form()
 local id = types.int(form,"id",0)
@@ -10,5 +11,6 @@ if node==nil then
 	error(strings.format("Node(%d) not exists", id))
 end
 
-local formData = s.DM_NODE.BuildForm(node,nil)
-httpserv.render("_:http/nodeForm.view",{id=id, node=formData})
+local fo = class.new("NodeForm")
+fo.Bind(node)
+httpserv.render("_:http/nodeForm.view.htm",{node=fo})

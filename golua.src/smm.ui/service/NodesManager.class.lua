@@ -1,32 +1,5 @@
 local Class = class.define("NodesManager")
 
-require("glf.mfc:service/DataModel.lua")
-local dmNode = class.new("DataModel")
-dmNode.Create({
-	id={
-		type="int",
-		default=0
-	},
-	name={
-		type="string",
-		valid="not.empty"
-	},
-	host_name={
-		type="string",
-		valid="not.empty"
-	},
-	api_url={
-		type="string",
-		valid="not.empty"
-	},
-	remark={
-		type="string",
-		default=""
-	}
-})
-
-Class.DM_NODE = dmNode
-
 function Class.getDB()
 	if not self.db then
 		local sdb = go.new("SmartDB")

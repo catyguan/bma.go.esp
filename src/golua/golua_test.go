@@ -34,7 +34,8 @@ func TestExecute(t *testing.T) {
 		trace := false
 		// f := "/s_add.lua"
 		// f := "test_vmmGo.lua"
-		f := "test_vmmConfig.lua"
+		// f := "test_vmmConfig.lua"
+		f := "test_vmmStrings.lua"
 		data["a"] = 1
 		data["b"] = 2
 

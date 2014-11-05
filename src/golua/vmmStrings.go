@@ -2,6 +2,7 @@ package golua
 
 import (
 	"bmautil/valutil"
+	"bytes"
 	"fmt"
 	"strings"
 	"unicode"
@@ -25,6 +26,7 @@ func StringsModule() *VMModule {
 	m.Init("trimSuffix", GOF_strings_trimSuffix(0))
 	m.Init("substr", GOF_strings_substr(0))
 	m.Init("format", GOF_strings_format(0))
+	m.Init("parsef", GOF_strings_parsef(0))
 	return m
 }
 
@@ -493,4 +495,90 @@ func (this GOF_strings_format) IsNative() bool {
 
 func (this GOF_strings_format) String() string {
 	return "GoFunc<strings.format>"
+}
+
+// strings.parsef(string $string , ... ) string
+type GOF_strings_parsef int
+
+func (this GOF_strings_parsef) Exec(vm *VM, self interface{}) (int, error) {
+	err0 := vm.API_checkStack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	top := vm.API_gettop()
+	ps, err1 := vm.API_popN(top, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	vs := valutil.ToString(ps[0], "")
+	rs, err2 := this.parsef(vs, ps[1:])
+	if err2 != nil {
+		return 0, err2
+	}
+	vm.API_push(rs)
+	return 1, nil
+}
+
+func (this GOF_strings_parsef) IsNative() bool {
+	return true
+}
+
+func (this GOF_strings_parsef) String() string {
+	return "GoFunc<strings.parsef>"
+}
+
+func (this GOF_strings_parsef) parsef(str string, vlist []interface{}) (string, error) {
+	out := bytes.NewBuffer(make([]byte, 0))
+	var c1 rune = 0
+	word := bytes.NewBuffer(make([]byte, 0))
+
+	idx := 0
+	nvlist := make([]interface{}, 0, len(vlist))
+	for _, c := range []rune(str) {
+		switch c1 {
+		case 0:
+			if c == '$' {
+				c1 = c
+			} else {
+				out.WriteRune(c)
+			}
+		case '$':
+			if c == '{' {
+				c1 = '{'
+				idx = 0
+			} else {
+				out.WriteRune(c1)
+				out.WriteRune(c)
+				c1 = 0
+			}
+		case '{':
+			if c == '}' {
+				varname := word.String()
+				word.Reset()
+
+				var nv interface{}
+				x := idx - 1
+				if x >= 0 && x < len(vlist) {
+					nv = vlist[x]
+					out.WriteByte('%')
+					out.WriteString(varname)
+					nvlist = append(nvlist, nv)
+				}
+				c1 = 0
+			} else {
+				if idx == 0 {
+					idx = int(c) - '0'
+				} else {
+					word.WriteRune(c)
+				}
+			}
+		}
+	}
+
+	if word.Len() > 0 {
+		return "", fmt.Errorf("invalid parse format(%s)", str)
+	}
+
+	rs := fmt.Sprintf(out.String(), nvlist...)
+	return rs, nil
 }

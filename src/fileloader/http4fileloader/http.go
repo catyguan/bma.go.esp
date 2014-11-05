@@ -69,6 +69,10 @@ func (this *HttpFileLoader) Load(script string) ([]byte, error) {
 	return respBody, nil
 }
 
+func (this *HttpFileLoader) Check(script string) (uint64, error) {
+	return 0, nil
+}
+
 type config struct {
 	URL       string
 	Host      string

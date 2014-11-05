@@ -36,7 +36,7 @@ func BuildModuleScript(m, n string) string {
 type mFileLoader int
 
 func (this mFileLoader) Load(script string) ([]byte, error) {
-	module, n := SplitModuleScript(script)
+	module, _ := SplitModuleScript(script)
 	var mfl FileLoader
 	if module != "" {
 		mfl = GetModuleFileLoader(module)
@@ -50,7 +50,25 @@ func (this mFileLoader) Load(script string) ([]byte, error) {
 		}
 		return nil, fmt.Errorf("FileLoader module(%s) invalid", module)
 	}
-	return mfl.Load(n)
+	return mfl.Load(script)
+}
+
+func (this mFileLoader) Check(script string) (uint64, error) {
+	module, _ := SplitModuleScript(script)
+	var mfl FileLoader
+	if module != "" {
+		mfl = GetModuleFileLoader(module)
+	}
+	if mfl == nil {
+		mfl = GetModuleFileLoader("*")
+	}
+	if mfl == nil {
+		if module == "" {
+			return 0, fmt.Errorf("FileLoader module empty - %s", script)
+		}
+		return 0, fmt.Errorf("FileLoader module(%s) invalid", module)
+	}
+	return mfl.Check(script)
 }
 
 type mFileLoaderFactory int

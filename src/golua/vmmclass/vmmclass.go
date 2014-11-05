@@ -122,9 +122,13 @@ func (this GOF_class_define) Exec(vm *golua.VM, self interface{}) (int, error) {
 	}
 	var spl []interface{}
 	if sp != nil {
-		spl = vm.API_toSlice(sp)
-		if spl == nil {
-			return 0, fmt.Errorf("superName not array(%T)", sp)
+		if str, ok := sp.(string); ok {
+			spl = []interface{}{str}
+		} else {
+			spl = vm.API_toSlice(sp)
+			if spl == nil {
+				return 0, fmt.Errorf("superName not array(%T)", sp)
+			}
 		}
 	}
 	ro := css.Get(vn)

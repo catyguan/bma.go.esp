@@ -9,8 +9,9 @@ import (
 )
 
 type ChunkCode struct {
-	name string
-	node goyacc.Node
+	name  string
+	node  goyacc.Node
+	mtime uint64
 }
 
 func NewChunk(name string, node goyacc.Node) *ChunkCode {
