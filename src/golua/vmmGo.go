@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"logger"
 	"reflect"
+	"runtime"
 	"sync"
 	"time"
 )
@@ -31,6 +32,7 @@ func GoModule() *VMModule {
 	m.Init("getGlobal", GOF_go_getGlobal(0))
 	m.Init("new", GOF_go_new(0))
 	m.Init("invoke", GOF_go_invoke(0))
+	m.Init("yield", GOF_go_yield(0))
 	return m
 }
 
@@ -780,4 +782,20 @@ func (this GOF_go_invoke) IsNative() bool {
 
 func (this GOF_go_invoke) String() string {
 	return "GoFunc<go.invoke>"
+}
+
+// go.yield()
+type GOF_go_yield int
+
+func (this GOF_go_yield) Exec(vm *VM, self interface{}) (int, error) {
+	runtime.Gosched()
+	return 0, nil
+}
+
+func (this GOF_go_yield) IsNative() bool {
+	return true
+}
+
+func (this GOF_go_yield) String() string {
+	return "GoFunc<go.yield>"
 }

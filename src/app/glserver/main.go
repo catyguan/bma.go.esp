@@ -2,7 +2,6 @@ package main
 
 import (
 	"boot"
-	"boot/httpmux4boot"
 	"esp/acclog"
 	"esp/aclserv"
 	"esp/goluaserv"
@@ -18,6 +17,8 @@ import (
 	"httpserver/aclmux"
 	"net/http"
 	"os"
+	"smmapi/httpmux4smmapi"
+	_ "smmapi/smmapi4server"
 
 	_ "fileloader/http4fileloader"
 	_ "github.com/go-sql-driver/mysql"
@@ -49,7 +50,9 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	httpmux4boot.InitMuxReload(mux, "/smm.api/boot/reload")
+	// httpmux4boot.InitMuxReload(mux, "/smm.api/boot/reload")
+
+	httpmux4smmapi.InitMuxInvoke(mux, "/smm.api/invoke")
 
 	mux.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir(wd+"/public"))))
 
