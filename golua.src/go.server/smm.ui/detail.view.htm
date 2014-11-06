@@ -48,7 +48,7 @@ function reloadServer() {
 	doNodeAction('go.server','boot.reload','')
 }
 function loadProfiles() {
-	doNodeAction('go.server','boot.profiles','',function(data) {
+	doNodeAction('go.server','boot.profiles',null,null,function(data) {
 		rs = data.Result
 		$('#div_StartupTime').text(rs.StartupTime);
 		$('#div_InitTime').text(rs.InitTime);

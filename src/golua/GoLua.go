@@ -1,6 +1,7 @@
 package golua
 
 import (
+	"boot"
 	"fileloader"
 	"fmt"
 	"logger"
@@ -29,6 +30,9 @@ type GoLua struct {
 	configs      map[string]interface{}
 	serviceMutex sync.RWMutex
 	services     map[string]interface{}
+	dgMutex      sync.RWMutex
+	dgs          map[uint32]*VMDebugger
+	breakpoints  map[*Breakpoint]bool
 	sid          uint32
 
 	ofMap map[string]GoObjectFactory
@@ -41,6 +45,8 @@ func NewGoLua(n string, poolSize int, ss fileloader.FileLoader, init GoLuaInitor
 	r.configs = make(map[string]interface{})
 	r.globals = make(map[string]interface{})
 	r.services = make(map[string]interface{})
+	r.dgs = make(map[uint32]*VMDebugger)
+	r.breakpoints = make(map[*Breakpoint]bool)
 	r.ofMap = make(map[string]GoObjectFactory)
 
 	r.ss = ss
@@ -120,16 +126,30 @@ func (this *GoLua) GetVM() (*VM, error) {
 	if err != nil {
 		return nil, err
 	}
-	select {
-	case vm := <-this.vmpool:
-		if vm != nil {
-			logger.Debug(tag, "%s leave pool", vm)
-			vm.ResetExecutionTime()
-			return vm, nil
+	vm, err1 := func() (*VM, error) {
+		select {
+		case vm := <-this.vmpool:
+			if vm != nil {
+				logger.Debug(tag, "%s leave pool", vm)
+				vm.ResetExecutionTime()
+				return vm, nil
+			}
+		default:
 		}
-	default:
+		return this.CreateVM()
+	}()
+	if err1 != nil {
+		return nil, err1
 	}
-	return this.CreateVM()
+	if boot.DevMode {
+		this.dgMutex.RLock()
+		l := len(this.breakpoints)
+		this.dgMutex.RUnlock()
+		if l > 0 {
+			vm.DebugSet(3)
+		}
+	}
+	return vm, nil
 }
 
 func (this *GoLua) ReturnVM(vm *VM) {

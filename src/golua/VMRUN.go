@@ -187,9 +187,6 @@ func (this *VM) runChunk(cc *ChunkCode, self interface{}) (int, error) {
 }
 
 func (this *VM) runCode(node goyacc.Node) (int, ER, error) {
-	if this.trace {
-		this.Trace(">>> %v", node)
-	}
 	this.numOfTime++
 	if this.numOfTime > this.config.TimeCheck {
 		this.numOfTime = 0
@@ -202,11 +199,19 @@ func (this *VM) runCode(node goyacc.Node) (int, ER, error) {
 	if node == nil {
 		return 0, ER_NEXT, nil
 	}
-	op := node.GetOp()
 	vline := node.GetLine()
 	if vline > 0 {
 		this.stack.line = vline
 	}
+	if this.runMode != 0 {
+		if this.debugger != nil {
+			this.debugger.Check()
+		}
+	}
+	if this.trace {
+		this.Trace(">>> %v", node)
+	}
+	op := node.GetOp()
 	switch n := node.(type) {
 	case *goyacc.Node0:
 		switch op {

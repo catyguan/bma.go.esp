@@ -8,7 +8,7 @@ local vr
 -- 	print("run in defer")
 -- end)
 
-local ch = go.chan(1, true)
+-- local ch = go.chan(1, true)
 -- go.defer(ch)
 -- local ch2 = go.chan(1)
 -- go.defer(ch2)
@@ -41,5 +41,6 @@ local ch = go.chan(1, true)
 -- error(v2)
 
 -- vr =  go.exec("s_add.lua", {_REQUEST=_REQUEST})
+go.enableDebugger()
 
 return vr

@@ -2,15 +2,22 @@
 local nodeId = go.lookup("nodeId")
 ?>
 <script type="text/javascript">
-function doNodeAction(id,aid,param,f) {
-	$.getJSON(
+function doNodeAction(id,aid,param,data,f) {
+	vdata = ""
+	if(data) {
+		vdata = JSON.stringify(data)
+	}
+	$.post(
 		"nodeAction.gl",
 		{
 			nid : <?=nodeId?>,
 			id : id,
 			aid : aid,
-			param : param
-		}
+			param : param,
+			ctx : vdata
+		},
+		null,
+		"json"
 	).done(function(data) {
 		if(f!=null) {
 			f(data)

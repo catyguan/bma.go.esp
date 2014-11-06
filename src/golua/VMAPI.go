@@ -12,9 +12,12 @@ func (this *VM) API_checkRun() error {
 	if err != nil {
 		return err
 	}
-	du := time.Since(this.executeTime).Seconds()
-	if int(du*1000) > this.GetMaxExecutionTime() {
-		return fmt.Errorf("max execute time(%f)", du)
+	mt := this.GetMaxExecutionTime()
+	if mt > 0 {
+		du := time.Since(this.executeTime).Seconds()
+		if int(du*1000) > mt {
+			return fmt.Errorf("max execute time(%f)", du)
+		}
 	}
 	return nil
 }

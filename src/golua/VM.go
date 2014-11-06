@@ -74,6 +74,9 @@ type VM struct {
 	context          context.Context
 
 	defers []interface{}
+
+	runMode  int // 0-normal 1-watch 2-wait 11-step 12-step.in 13-step.out
+	debugger *VMDebugger
 }
 
 func newVM(gl *GoLua, id uint32) *VM {
@@ -132,6 +135,8 @@ func (this *VM) Finish() {
 			}
 		}
 	}
+
+	this.closeDebugger()
 
 	st := this.stack
 	for st.parent != nil {
