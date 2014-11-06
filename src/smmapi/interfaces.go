@@ -8,11 +8,11 @@ const (
 )
 
 type SMAction struct {
-	Id      string
-	Title   string
-	Type    SMA_TYPE
-	Param   string
-	HTTPUIN string
+	Id    string
+	Title string
+	Type  SMA_TYPE
+	Param string
+	UIN   string
 }
 
 type SMInfo struct {
@@ -40,6 +40,6 @@ func (this smlist) Swap(i, j int) {
 
 type SMMObject interface {
 	GetInfo() (*SMInfo, error)
-	// Result, refreshInfo, error
-	ExecuteAction(aid string, param string) (interface{}, bool, error)
+	// Result, error
+	ExecuteAction(aid string, param string, ctx map[string]interface{}) (interface{}, error)
 }

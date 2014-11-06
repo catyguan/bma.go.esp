@@ -27,3 +27,4 @@ _testmain.go
 /bin/local.db
 /backup/shell
 /backup/namedsql
+/bin/tmp

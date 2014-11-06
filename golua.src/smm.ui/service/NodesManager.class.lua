@@ -1,5 +1,7 @@
 local Class = class.define("NodesManager")
 
+Class.M = go.enableSafe({}, true)
+
 function Class.getDB()
 	if not self.db then
 		local sdb = go.new("SmartDB")
@@ -8,7 +10,14 @@ function Class.getDB()
 	return self.db
 end
 
-function Class.List()
+function Class.List(refresh)
+	local vb = types.bool(refresh, false)
+	if vb then self.M.Nodes = nil end
+
+	if self.M.Nodes~=nil then
+		return self.M.Nodes
+	end
+
 	local db = self.getDB()
 	local rs = db.Query("select * from smm_nodes order by host_name")
 	local nodes = []
@@ -17,10 +26,24 @@ function Class.List()
 	while rs.Fetch(data, desc) do
 		table.insert(nodes, data)
 	end
+	self.M.Nodes = nodes
 	return nodes
 end
 
-function Class.Get(id)
+function Class.Get(id, refresh)
+	local vb = types.bool(refresh, false)
+	if vb then self.M.Nodes = nil end
+
+	local nodes = self.M.Nodes
+	if nodes~=nil then
+		for _, node in nodes do
+			if node.id == id then
+				return node
+			end
+		end
+		return nil
+	end
+
 	local db = self.getDB()
 	local rs = db.Query("select * from smm_nodes where id = ?", id)
 	local data
@@ -31,15 +54,6 @@ function Class.Get(id)
 	return nil
 end
 
-function Class.Valid(data)
-	local ok, vdata = self.DM_NODE.Valid(data)
-	if not ok then
-		return ok, vdata
-	end
-	-- other valid
-	return ok, vdata
-end
-
 function Class.Insert(data)
 	local db = self.getDB()
 	local fv = table.clone(data)
@@ -47,6 +61,7 @@ function Class.Insert(data)
 	fv.modify_time = fv.create_time
 	local id
 	_, id = db.ExecInsert("smm_nodes", fv, true)
+	self.M.Nodes = nil
 	return id
 end
 
@@ -55,11 +70,13 @@ function Class.Update(data, id)
 	local fv = table.clone(data)
 	fv.modify_time = time.now().Unix()
 	tj = {id=id}
+	self.M.Nodes = nil
 	return db.ExecUpdate("smm_nodes", fv, tj)
 end
 
 function Class.Delete(id)
 	local db = self.getDB()
 	tj = {id=id}
+	self.M.Nodes = nil
 	return db.ExecDelete("smm_nodes", tj)
 end

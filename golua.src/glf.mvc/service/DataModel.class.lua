@@ -1,5 +1,4 @@
 -- glf.mvc:service/DataModel.class.lua
--- go.deving()
 local VOClass = class.define("ViewObject")
 
 function VOClass.IFF(name, str1, str2)

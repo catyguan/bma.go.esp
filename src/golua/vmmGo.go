@@ -33,6 +33,7 @@ func GoModule() *VMModule {
 	m.Init("new", GOF_go_new(0))
 	m.Init("invoke", GOF_go_invoke(0))
 	m.Init("yield", GOF_go_yield(0))
+	m.Init("lookup", GOF_go_lookup(0))
 	return m
 }
 
@@ -412,7 +413,8 @@ func (this GOF_go_enableSafe) Exec(vm *VM, self interface{}) (int, error) {
 	}
 	if so, ok := o.(supportSafe); ok {
 		so.EnableSafe()
-		return 0, nil
+		vm.API_push(o)
+		return 1, nil
 	} else {
 		return 0, fmt.Errorf("invalid safe(%T)", o)
 	}
@@ -798,4 +800,38 @@ func (this GOF_go_yield) IsNative() bool {
 
 func (this GOF_go_yield) String() string {
 	return "GoFunc<go.yield>"
+}
+
+// go.lookup(n)
+type GOF_go_lookup int
+
+func (this GOF_go_lookup) Exec(vm *VM, self interface{}) (int, error) {
+	err0 := vm.API_checkStack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	n, err2 := vm.API_pop1X(-1, true)
+	if err2 != nil {
+		return 0, err2
+	}
+	vn := valutil.ToString(n, "")
+	vv := vm.API_findVar(vn)
+	if vv != nil {
+		r, err3 := vv.Get(vm)
+		if err3 != nil {
+			return 0, err3
+		}
+		vm.API_push(r)
+	} else {
+		vm.API_push(nil)
+	}
+	return 1, nil
+}
+
+func (this GOF_go_lookup) IsNative() bool {
+	return true
+}
+
+func (this GOF_go_lookup) String() string {
+	return "GoFunc<go.lookup>"
 }

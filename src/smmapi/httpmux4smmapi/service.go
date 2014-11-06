@@ -13,16 +13,23 @@ func InitMuxInvoke(mux *http.ServeMux, path string) {
 			http.Error(w, err0.Error(), http.StatusInternalServerError)
 		}
 
-		id := req.FormValue("id")
-		aid := req.FormValue("aid")
-		param := req.FormValue("param")
-
-		result, refresh, err := smmapi.Invoke(id, aid, param)
-		var info *smmapi.SMInfo
-		if refresh {
-			o := smmapi.Get(id)
-			info, err = o.GetInfo()
+		var id, aid, param string
+		ctx := make(map[string]interface{})
+		for k, _ := range req.Form {
+			v := req.FormValue(k)
+			switch k {
+			case "_id":
+				id = v
+			case "_aid":
+				aid = v
+			case "_param":
+				param = v
+			default:
+				ctx[k] = v
+			}
 		}
+
+		result, err := smmapi.Invoke(id, aid, param, ctx)
 
 		r := make(map[string]interface{})
 		if err != nil {
@@ -31,7 +38,6 @@ func InitMuxInvoke(mux *http.ServeMux, path string) {
 		} else {
 			r["Status"] = 200
 			r["Result"] = result
-			r["Info"] = info
 		}
 
 		jbs, _ := json.Marshal(r)

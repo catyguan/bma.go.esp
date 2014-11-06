@@ -54,41 +54,45 @@ func List() map[string]SMMObject {
 	return r
 }
 
-func Invoke(id string, aid string, param string) (interface{}, bool, error) {
-	if id == "" {
-		switch aid {
-		case "list":
-			m := List()
-			r := make(smlist, 0)
-			for k, o := range m {
-				info, err := o.GetInfo()
-				if err != nil {
-					info = new(SMInfo)
-					info.Title = "Unknow"
-					info.Content = fmt.Sprintf("<pre>error : %s</pre>", err)
-				}
-				info.Id = k
-				r = append(r, info)
-			}
-			sort.Sort(r)
-			return r, false, nil
-		case "one":
-			o := Get(param)
-			if o == nil {
-				return nil, false, fmt.Errorf("invalid SMMObject(%s)", param)
-			}
+func manageInvoke(cmd string, param string, ctx map[string]interface{}) (interface{}, error) {
+	switch cmd {
+	case "list":
+		m := List()
+		r := make(smlist, 0)
+		for k, o := range m {
 			info, err := o.GetInfo()
-			if info != nil {
-				info.Id = param
+			if err != nil {
+				info = new(SMInfo)
+				info.Title = "Unknow"
+				info.Content = fmt.Sprintf("error : %s", err)
 			}
-			return info, false, err
+			info.Id = k
+			r = append(r, info)
 		}
-		return nil, false, fmt.Errorf("unknow command(%s)(%s)", aid, param)
+		sort.Sort(r)
+		return r, nil
+	case "one":
+		o := Get(param)
+		if o == nil {
+			return nil, fmt.Errorf("invalid SMMObject(%s)", param)
+		}
+		info, err := o.GetInfo()
+		if info != nil {
+			info.Id = param
+		}
+		return info, err
+	}
+	return nil, fmt.Errorf("unknow command(%s)(%s)", cmd, param)
+}
+
+func Invoke(id string, aid string, param string, ctx map[string]interface{}) (interface{}, error) {
+	if id == "" {
+		return manageInvoke(aid, param, ctx)
 	} else {
 		obj := Get(id)
 		if obj == nil {
-			return nil, false, fmt.Errorf("invalid SMMObject(%s)", id)
+			return nil, fmt.Errorf("invalid SMMObject(%s)", id)
 		}
-		return obj.ExecuteAction(aid, param)
+		return obj.ExecuteAction(aid, param, ctx)
 	}
 }

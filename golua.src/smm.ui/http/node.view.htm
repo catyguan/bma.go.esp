@@ -1,0 +1,53 @@
+<?golua
+local nodeId = node.id
+?>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>SMM.UI - GoLua[<?=node.name?>]节点信息</title>
+<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+</head>
+<body>
+GoLua[<?=node.name?>]节点信息 [<a href="node.gl?id=<?=node.id?>">刷新</a>|<a href="index.gl">返回列表</a>]
+<hr>
+<?golua
+httpserv.render("smm.ui:http/js4node.view.htm",{})
+?>
+<table border="1">
+	<tr>
+		<td>模块编号</td>
+		<td>说明</td>
+		<td>状态</td>
+		<td>操作</td>
+	</tr>
+<?golua
+for info in infoList do
+?>
+	<tr>
+		<td><?=info.Id?></td>
+		<td><?=info.Title?></td>
+		<td><?=info.Content?></td>
+		<td>
+<?golua
+if info.Actions~=nil then
+	for action in info.Actions do
+		if action.UIN~=nil and action.UIN~="" then
+?>
+			<a href="nodeUI.gl?nid=<?=node.id?>&id=<?=info.Id?>&aid=<?=action.Id?>&uin=<?=httpserv.urlencode(action.UIN)?>"><?=action.Title?></a>
+<?golua
+		else
+?>			
+			<a href="#nodeAction_<?=action.Id?>" onclick="return doNodeAction('<?=info.Id?>','<?=action.Id?>','<?=action.Param?>')"><?=action.Title?></a>
+<?golua
+		end
+	end			
+end
+?>			
+		</td>
+	</tr>
+<?golua
+end
+?>
+</table>
+</body>
+</html>

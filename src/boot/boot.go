@@ -308,6 +308,7 @@ func doRestart() bool {
 	fmt.Println("restart gracestoping")
 	doActions(GRACESTOP, ctx)
 	if doRestartInitStartRun(ctx) {
+		LoadTime = time.Now()
 		return true
 	}
 	fmt.Println("ERROR: doRestart fail, stop!")
@@ -454,6 +455,8 @@ func TestGo(cfgFile string, endWaitSec int, funl []func()) {
 }
 
 func Go(cfgFile string) {
+	StartTime = time.Now()
+
 	var ctx *BootContext
 	defer func() {
 		if ctx == nil {
@@ -472,6 +475,7 @@ func Go(cfgFile string) {
 	ok := false
 	ok, ctx = doInitAndStart(cfgFile)
 	if ok {
+		LoadTime = time.Now()
 		doRunAndWait(ctx)
 	}
 }

@@ -1,0 +1,25 @@
+<?golua
+local nodeId = go.lookup("nodeId")
+?>
+<script type="text/javascript">
+function doNodeAction(id,aid,param,f) {
+	$.getJSON(
+		"nodeAction.gl",
+		{
+			nid : <?=nodeId?>,
+			id : id,
+			aid : aid,
+			param : param
+		}
+	).done(function(data) {
+		if(f!=null) {
+			f(data)
+		} else {
+			alert(data.Result);
+		}
+	}).error(function() {
+		alert("Node Action '"+aid+"' fail");
+	});
+	return false
+}
+</script>

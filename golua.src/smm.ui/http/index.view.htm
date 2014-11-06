@@ -1,18 +1,19 @@
 <html>
 <head>
 <meta charset="utf-8" />
-<title>smm.ui - nodes list</title>
+<title>SMM.UI - GoLua节点列表</title>
 <script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
 </head>
 <body>
-<a href="addNode.gl">Add Node</a>
+<a href="addNode.gl">添加节点</a>
 <hr>
 <table border="1">
 	<tr>
-		<td>Name</td>
-		<td>Host</td>
-		<td>Status</td>
-		<td>Command</td>
+		<td>名称</td>
+		<td>主机标识</td>
+		<td>状态</td>
+		<td>备注</td>
+		<td>操作</td>
 	</tr>
 <?golua
 for node in nodes do
@@ -21,10 +22,11 @@ for node in nodes do
 		<td><?=node.name?></td>
 		<td><?=node.host_name?></td>
 		<td><?=node.status?></td>
+		<td><?=node.remark?></td>
 		<td>
-			<a href="node.gl?id=<?=node.id?>">Detail</a>
-			<a href="editNode.gl?id=<?=node.id?>">Edit</a>
-			<a href="deleteNode.gl?id=<?=node.id?>" onclick="return confirm('Sure Delete?')">Delete</a>
+			<a href="node.gl?id=<?=node.id?>">详细</a>
+			<a href="editNode.gl?id=<?=node.id?>">编辑</a>
+			<a href="deleteNode.gl?id=<?=node.id?>" onclick="return confirm('确实删除?')">删除</a>
 		</td>
 	</tr>
 <?golua

@@ -3,7 +3,6 @@ package smmapi4server
 import (
 	"bmautil/valutil"
 	"boot"
-	"bytes"
 	"fmt"
 	"runtime"
 	"smmapi"
@@ -15,54 +14,67 @@ func s(v uint64) string {
 	return valutil.SizeString(v, 1024, valutil.SizeM)
 }
 
-func (this smmObject) getContent() string {
-	ver := runtime.Version()
+func (this smmObject) getProfiles() map[string]interface{} {
+	r := make(map[string]interface{})
+	r["Version"] = runtime.Version()
+	r["StartupTime"] = boot.StartTime.String()
+	r["InitTime"] = boot.LoadTime.String()
+
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)
 
-	buf := bytes.NewBuffer([]byte{})
-	buf.WriteString("<pre>")
-	buf.WriteString("Memory[")
-	buf.WriteString("Alloc=")
-	buf.WriteString(s(ms.Alloc))
-	buf.WriteString(", ")
-	buf.WriteString("TotalAlloc=")
-	buf.WriteString(s(ms.TotalAlloc))
-	buf.WriteString(", ")
-	buf.WriteString("Sys=")
-	buf.WriteString(s(ms.Sys))
-	buf.WriteString(", ")
-	buf.WriteString("Free=")
-	buf.WriteString(s(ms.Frees))
-	buf.WriteString("]\n")
-	buf.WriteString("Version=")
-	buf.WriteString(ver)
-	buf.WriteString("\n")
-	buf.WriteString("</pre>")
+	r["Memory_Alloc"] = s(ms.Alloc)
+	r["Memory_HeapIdle"] = s(ms.HeapIdle)
+	r["Memory_Sys"] = s(ms.Sys)
 
-	return buf.String()
+	return r
+}
+
+func (this smmObject) getContent() string {
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
+	return fmt.Sprintf("Alloc=%s, HeapIdle=%s, Sys=%s", s(ms.Alloc), s(ms.HeapIdle), s(ms.Sys))
 }
 
 func (this smmObject) GetInfo() (*smmapi.SMInfo, error) {
 	r := new(smmapi.SMInfo)
-	r.Title = "Server"
+	r.Title = "Server profiles and control"
 	r.Content = this.getContent()
+
 	r.Actions = make([]*smmapi.SMAction, 0)
-	a1 := new(smmapi.SMAction)
-	a1.Id = "boot.reload"
-	a1.Title = "ReloadServer"
-	a1.Type = smmapi.SMA_API
-	r.Actions = append(r.Actions, a1)
+	if true {
+		a := new(smmapi.SMAction)
+		a.Id = "boot.detail"
+		a.Title = "Detail"
+		a.Type = smmapi.SMA_HTTPUI
+		a.UIN = "go.server/smm.ui:detail.gl.lua"
+		r.Actions = append(r.Actions, a)
+	}
+	if true {
+		a := new(smmapi.SMAction)
+		a.Id = "boot.reload"
+		a.Title = "Reload"
+		a.Type = smmapi.SMA_API
+		r.Actions = append(r.Actions, a)
+	}
+
 	return r, nil
 }
 
 // Result, refreshInfo, error
-func (this smmObject) ExecuteAction(aid, param string) (interface{}, bool, error) {
+func (this smmObject) ExecuteAction(aid, param string, ctx map[string]interface{}) (interface{}, error) {
 	switch aid {
 	case "boot.reload":
-		return boot.Restart(), false, nil
+		msg := "OK"
+		if !boot.Restart() {
+			msg = "Fail"
+		}
+		return msg, nil
+	case "boot.profiles":
+		p := this.getProfiles()
+		return p, nil
 	}
-	return nil, false, fmt.Errorf("unknow action(%s)", aid)
+	return nil, fmt.Errorf("unknow action(%s)", aid)
 }
 
 func init() {

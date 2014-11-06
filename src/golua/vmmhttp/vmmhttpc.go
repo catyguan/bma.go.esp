@@ -29,6 +29,8 @@ func HttpClientModule(accLog *acclog.Service, accName string) *golua.VMModule {
 	mo := &httpClientModule{accLog, accName}
 	m.Init("exec", &GOF_httpclient_exec{mo})
 	m.Init("getContent", &GOF_httpclient_getContent{mo})
+	m.Init("urlencode", GOF_http_urlencode(0))
+	m.Init("urldecode", GOF_http_urldecode(0))
 	return m
 }
 

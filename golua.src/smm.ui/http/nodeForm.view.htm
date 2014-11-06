@@ -4,43 +4,47 @@ local ERRSTR = "(<font color=red>${2s}</font>)"
 <html>
 <head>
 <meta charset="utf-8" />
-<title>smm.ui - node info</title>
+<title>SMM.UI - 编辑节点信息</title>
 <script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
 </head>
 <body>
-<a href="index.gl">Back</a>
+<a href="index.gl">返回列表</a>
 <hr>
 <form method="pos" action="commitNode.gl">
 <table border="1">
 	<tr>
-		<td>Name</td>
+		<td>名称</td>
 		<td>
 			<input type="text" name="name" value="<?=node.Value("name")?>">
 			<?=node.Error("name", ERRSTR)?>
 		</td>
 	</tr>
 	<tr>		
-		<td>Host</td>
+		<td>主机标识</td>
 		<td>
 			<input type="text" name="host_name" value="<?=node.Value("host_name")?>">
 			<?=node.Error("host_name", ERRSTR)?>
 		</td>
 	</tr>
 	<tr>
-		<td>API</td>
+		<td>API接口</td>
 		<td>
 			<input type="text" size="80" name="api_url" value="<?=node.Value("api_url")?>">
 			<?=node.Error("api_url", ERRSTR)?>
 		</td>
 	</tr>
 	<tr>
-		<td>Remark</td>
-		<td><textarea name="remark"><?=node.Value("remark")?></textarea></td>
+		<td>备注</td>
+		<td>
+			<textarea name="remark"><?=node.Value("remark")?></textarea>
+			<?=node.Error("api_url", ERRSTR)?>
+		</td>
 	</tr>
 	<tr>
 		<td></td>
 		<td>
-			<input type="submit" value="Submit">
+			<input type="submit" value="提交">
+			<input type="reset" value="重置">
 			<input type="hidden" name="id" value="<?=node.Value("id")?>">
 		</td>
 	</tr>

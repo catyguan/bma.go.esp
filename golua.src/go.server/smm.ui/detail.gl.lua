@@ -1,0 +1,1 @@
+httpserv.render("_:detail.view.htm",{node=node, nodeId=nodeId, actionId=aid, id=id})

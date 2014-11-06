@@ -217,7 +217,7 @@ func (this *GoLua) Require(pvm *VM, n string) error {
 
 	cc := this.getChunkCode(n)
 	if cc != nil {
-		logger.Debug(tag, "%s: require '%s' exists", this, n)
+		// logger.Debug(tag, "%s: require '%s' exists", this, n)
 		return nil
 	}
 

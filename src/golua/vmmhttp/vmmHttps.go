@@ -39,6 +39,8 @@ func HttpServModule() *golua.VMModule {
 	m.Init("write", GOF_httpserv_write(0))
 	m.Init("render", GOF_httpserv_render(0))
 	m.Init("writeFile", GOF_httpserv_writeFile(0))
+	m.Init("urlencode", GOF_http_urlencode(0))
+	m.Init("urldecode", GOF_http_urldecode(0))
 	return m
 }
 

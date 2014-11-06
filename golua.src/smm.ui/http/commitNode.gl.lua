@@ -22,6 +22,6 @@ else
 	s.Insert(data)
 end
 
-httpserv.render("_:http/done.view.htm",{msg="Submit Done"})
+httpserv.render("_:http/done.view.htm",{msg="操作完成"})
 
 

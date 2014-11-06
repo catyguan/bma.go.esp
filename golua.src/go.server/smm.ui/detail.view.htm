@@ -1,0 +1,64 @@
+<html>
+<head>
+<meta charset="utf-8" />
+<title>SMM.UI - 节点[<?=node.name?>]的go.server信息</title>
+<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+</head>
+<body>
+节点[<?=node.name?>]的go.server信息 [<a href="#" onclick="location.reload();return false;">刷新</a>|<a href="node.gl?id=<?=nodeId?>">返回节点</a>]
+<hr>
+<?golua
+httpserv.render("smm.ui:http/js4node.view.htm",{})
+?>
+<table>
+	<tr>
+		<td>启动时间</td>
+		<td><div id="div_StartupTime"></div></td>
+	</tr>
+	<tr>
+		<td>装载时间</td>
+		<td><div id="div_InitTime"></div></td>
+	</tr>
+	<tr>
+		<td>使用内存</td>
+		<td><div id="div_Memory_Alloc"></div></td>
+	</tr>
+	<tr>
+		<td>空闲内存</td>
+		<td><div id="div_Memory_HeapIdle"></div></td>
+	</tr>
+	<tr>
+		<td>系统占用内存</td>
+		<td><div id="div_Memory_Sys"></div></td>
+	</tr>
+	<tr>
+		<td>Go版本</td>
+		<td><div id="div_Version"></div></td>
+	</tr>
+	<tr>
+		<td></td>
+		<td>
+			<button onclick="loadProfiles()">刷新信息</button>
+			<button onclick="reloadServer()">重新加载服务器</button>
+		</td>
+	</tr>
+</table>
+<script>
+function reloadServer() {
+	doNodeAction('go.server','boot.reload','')
+}
+function loadProfiles() {
+	doNodeAction('go.server','boot.profiles','',function(data) {
+		rs = data.Result
+		$('#div_StartupTime').text(rs.StartupTime);
+		$('#div_InitTime').text(rs.InitTime);
+		$('#div_Memory_Alloc').text(rs.Memory_Alloc);
+		$('#div_Memory_HeapIdle').text(rs.Memory_HeapIdle);
+		$('#div_Memory_Sys').text(rs.Memory_Sys);
+		$('#div_Version').text(rs.Version);
+	})	
+}
+loadProfiles()
+</script>
+</body>
+</html>

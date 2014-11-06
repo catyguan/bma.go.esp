@@ -631,13 +631,13 @@ func (this *VM) runCode(node goyacc.Node) (int, ER, error) {
 							vlist = tmp.ToArray()
 						}
 					}
-				}
-				if vlist == nil {
-					tb := this.API_table(v1)
-					if tb == nil {
-						vlist = []interface{}{v1}
-					} else {
-						mlist = tb.ToMap()
+					if vlist == nil {
+						tb := this.API_table(v1)
+						if tb == nil {
+							vlist = []interface{}{v1}
+						} else {
+							mlist = tb.ToMap()
+						}
 					}
 				}
 			} else {
