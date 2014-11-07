@@ -7,15 +7,15 @@
 	"httpPoint" : {
 		"Port" : "1080"
 	},
+	"httpPointSMM" : {
+		"Port" : "1081"
+	},
+	"smmapiServ" : {
+		"Code" : "1"
+	},
 	"acl" : {
-		"http" : { "Type":"pass", "Users":["*@*"] },
-		"http/smm.api" : {
-			"Type": "mix", 
-			"Rules" : [
-				{ "Type":"pass", "Users":["*@127.0.0.1"] },
-				{ "Type":"deny", "Users":["*@*"] }
-			]
-		}
+		"http" : { "Type":"deny", "Users":["*@*"] },
+		"http/smm.api" : { "Type":"pass", "Users":["*@127.0.0.1"] }
 	},
 	"acclog": {
 		"Nodes" : [

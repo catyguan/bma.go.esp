@@ -48,25 +48,25 @@ func main() {
 
 	var wd, _ = os.Getwd()
 
-	mux := http.NewServeMux()
-
-	// httpmux4boot.InitMuxReload(mux, "/smm.api/boot/reload")
-
-	httpmux4smmapi.InitMuxInvoke(mux, "/smm.api/invoke")
-
-	mux.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir(wd+"/public"))))
+	mux4app := http.NewServeMux()
+	mux4app.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir(wd+"/public"))))
 
 	mux4gl := httpmux4goluaserv.NewService("goluaMux", service)
 	mux4gl.SetupAcclog(acclog, "httpserv")
-	mux4gl.InitMux(mux, "/")
+	mux4gl.InitMux(mux4app, "/")
 	boot.AddService(mux4gl)
 
-	mux4gl.InitMuxReset(mux, "/smm.api/golua/reset")
-
-	amux := aclmux.NewAclServerMux("http", mux)
-
-	httpService := httpserver.NewHttpServer("httpPoint", amux)
+	httpService := httpserver.NewHttpServer("httpPoint", mux4app)
 	boot.AddService(httpService)
+
+	mux4smm := http.NewServeMux()
+	smmapis := httpmux4smmapi.NewService("smmapiServ")
+	boot.AddService(smmapis)
+	smmapis.InitMuxInvoke(mux4smm, "/smm.api/invoke")
+
+	rmux4mms := aclmux.NewAclServerMux("http", mux4smm)
+	httpServiceSMM := httpserver.NewHttpServer("httpPointSMM", rmux4mms)
+	boot.AddService(httpServiceSMM)
 
 	boot.Go(cfile)
 }

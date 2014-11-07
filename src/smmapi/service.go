@@ -72,7 +72,7 @@ func manageInvoke(cmd string, param map[string]interface{}) (interface{}, error)
 		sort.Sort(r)
 		return r, nil
 	}
-	return nil, fmt.Errorf("unknow command(%s)(%s)", cmd, param)
+	return nil, fmt.Errorf("unknow command(%s)", cmd)
 }
 
 func Invoke(id string, aid string, param map[string]interface{}) (interface{}, error) {
@@ -83,6 +83,13 @@ func Invoke(id string, aid string, param map[string]interface{}) (interface{}, e
 		if obj == nil {
 			return nil, fmt.Errorf("invalid SMMObject(%s)", id)
 		}
-		return obj.ExecuteAction(aid, param)
+		v, err := obj.ExecuteAction(aid, param)
+		if err != nil {
+			return nil, err
+		}
+		if IsMiss(v) {
+			return nil, fmt.Errorf("unknow action(%s)(%s)", id, aid)
+		}
+		return v, nil
 	}
 }

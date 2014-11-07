@@ -34,6 +34,13 @@ local ERRSTR = "(<font color=red>${2s}</font>)"
 		</td>
 	</tr>
 	<tr>
+		<td>密钥</td>
+		<td>
+			<input type="text" size="80" name="code" value="<?=node.Value("code")?>">
+			<?=node.Error("code", ERRSTR)?>
+		</td>
+	</tr>
+	<tr>
 		<td>备注</td>
 		<td>
 			<textarea name="remark"><?=node.Value("remark")?></textarea>

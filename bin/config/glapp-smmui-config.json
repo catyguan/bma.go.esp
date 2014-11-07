@@ -1,13 +1,4 @@
 {
-	"acl" : {
-		"http/smm.ui" : {
-			"Type": "mix", 
-			"Rules" : [
-				{ "Type":"pass", "Users":["*@127.0.0.1"] },
-				{ "Type":"deny", "Users":["*@*"] }
-			]
-		}
-	},
 	"goluaServ" : {
 		"GoLua" : {
 			"smm.ui" : {

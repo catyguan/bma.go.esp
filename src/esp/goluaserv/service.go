@@ -75,6 +75,7 @@ func (this *Service) removeGoLua(k string) *glInfo {
 		return nil
 	}
 	delete(this.gli, k)
+	gli.gl.CloseSMMApi()
 	return gli
 }
 

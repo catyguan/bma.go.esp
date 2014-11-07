@@ -234,6 +234,11 @@ func (this *Service) _create(k string, glcfg *goluaConfigInfo) bool {
 	} else {
 		gli.status = 1
 	}
+	smm := new(smmObject)
+	smm.s = this
+	smm.gl = gl
+	gl.ExtSMMApi = smm
+	gl.InitSMMApi()
 
 	return true
 }

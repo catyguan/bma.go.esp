@@ -3,6 +3,7 @@ package golua
 import (
 	"bmautil/valutil"
 	"bytes"
+	"crypto/md5"
 	"fmt"
 	"strings"
 	"unicode"
@@ -27,6 +28,7 @@ func StringsModule() *VMModule {
 	m.Init("substr", GOF_strings_substr(0))
 	m.Init("format", GOF_strings_format(0))
 	m.Init("parsef", GOF_strings_parsef(0))
+	m.Init("md5", GOF_strings_md5(0))
 	return m
 }
 
@@ -581,4 +583,32 @@ func (this GOF_strings_parsef) parsef(str string, vlist []interface{}) (string, 
 
 	rs := fmt.Sprintf(out.String(), nvlist...)
 	return rs, nil
+}
+
+// strings.md5(string $string) string
+type GOF_strings_md5 int
+
+func (this GOF_strings_md5) Exec(vm *VM, self interface{}) (int, error) {
+	err0 := vm.API_checkStack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	s, err1 := vm.API_pop1X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	vs := valutil.ToString(s, "")
+	h := md5.New()
+	h.Write([]byte(vs))
+	r := fmt.Sprintf("%x", h.Sum(nil))
+	vm.API_push(r)
+	return 1, nil
+}
+
+func (this GOF_strings_md5) IsNative() bool {
+	return true
+}
+
+func (this GOF_strings_md5) String() string {
+	return "GoFunc<strings.md5>"
 }

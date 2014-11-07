@@ -4,6 +4,7 @@ import (
 	"fileloader"
 	"fmt"
 	"logger"
+	"smmapi"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -36,6 +37,8 @@ type GoLua struct {
 	sid          uint32
 
 	ofMap map[string]GoObjectFactory
+
+	ExtSMMApi smmapi.SMMObject
 }
 
 func NewGoLua(n string, poolSize int, ss fileloader.FileLoader, init GoLuaInitor, cfg *VMConfig) *GoLua {
@@ -54,6 +57,10 @@ func NewGoLua(n string, poolSize int, ss fileloader.FileLoader, init GoLuaInitor
 	r.cfg = cfg
 	r.codes = make(map[string]*ChunkCode)
 	return r
+}
+
+func (this *GoLua) GetName() string {
+	return this.name
 }
 
 func (this *GoLua) Close() {

@@ -30,9 +30,10 @@ function Class.List(refresh)
 	return nodes
 end
 
-function Class.Get(id, refresh)
-	local vb = types.bool(refresh, false)
-	if vb then self.M.Nodes = nil end
+function Class.Get(id)
+	if self.M.Nodes == nil then
+		self.List(true)
+	end
 
 	local nodes = self.M.Nodes
 	if nodes~=nil then
@@ -43,14 +44,13 @@ function Class.Get(id, refresh)
 		end
 		return nil
 	end
-
-	local db = self.getDB()
-	local rs = db.Query("select * from smm_nodes where id = ?", id)
-	local data
-	local desc = {id="int",status="int"}
-	if rs.Fetch(data, desc) then
-		return data
-	end
+	-- local db = self.getDB()
+	-- local rs = db.Query("select * from smm_nodes where id = ?", id)
+	-- local data
+	-- local desc = {id="int",status="int"}
+	-- if rs.Fetch(data, desc) then
+	-- 	return data
+	-- end
 	return nil
 end
 

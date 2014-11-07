@@ -42,3 +42,15 @@ type SMMObject interface {
 	// Result, error
 	ExecuteAction(aid string, param map[string]interface{}) (interface{}, error)
 }
+
+type MISS int
+
+func IsMiss(v interface{}) bool {
+	if v == nil {
+		return false
+	}
+	if _, ok := v.(MISS); ok {
+		return true
+	}
+	return false
+}

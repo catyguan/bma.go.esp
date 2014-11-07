@@ -18,14 +18,19 @@ function Class.Invoke(param)
 	local req = {
 		URL = nodeInfo.api_url
 	}
-	local strparam
+	local strparam = ""
 	if not types.isEmpty(param) then
 		strparam = json.encode(param)
+		req.Post = true
 	end
 	local data = {}
 	data["id"] = self.id
 	data["aid"] = self.aid
 	data["param"] = strparam
+	if nodeInfo.code~='' then
+		local tmp = strings.format("%d/%s/%s/%s", self.id, self.aid, strparam, nodeInfo.code)
+		data["code"] = strings.md5(tmp)
+	end
 	req.Data = data
 
 	local resp = httpclient.exec(req)

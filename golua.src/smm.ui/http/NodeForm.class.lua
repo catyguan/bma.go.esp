@@ -19,6 +19,10 @@ Class.FIELD = {
 		type="string",
 		valid="notEmpty"
 	},
+	code={
+		type="string",
+		default=""
+	},
 	remark={
 		type="string",
 		default=""
