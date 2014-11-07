@@ -9,7 +9,7 @@ function Class.Bind(nodeId, id, aid)
 	self.aid = aid
 end
 
-function Class.Invoke(param, ctx)
+function Class.Invoke(param)
 	local s = class.new("NodesManager")
 	local nodeInfo = s.Get(self.nodeId)
 	if nodeInfo==nil then
@@ -18,15 +18,14 @@ function Class.Invoke(param, ctx)
 	local req = {
 		URL = nodeInfo.api_url
 	}
-	local data
-	if ctx==nil then
-		data = {}
-	else
-		data = table.clone(ctx)
+	local strparam
+	if not types.isEmpty(param) then
+		strparam = json.encode(param)
 	end
-	data["_id"] = self.id
-	data["_aid"] = self.aid
-	data["_param"] = param
+	local data = {}
+	data["id"] = self.id
+	data["aid"] = self.aid
+	data["param"] = strparam
 	req.Data = data
 
 	local resp = httpclient.exec(req)

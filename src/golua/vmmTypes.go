@@ -14,6 +14,7 @@ func TypesModule() *VMModule {
 	m.Init("float", GOF_types_float(0))
 	m.Init("string", GOF_types_string(0))
 	m.Init("bool", GOF_types_bool(0))
+	m.Init("isEmpty", GOF_types_isEmpty(0))
 	return m
 }
 
@@ -226,4 +227,36 @@ func (this GOF_types_bool) IsNative() bool {
 
 func (this GOF_types_bool) String() string {
 	return "GoFunc<types.bool>"
+}
+
+// types.isEmpty(v)
+type GOF_types_isEmpty int
+
+func (this GOF_types_isEmpty) Exec(vm *VM, self interface{}) (int, error) {
+	err0 := vm.API_checkStack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	v, err1 := vm.API_pop1X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	r := false
+	if v == nil {
+		r = true
+	} else {
+		if str, ok := v.(string); ok {
+			r = str == ""
+		}
+	}
+	vm.API_push(r)
+	return 1, nil
+}
+
+func (this GOF_types_isEmpty) IsNative() bool {
+	return true
+}
+
+func (this GOF_types_isEmpty) String() string {
+	return "GoFunc<types.isEmpty>"
 }

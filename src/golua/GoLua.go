@@ -1,7 +1,6 @@
 package golua
 
 import (
-	"boot"
 	"fileloader"
 	"fmt"
 	"logger"
@@ -19,8 +18,9 @@ type GoLua struct {
 	codeMutex sync.RWMutex
 	codes     map[string]*ChunkCode
 
-	vmid   uint32
-	closed uint32
+	vmid    uint32
+	closed  uint32
+	DevMode bool
 
 	vmpool chan *VM
 
@@ -141,7 +141,7 @@ func (this *GoLua) GetVM() (*VM, error) {
 	if err1 != nil {
 		return nil, err1
 	}
-	if boot.DevMode {
+	if this.DevMode {
 		this.dgMutex.RLock()
 		l := len(this.breakpoints)
 		this.dgMutex.RUnlock()

@@ -61,6 +61,7 @@ func (this *serviceConfigInfo) Compare(old *serviceConfigInfo) int {
 type goluaConfigInfo struct {
 	VM       *golua.VMConfig
 	FL       map[string]interface{}
+	DevMode  int
 	FastBoot bool
 	Startup  []string
 }
@@ -87,7 +88,9 @@ func (this *goluaConfigInfo) Compare(old *goluaConfigInfo) int {
 	if old == nil {
 		return boot.CCR_NEED_START
 	}
-
+	if this.DevMode != old.DevMode {
+		return boot.CCR_NEED_START
+	}
 	if len(this.Startup) != len(old.Startup) {
 		return boot.CCR_NEED_START
 	}
@@ -212,6 +215,14 @@ func (this *Service) _create(k string, glcfg *goluaConfigInfo) bool {
 	}
 	gli := new(glInfo)
 	gl := golua.NewGoLua(k, this.config.PoolSize, ss, this.glInit, glcfg.VM)
+	switch glcfg.DevMode {
+	case 0:
+		gl.DevMode = boot.DevMode
+	case 1:
+		gl.DevMode = true
+	case -1:
+		gl.DevMode = false
+	}
 	gli.gl = gl
 	this.gli[k] = gli
 

@@ -54,7 +54,7 @@ func List() map[string]SMMObject {
 	return r
 }
 
-func manageInvoke(cmd string, param string, ctx map[string]interface{}) (interface{}, error) {
+func manageInvoke(cmd string, param map[string]interface{}) (interface{}, error) {
 	switch cmd {
 	case "list":
 		m := List()
@@ -71,28 +71,18 @@ func manageInvoke(cmd string, param string, ctx map[string]interface{}) (interfa
 		}
 		sort.Sort(r)
 		return r, nil
-	case "one":
-		o := Get(param)
-		if o == nil {
-			return nil, fmt.Errorf("invalid SMMObject(%s)", param)
-		}
-		info, err := o.GetInfo()
-		if info != nil {
-			info.Id = param
-		}
-		return info, err
 	}
 	return nil, fmt.Errorf("unknow command(%s)(%s)", cmd, param)
 }
 
-func Invoke(id string, aid string, param string, ctx map[string]interface{}) (interface{}, error) {
+func Invoke(id string, aid string, param map[string]interface{}) (interface{}, error) {
 	if id == "" {
-		return manageInvoke(aid, param, ctx)
+		return manageInvoke(aid, param)
 	} else {
 		obj := Get(id)
 		if obj == nil {
 			return nil, fmt.Errorf("invalid SMMObject(%s)", id)
 		}
-		return obj.ExecuteAction(aid, param, ctx)
+		return obj.ExecuteAction(aid, param)
 	}
 }

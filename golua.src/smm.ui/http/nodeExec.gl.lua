@@ -5,7 +5,7 @@ local form = httpserv.form()
 local nid = types.int(form,"nid",0)
 local id = types.string(form,"id","")
 local aid = types.string(form,"aid","")
-local strparam = types.string(form,"param","")
+local uin = types.string(form,"uin","")
 
 local s = class.new("NodesManager")
 local node = s.Get(nid)
@@ -16,19 +16,8 @@ end
 if aid=="" then
 	error(strings.format("Node(%d) action empty", nid))
 end
-
-local param
-if strparam~="" then
-	param = json.decode(strparam)
+if uin=="" then
+	error(strings.format("Node(%d) uin empty", nid))
 end
 
-local ns = class.new("smm.ui.Node")
-ns.Bind(nid, id, aid)
-local res = ns.Invoke(param)
-local r = {
-	Result = res
-}
-return {
-	["Content-Type"] = "application/json",
-	Content = json.encode(r)
-}
+return go.exec(uin, {node=node, nodeId=nid, actionId=aid, id=id})

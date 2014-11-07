@@ -11,6 +11,12 @@ type CommonVMArray struct {
 	data []interface{}
 }
 
+func NewVMArray(a []interface{}) VMArray {
+	r := new(CommonVMArray)
+	r.data = a
+	return r
+}
+
 func (this *CommonVMArray) String() string {
 	return fmt.Sprintf("@%v", this.data)
 }

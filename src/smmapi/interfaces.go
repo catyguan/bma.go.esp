@@ -11,7 +11,6 @@ type SMAction struct {
 	Id    string
 	Title string
 	Type  SMA_TYPE
-	Param string
 	UIN   string
 }
 
@@ -41,5 +40,5 @@ func (this smlist) Swap(i, j int) {
 type SMMObject interface {
 	GetInfo() (*SMInfo, error)
 	// Result, error
-	ExecuteAction(aid string, param string, ctx map[string]interface{}) (interface{}, error)
+	ExecuteAction(aid string, param map[string]interface{}) (interface{}, error)
 }

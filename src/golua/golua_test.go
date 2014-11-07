@@ -64,7 +64,6 @@ func T2estExecute(t *testing.T) {
 
 func TestDebugger(t *testing.T) {
 	if true {
-		boot.DevMode = true
 		runtime.GOMAXPROCS(5)
 		safeCall()
 
@@ -83,6 +82,7 @@ func TestDebugger(t *testing.T) {
 			gl.Close()
 			time.Sleep(100 * time.Millisecond)
 		}()
+		gl.DevMode = true
 		bp := new(Breakpoint)
 		bp.chunkName = "test_debugger.lua"
 		bp.line = 9

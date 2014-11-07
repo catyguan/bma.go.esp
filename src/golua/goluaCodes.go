@@ -1,7 +1,6 @@
 package golua
 
 import (
-	"boot"
 	"context"
 	"fileloader"
 	"fmt"
@@ -65,7 +64,7 @@ func (this *GoLua) compile(script string, save bool, spp ScriptPreprocess) (*Chu
 		}
 		content = str
 
-		if boot.DevMode {
+		if this.DevMode {
 			m, file := fileloader.SplitModuleScript(script)
 			fn, _ := filepath.Abs("tmp/" + m + "/" + file)
 			dir := filepath.Dir(fn)
@@ -90,7 +89,7 @@ func (this *GoLua) compile(script string, save bool, spp ScriptPreprocess) (*Chu
 	r := NewChunk(script, node)
 
 	if save {
-		if boot.DevMode {
+		if this.DevMode {
 			r.mtime, _ = this.ss.Check(script)
 		}
 		this.codeMutex.Lock()
@@ -104,17 +103,19 @@ func (this *GoLua) compile(script string, save bool, spp ScriptPreprocess) (*Chu
 func (this *GoLua) getChunkCode(script string) *ChunkCode {
 	this.codeMutex.RLock()
 	cc := this.codes[script]
-	if boot.DevMode && cc != nil {
+	this.codeMutex.RUnlock()
+	if this.DevMode && cc != nil {
 		if cc.mtime > 0 {
 			mt, _ := this.ss.Check(cc.name)
 			if mt > cc.mtime {
 				// logger.Debug(tag, "Remove Deving Script '%s'", script)
+				this.codeMutex.Lock()
 				delete(this.codes, script)
+				this.codeMutex.Unlock()
 				cc = nil
 			}
 		}
 	}
-	this.codeMutex.RUnlock()
 	return cc
 }
 

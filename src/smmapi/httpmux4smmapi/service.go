@@ -2,6 +2,7 @@ package httpmux4smmapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"smmapi"
 )
@@ -13,23 +14,19 @@ func InitMuxInvoke(mux *http.ServeMux, path string) {
 			http.Error(w, err0.Error(), http.StatusInternalServerError)
 		}
 
-		var id, aid, param string
-		ctx := make(map[string]interface{})
-		for k, _ := range req.Form {
-			v := req.FormValue(k)
-			switch k {
-			case "_id":
-				id = v
-			case "_aid":
-				aid = v
-			case "_param":
-				param = v
-			default:
-				ctx[k] = v
+		param := make(map[string]interface{})
+		id := req.FormValue("id")
+		aid := req.FormValue("aid")
+		strparam := req.FormValue("param")
+		if strparam != "" {
+			err1 := json.Unmarshal([]byte(strparam), &param)
+			if err1 != nil {
+				http.Error(w, fmt.Sprintf("decode param fail - %s", err1), http.StatusBadRequest)
+				return
 			}
 		}
 
-		result, err := smmapi.Invoke(id, aid, param, ctx)
+		result, err := smmapi.Invoke(id, aid, param)
 
 		r := make(map[string]interface{})
 		if err != nil {

@@ -412,6 +412,11 @@ func (this GOF_go_enableSafe) Exec(vm *VM, self interface{}) (int, error) {
 			return 0, err1
 		}
 	}
+	if m, ok := o.(map[string]interface{}); ok {
+		o = NewVMTable(m)
+	} else if a, ok := o.([]interface{}); ok {
+		o = NewVMArray(a)
+	}
 	if so, ok := o.(supportSafe); ok {
 		so.EnableSafe()
 		vm.API_push(o)

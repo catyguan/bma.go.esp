@@ -1,11 +1,15 @@
 <?golua
 local nodeId = go.lookup("nodeId")
+local id = go.lookup("id")
 ?>
 <script type="text/javascript">
-function doNodeAction(id,aid,param,data,f) {
-	vdata = ""
-	if(data) {
-		vdata = JSON.stringify(data)
+function doNodeAction(id,aid,param,f) {
+	if(!id || id=="") {
+		id = '<?=id?>'
+	}
+	vparam = ""
+	if(param) {
+		vparam = JSON.stringify(param)
 	}
 	$.post(
 		"nodeAction.gl",
@@ -13,8 +17,7 @@ function doNodeAction(id,aid,param,data,f) {
 			nid : <?=nodeId?>,
 			id : id,
 			aid : aid,
-			param : param,
-			ctx : vdata
+			param : vparam
 		},
 		null,
 		"json"

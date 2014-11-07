@@ -45,10 +45,10 @@ httpserv.render("smm.ui:http/js4node.view.htm",{})
 </table>
 <script>
 function reloadServer() {
-	doNodeAction('go.server','boot.reload','')
+	doNodeAction(null,'boot.reload',null)
 }
 function loadProfiles() {
-	doNodeAction('go.server','boot.profiles',null,null,function(data) {
+	doNodeAction(null,'boot.profiles',null,function(data) {
 		rs = data.Result
 		$('#div_StartupTime').text(rs.StartupTime);
 		$('#div_InitTime').text(rs.InitTime);

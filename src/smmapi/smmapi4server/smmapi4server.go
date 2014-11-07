@@ -62,7 +62,7 @@ func (this smmObject) GetInfo() (*smmapi.SMInfo, error) {
 }
 
 // Result, refreshInfo, error
-func (this smmObject) ExecuteAction(aid, param string, ctx map[string]interface{}) (interface{}, error) {
+func (this smmObject) ExecuteAction(aid string, param map[string]interface{}) (interface{}, error) {
 	switch aid {
 	case "boot.reload":
 		msg := "OK"

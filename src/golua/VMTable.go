@@ -282,15 +282,13 @@ func GoluaData(d interface{}) interface{} {
 		for k, v := range ro {
 			ro[k] = GoluaData(v)
 		}
-		r := new(CommonVMTable)
-		r.data = ro
+		r := NewVMTable(ro)
 		return r
 	case []interface{}:
 		for k, v := range ro {
 			ro[k] = GoluaData(v)
 		}
-		r := new(CommonVMArray)
-		r.data = ro
+		r := NewVMArray(ro)
 		return r
 	}
 	return d
