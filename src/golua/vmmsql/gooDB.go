@@ -15,6 +15,18 @@ func NewDBObject(vm *golua.VM, db *sql.DB) golua.VMTable {
 	return golua.NewGOO(gos, gooDB(0))
 }
 
+func API_toDB(o interface{}) *sql.DB {
+	if o == nil {
+		return nil
+	}
+	if gos, ok := o.(*golua.GoService); ok {
+		if obj, ok2 := gos.Data.(*sql.DB); ok2 {
+			return obj
+		}
+	}
+	return nil
+}
+
 type gooDB int
 
 func (gooDB) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {

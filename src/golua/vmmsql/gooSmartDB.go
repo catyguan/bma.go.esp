@@ -2,6 +2,7 @@ package vmmsql
 
 import (
 	"bmautil/valutil"
+	"database/sql"
 	"fmt"
 	"golua"
 	"logger"
@@ -9,6 +10,36 @@ import (
 
 func SmartDBFactory(n string) (interface{}, error) {
 	return golua.NewGOO(0, gooSmartDB(0)), nil
+}
+
+func API_select(vm *golua.VM, tableName string, write bool) (*sql.DB, error) {
+	gos, errC := vm.GetGoLua().SingletonService("SmartDB", createSmartDB)
+	if errC != nil {
+		return nil, errC
+	}
+	obj, ok := gos.(*smartDB)
+	if !ok {
+		return nil, fmt.Errorf("invalid SmartDB")
+	}
+	dbi := obj.Select(tableName, write)
+	if dbi == nil {
+		return nil, nil
+	}
+	logger.Debug(tag, "API_select '%s' => %s", tableName, dbi)
+	vm.API_push(dbi.Driver)
+	vm.API_push(dbi.DataSource)
+	vm.API_push(dbi.MaxOpenConns)
+	vm.API_push(dbi.MaxIdleConns)
+	c, err2 := GOF_sql_open(0).Exec(vm, nil)
+	if err2 != nil {
+		return nil, err2
+	}
+	dbobj, err3 := vm.API_pop1X(c, true)
+	if err3 != nil {
+		return nil, err3
+	}
+	gos2 := vm.API_object(dbobj)
+	return API_toDB(gos2), nil
 }
 
 type gooSmartDB int
@@ -83,6 +114,12 @@ func (gooSmartDB) Get(vm *golua.VM, o interface{}, key string) (interface{}, err
 			return golua.NewGOF("SmartDB.Refresh", func(vm *golua.VM, self interface{}) (int, error) {
 				return 0, nil
 			}), nil
+			// case "X":
+			// 	return golua.NewGOF("SmartDB.X", func(vm *golua.VM, self interface{}) (int, error) {
+			// 		db, err := API_select(vm, "tEST4", false)
+			// 		fmt.Println("API_select", db, err)
+			// 		return 0, nil
+			// 	}), nil
 		}
 	}
 	return nil, nil
