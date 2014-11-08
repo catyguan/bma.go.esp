@@ -69,6 +69,37 @@ func (this GOF_sql_create) String() string {
 // sql.open(driver, dataSource[, maxConn, maxIdle]) DB:object
 type GOF_sql_open int
 
+func SQLOpen(vm *golua.VM, driver, dataSource string, maxConn, maxIdle int) (*golua.GoService, *sql.DB, error) {
+	gl := vm.GetGoLua()
+	sn := fmt.Sprintf("db_%s_!!%s", driver, dataSource)
+	o, err2 := gl.SingletonService(sn, func() (interface{}, error) {
+		logger.Debug(tag, "create new db(%s)", driver)
+		db, err := sql.Open(driver, dataSource)
+		if err != nil {
+			return nil, err
+		}
+		if maxConn >= 0 {
+			db.SetMaxOpenConns(maxConn)
+		}
+		if maxIdle >= 0 {
+			db.SetMaxIdleConns(maxIdle)
+		}
+		gos := new(golua.GoService)
+		gos.GL = gl
+		gos.SID = sn
+		gos.Data = db
+		gos.CloseFunc = func() {
+			db.Close()
+		}
+		return gos, nil
+	})
+	if err2 != nil {
+		return nil, nil, err2
+	}
+	gos := o.(*golua.GoService)
+	return gos, gos.Data.(*sql.DB), nil
+}
+
 func (this GOF_sql_open) Exec(vm *golua.VM, self interface{}) (int, error) {
 	err0 := vm.API_checkStack(2)
 	if err0 != nil {
@@ -88,29 +119,7 @@ func (this GOF_sql_open) Exec(vm *golua.VM, self interface{}) (int, error) {
 	}
 	vmc := valutil.ToInt(mc, -1)
 	vmi := valutil.ToInt(mi, -1)
-	gl := vm.GetGoLua()
-	sn := fmt.Sprintf("db_%s_!!%s", vdr, vds)
-	gos, err2 := gl.SingletonService(sn, func() (interface{}, error) {
-		logger.Debug(tag, "create new db(%s)", vdr)
-		db, err := sql.Open(vdr, vds)
-		if err != nil {
-			return nil, err
-		}
-		if vmc >= 0 {
-			db.SetMaxOpenConns(vmc)
-		}
-		if vmi >= 0 {
-			db.SetMaxIdleConns(vmi)
-		}
-		gos := new(golua.GoService)
-		gos.GL = gl
-		gos.SID = sn
-		gos.Data = db
-		gos.CloseFunc = func() {
-			db.Close()
-		}
-		return gos, nil
-	})
+	gos, _, err2 := SQLOpen(vm, vdr, vds, vmc, vmi)
 	if err2 != nil {
 		return 0, err2
 	}

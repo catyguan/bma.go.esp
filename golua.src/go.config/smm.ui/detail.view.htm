@@ -1,0 +1,49 @@
+<html>
+<head>
+<meta charset="utf-8" />
+<title>SMM.UI - 节点[<?=node.name?>]的go.config信息</title>
+<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+</head>
+<body>
+节点[<?=node.name?>]的go.config信息 [<a href="#" onclick="location.reload();return false;">刷新</a>|<a href="node.gl?id=<?=nodeId?>">返回节点</a>]
+<hr>
+<?golua
+httpserv.render("smm.ui:http/js4node.view.htm",{})
+?>
+<input type="button" value="配置文件列表" onclick="loadConfigList()">
+<input type="button" value="配置文件信息" onclick="loadConfigView()">
+<div id="div_list">
+<table>
+	<tr>
+		<td>配置文件</td>
+		<td>操作</td>
+	</tr>	
+</table>
+</div>
+<div id="div_view">
+abc
+</div>
+<script>
+function loadConfigView() {
+	$("#div_list").hide();
+	$("#div_view").show();
+}
+function loadConfigList() {
+	$("#div_list").show();
+	$("#div_view").hide();
+	if(true)return;
+
+	doNodeAction(null,'config.list',null,function(data) {
+		rs = data.Result
+		$('#div_StartupTime').text(rs.StartupTime);
+		$('#div_InitTime').text(rs.InitTime);
+		$('#div_Memory_Alloc').text(rs.Memory_Alloc);
+		$('#div_Memory_HeapIdle').text(rs.Memory_HeapIdle);
+		$('#div_Memory_Sys').text(rs.Memory_Sys);
+		$('#div_Version').text(rs.Version);
+	})	
+}
+loadConfigList();
+</script>
+</body>
+</html>

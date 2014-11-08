@@ -22,6 +22,6 @@ while rs.Fetch(data, desc) do
 	print(types.name(data["id"]))
 end
 
--- sdb.X()
+sdb.X()
 
 return vr
