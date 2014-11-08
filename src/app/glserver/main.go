@@ -19,10 +19,11 @@ import (
 	"os"
 	"smmapi/httpmux4smmapi"
 	_ "smmapi/smmapi4server"
+	_ "smmapi/smmapi4config"
 
 	_ "fileloader/http4fileloader"
 	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/mattn/go-sqlite3"
+	// _ "github.com/mattn/go-sqlite3"
 )
 
 const (

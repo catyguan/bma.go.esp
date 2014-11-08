@@ -7,6 +7,7 @@ import (
 	"logger"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"runtime/debug"
 	"sync"
@@ -455,6 +456,7 @@ func TestGo(cfgFile string, endWaitSec int, funl []func()) {
 }
 
 func Go(cfgFile string) {
+	StartConfigFile, _ = filepath.Abs(cfgFile)
 	StartTime = time.Now()
 
 	var ctx *BootContext

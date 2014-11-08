@@ -38,7 +38,7 @@ func (this smmObject) getContent() string {
 
 func (this smmObject) GetInfo() (*smmapi.SMInfo, error) {
 	r := new(smmapi.SMInfo)
-	r.Title = "Server profiles and control"
+	r.Title = "Server"
 	r.Content = this.getContent()
 
 	r.Actions = make([]*smmapi.SMAction, 0)
@@ -61,7 +61,6 @@ func (this smmObject) GetInfo() (*smmapi.SMInfo, error) {
 	return r, nil
 }
 
-// Result, refreshInfo, error
 func (this smmObject) ExecuteAction(aid string, param map[string]interface{}) (interface{}, error) {
 	switch aid {
 	case "boot.reload":

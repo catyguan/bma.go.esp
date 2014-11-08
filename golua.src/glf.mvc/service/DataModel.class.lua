@@ -4,12 +4,12 @@ local VOClass = class.define("ViewObject")
 function VOClass.IFF(name, str1, str2)
 	local v = self[name]
 	local str
-	if v==nil or v=="" then
+	if types.isEmpty(v) then
 		str = str2
 	else
 		str = str1
 	end
-	if str==nil or str=="" then return "" end
+	if types.isEmpty(str) then return "" end
 	return strings.parsef(str, v)
 end
 
@@ -59,7 +59,7 @@ function FOClass.Parse(req)
 				end				
 			end
 		end
-		if v==nil or v=="" then			
+		if types.isEmpty(v) then			
 			if dv~=nil then v = dv end
 		end
 		if v~=nil then
@@ -81,7 +81,7 @@ function FOClass.Valid()
 		local vtype = field.valid
 		local msg = nil
 		local ok = true
-		if vtype==nil or vtype=="" then
+		if types.isEmpty(vtype) then
 			continue
 		end		
 		if types.name(vtype)=="function" then			
@@ -105,7 +105,7 @@ function FOClass.Valid()
 end
 
 function FOClass.Valid_notEmpty(field, v, msg)
-	if v==nil or v=="" then		
+	if types.isEmpty(v) then		
 		if msg==nil then msg = "${1s} empty" end
 		return false, msg
 	end
@@ -143,11 +143,11 @@ function FOClass.Error(name, str1, str2)
 		v = self.validData[name]
 	end
 	local str
-	if v==nil or v=="" then
+	if types.isEmpty(v) then
 		str = str2
 	else
 		str = str1
 	end
-	if str==nil or str=="" then return "" end
+	if types.isEmpty(str) then return "" end
 	return strings.parsef(str, name, v)
 end
