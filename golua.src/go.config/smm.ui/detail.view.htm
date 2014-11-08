@@ -10,40 +10,101 @@
 <?golua
 httpserv.render("smm.ui:http/js4node.view.htm",{})
 ?>
+<input type="button" value="刷新数据" onclick="loadConfigList(true)">
 <input type="button" value="配置文件列表" onclick="loadConfigList()">
-<input type="button" value="配置文件信息" onclick="loadConfigView()">
+<input type="button" value="配置检查" onclick="loadConfigParse()">
+<input type="button" value="新建配置" onclick="newConfig()">
 <div id="div_list">
-<table>
-	<tr>
-		<td>配置文件</td>
-		<td>操作</td>
-	</tr>	
-</table>
 </div>
 <div id="div_view">
 abc
 </div>
 <script>
-function loadConfigView() {
-	$("#div_list").hide();
-	$("#div_view").show();
+function newConfig() {
+	var s = prompt("新配置文件名称（不包含.json后缀）", "");
+	if(s) {
+		doNodeAction(null,'config.new',{name:s},function(data) {
+			loadConfigList(true);
+		});
+	}
 }
-function loadConfigList() {
-	$("#div_list").show();
+function loadConfigView(n) {
+	n = n.substr(0,n.length-5);
+	$("#div_list").hide();
+	var o = $("#div_view")
+	o.show();
+	o.text("loading...")
+
+	doNodeAction(null,'config.view',{name:n},function(data) {
+		var rs = data.Result;
+		o.html("<div style='background-color: #9F9F9F'><pre>"+rs+"</pre></div>");
+	})
+}
+function loadConfigParse() {
+	$("#div_list").hide();
+	var o = $("#div_view")
+	o.show();
+	o.text("loading...")
+
+	doNodeAction(null,'config.parse',null,function(data) {
+		var rs = data.Result;
+		o.html("<textarea id='editor' rows=20 cols=120>"+rs+"</textarea>");
+	})
+}
+function editConfigView(n) {
+	n = n.substr(0,n.length-5);
+	$("#div_list").hide();
+	var o = $("#div_view");
+	o.show();
+	o.text("loading...");
+
+	doNodeAction(null,'config.view',{name:n},function(data) {
+		var rs = data.Result;
+		o.html("<textarea id='editor' rows=20 cols=120>"+rs+"</textarea><br><input type=button value='提交' onclick=\"commitConfigView('"+n+"')\">");
+	})
+}
+function commitConfigView(n) {
+	var o = $("#editor");
+	var str = o.val();
+	doNodeAction(null,'config.update',{name:n,content:str},function(data) {
+		loadConfigView(n+".json");
+	})
+}
+function loadConfigList(doload) {
+	var o = $("#div_list")
+	o.show();
 	$("#div_view").hide();
-	if(true)return;
+
+	if(!doload) {
+		return
+	}
+	o.text("loading...")
 
 	doNodeAction(null,'config.list',null,function(data) {
-		rs = data.Result
-		$('#div_StartupTime').text(rs.StartupTime);
-		$('#div_InitTime').text(rs.InitTime);
-		$('#div_Memory_Alloc').text(rs.Memory_Alloc);
-		$('#div_Memory_HeapIdle').text(rs.Memory_HeapIdle);
-		$('#div_Memory_Sys').text(rs.Memory_Sys);
-		$('#div_Version').text(rs.Version);
+		var rs = data.Result;
+		o.text("");
+		if(!rs) {
+			return;
+		}
+		var str = "";
+		var c = rs.length;
+		for(i=0;i<c;i++) {
+			ci = rs[i];
+			if(i>0) {
+				str += "<br>";
+			}			
+			if(ci.main) {
+				str += " - <font color=red>"+ci.name+"</font>";
+			} else {
+				str += " - "+ci.name;
+			}
+			str += " <input type=button value='查看' onclick=\"loadConfigView('"+ci.name+"')\">";
+			str += " <input type=button value='修改' onclick=\"editConfigView('"+ci.name+"')\">";
+		}
+		o.html(str);
 	})	
 }
-loadConfigList();
+loadConfigList(true);
 </script>
 </body>
 </html>

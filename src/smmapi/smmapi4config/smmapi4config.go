@@ -39,6 +39,7 @@ func (this smmObject) ExecuteAction(aid string, param map[string]interface{}) (i
 		if err0 != nil {
 			return nil, err0
 		}
+		defer dfile.Close()
 		filist, err1 := dfile.Readdir(-1)
 		if err1 != nil {
 			return nil, err1
@@ -73,6 +74,7 @@ func (this smmObject) ExecuteAction(aid string, param map[string]interface{}) (i
 		if err1 != nil {
 			return nil, err1
 		}
+		defer file.Close()
 		_, err2 := file.WriteString("")
 		if err2 != nil {
 			return nil, err2
@@ -112,7 +114,7 @@ func (this smmObject) ExecuteAction(aid string, param map[string]interface{}) (i
 	case "config.parse":
 		co, err := config.InitConfig(boot.StartConfigFile)
 		if err != nil {
-			return false, nil
+			return fmt.Sprintf("parse fail - %s", err.Error()), nil
 		}
 		bs, err1 := json.Marshal(co)
 		if err1 != nil {
