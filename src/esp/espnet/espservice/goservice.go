@@ -64,7 +64,7 @@ func (this *GoService) PostRequest(sock *espsocket.Socket, msg *esnp.Message) er
 		}()
 		err := this.handler(sock, msg)
 		if err != nil {
-			logger.Warn(tag, "execute fail - %s\n%s", err)
+			logger.Warn(tag, "execute fail - %s", err)
 		}
 	}()
 	return nil

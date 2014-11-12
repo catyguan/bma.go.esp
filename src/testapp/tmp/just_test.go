@@ -81,3 +81,10 @@ func TestTime(t *testing.T) {
 	bs, _ := tm.MarshalText()
 	fmt.Println("TimeJson", string(bs))
 }
+
+func TestSliceAppend(t *testing.T) {
+	var a []string
+	a = append(a, "test")
+	a = append(a, "test2")
+	fmt.Println(a)
+}

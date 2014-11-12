@@ -219,7 +219,7 @@ func (this *SocketChannel) SetProperty(name string, val interface{}) bool {
 			return true
 		}
 	}
-	return true
+	return false
 }
 
 func (this *SocketChannel) PostEvent(ev interface{}, cb SendCallback) error {

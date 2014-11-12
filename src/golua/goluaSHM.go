@@ -2,6 +2,7 @@ package golua
 
 import (
 	"bmautil/valutil"
+	"boot"
 	"bytes"
 	"config"
 	"fmt"
@@ -37,7 +38,14 @@ func (this *GoLua) NewObject(n string) (interface{}, error) {
 
 func (this *GoLua) GetConfig(n string) (interface{}, bool) {
 	if len(n) > 0 && n[0] == '!' {
-		return config.Global.GetConfig(n[1:])
+		gn := n[1:]
+		switch gn {
+		case "Debug":
+			return boot.Debug, true
+		case "DevMode":
+			return boot.DevMode, true
+		}
+		return config.Global.GetConfig(gn)
 	}
 
 	this.configMutex.RLock()

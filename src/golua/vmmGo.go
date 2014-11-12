@@ -34,7 +34,7 @@ func GoModule() *VMModule {
 	m.Init("invoke", GOF_go_invoke(0))
 	m.Init("yield", GOF_go_yield(0))
 	m.Init("lookup", GOF_go_lookup(0))
-	m.Init("enableDebugger", GOF_go_enableDebugger(0))
+	m.Init("breakpoint", GOF_go_breakpoint(0))
 	return m
 }
 
@@ -842,19 +842,19 @@ func (this GOF_go_lookup) String() string {
 	return "GoFunc<go.lookup>"
 }
 
-// go.enableDebugger(n)
-type GOF_go_enableDebugger int
+// go.breakpoint(n)
+type GOF_go_breakpoint int
 
-func (this GOF_go_enableDebugger) Exec(vm *VM, self interface{}) (int, error) {
-	logger.Debug(tag, "%s enableDebugger", vm)
+func (this GOF_go_breakpoint) Exec(vm *VM, self interface{}) (int, error) {
+	logger.Debug(tag, "%s breakpoint", vm)
 	vm.DebugSet(2)
 	return 0, nil
 }
 
-func (this GOF_go_enableDebugger) IsNative() bool {
+func (this GOF_go_breakpoint) IsNative() bool {
 	return true
 }
 
-func (this GOF_go_enableDebugger) String() string {
-	return "GoFunc<go.enableDebugger>"
+func (this GOF_go_breakpoint) String() string {
+	return "GoFunc<go.breakpoint>"
 }

@@ -1,63 +1,44 @@
 package n2n
 
 import (
-	"esp/cluster/nodeinfo"
-	"esp/espnet/esnp"
-	"esp/espnet/espchannel"
-	"esp/espnet/espterminal"
-	"esp/espnet/esptunnel"
+	"esp/cluster/nodebase"
+	"esp/espnet/espsocket"
 	"fmt"
 )
 
 type remoteInfo struct {
 	service *Service
 
-	nodeId   nodeinfo.NodeId
+	nodeId   nodebase.NodeId
 	nodeName string
-	nodeURL  *esnp.URL
+	nodeHost string
 
-	tunnel *esptunnel.Tunnel
-	tm     *espterminal.Terminal
+	sock  *espsocket.Socket
+	token string
 }
 
 func (this *remoteInfo) String() string {
-	return fmt.Sprintf("%d(%s)", this.nodeId, this.nodeName)
+	return fmt.Sprintf("%d(%s,%s)", this.nodeId, this.nodeName, this.nodeHost)
 }
 
-func (this *remoteInfo) InitRemoteInfo(s *Service, id nodeinfo.NodeId, name string, url string) error {
-	v, err := esnp.ParseURL(url)
-	if err != nil {
-		return err
-	}
-
+func (this *remoteInfo) InitRemoteInfo(s *Service, id nodebase.NodeId, name string, host string, sock *espsocket.Socket) error {
 	this.service = s
 	this.nodeId = id
 	this.nodeName = name
-	this.nodeURL = v
+	this.nodeHost = host
 
-	this.tunnel = esptunnel.NewTunnel(this.nodeName)
-	this.tunnel.CloseOnBreak = true
-	this.tunnel.SetCloseListener("this", func() {
+	sock.SetCloseListener("n2n.service", func() {
 		this.service.goo.DoNow(func() {
 			this.service.doRemoteClosed(this)
 		})
 	})
-
-	this.tm = new(espterminal.Terminal)
-	this.tm.InitTerminal(name)
-	this.tm.SetMessageListner(func(msg *esnp.Message) error {
-		return this.service.Serve(this.tunnel, msg)
-	})
-	this.tm.Connect(this.tunnel)
+	this.sock = sock
 	return nil
 }
 
-func (this *remoteInfo) Add(ch espchannel.Channel) {
-	this.tunnel.Add(ch)
-}
-
-func (this *remoteInfo) Close() {
-	if this.tunnel != nil {
-		this.tunnel.AskClose()
+func (this *remoteInfo) close(removeCloseListener bool) {
+	if removeCloseListener {
+		this.sock.SetCloseListener("n2n.service", nil)
 	}
+	this.sock.AskClose()
 }

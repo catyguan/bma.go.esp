@@ -160,11 +160,11 @@ func (O intCoder) Encode(w EncodeWriter, v interface{}) error {
 	O.DoEncode(w, v.(int))
 	return nil
 }
-func (O int8Coder) DoEncode(w EncodeWriter, v uint8) {
-	w.WriteByte(v)
+func (O int8Coder) DoEncode(w EncodeWriter, v int8) {
+	w.WriteByte(uint8(v))
 }
 func (O int8Coder) Encode(w EncodeWriter, v interface{}) error {
-	O.DoEncode(w, v.(uint8))
+	O.DoEncode(w, v.(int8))
 	return nil
 }
 func (O int16Coder) DoEncode(w EncodeWriter, v int16) {
@@ -252,8 +252,12 @@ func (O intCoder) DoDecode(r io.ByteReader) (int, error) {
 func (O intCoder) Decode(r DecodeReader) (interface{}, error) {
 	return O.DoDecode(r)
 }
-func (O int8Coder) DoDecode(r io.ByteReader) (uint8, error) {
-	return r.ReadByte()
+func (O int8Coder) DoDecode(r io.ByteReader) (int8, error) {
+	b, err := r.ReadByte()
+	if err != nil {
+		return 0, err
+	}
+	return int8(b), nil
 }
 func (O int8Coder) Decode(r DecodeReader) (interface{}, error) {
 	return O.DoDecode(r)

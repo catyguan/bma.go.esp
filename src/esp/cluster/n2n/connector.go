@@ -2,8 +2,7 @@ package n2n
 
 import (
 	"bmautil/socket"
-	"esp/espnet/esnp"
-	"esp/espnet/espchannel"
+	"esp/espnet/espsocket"
 	"fmt"
 	"logger"
 )
@@ -11,16 +10,18 @@ import (
 type connector struct {
 	service *Service
 	name    string
-	url     *esnp.URL
+	host    string
+	code    string
 
 	pool *socket.DialPool
-	ch   espchannel.Channel
+	sock *espsocket.Socket
 }
 
-func (this *connector) InitConnector(s *Service, n string, url *esnp.URL) {
+func (this *connector) InitConnector(s *Service, n string, host string, code string) {
 	this.service = s
 	this.name = n
-	this.url = url
+	this.host = host
+	this.code = code
 	go this.start()
 }
 
@@ -28,13 +29,13 @@ func (this *connector) Close() {
 	if this.pool != nil {
 		this.pool.AskClose()
 	}
-	if this.ch != nil {
-		this.ch.AskClose()
+	if this.sock != nil {
+		this.sock.AskClose()
 	}
 }
 
 func (this *connector) start() {
-	host := this.url.GetHost()
+	host := this.host
 	logger.Debug(tag, "connector[%s] start -> %s", this.name, host)
 	cfg := new(socket.DialPoolConfig)
 	cfg.Dial.Address = host
@@ -48,10 +49,11 @@ func (this *connector) start() {
 }
 
 func (this *connector) onSocketAccept(sock *socket.Socket) error {
-	this.ch = espchannel.NewSocketChannel(sock, espchannel.SOCKET_CHANNEL_CODER_ESPNET)
-	logger.Debug(tag, "%s connected", this.ch)
+	ch := espsocket.NewSocketChannel(sock, espsocket.SOCKET_CHANNEL_CODER_ESPNET)
+	this.sock = espsocket.NewSocket(ch)
+	logger.Debug(tag, "%s connected", this.sock)
 	this.service.goo.DoNow(func() {
-		this.service.doChannelAccept(this.name, this.url, this.ch)
+		this.service.doSocketAccept(this.name, this.host, this.code, this.sock)
 	})
 	return nil
 }

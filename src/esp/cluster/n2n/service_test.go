@@ -1,36 +1,38 @@
 package n2n
 
 import (
-	"bmautil/socket"
-	"boot"
-	"esp/cluster/nodeinfo"
-	"esp/espnet/espservice"
+	"esp/cluster/nodebase"
+	"fmt"
+	"os"
 	"testing"
+	"time"
 )
 
-func TestService1(t *testing.T) {
-	cfgFile := "service_test1.json"
-	doServiceTest(cfgFile)
-}
+func TestService(t *testing.T) {
+	time.AfterFunc(5*time.Second, func() {
+		fmt.Println("os exit!!!")
+		os.Exit(-1)
+	})
 
-func TestService2(t *testing.T) {
-	cfgFile := "service_test2.json"
-	doServiceTest(cfgFile)
-}
+	nodebase.Id = nodebase.NodeId(100)
+	nodebase.Name = "testcase"
 
-func doServiceTest(cfgFile string) {
-	ninfo := nodeinfo.NewService("nodeInfo")
-	boot.Add(ninfo, "", false)
+	cfg := new(ConfigInfo)
+	cfg.Host = "_:9999"
+	cfg.Remotes = make(MapOfRemoteConfigInfo)
+	if true {
+		rc := new(RemoteConfigInfo)
+		rc.Host = "127.0.0.1:1090"
+		rc.Code = "123"
+		cfg.Remotes["coo"] = rc
+	}
+	cfg.Valid()
 
-	n2n := NewService("n2nService", ninfo)
-	boot.Add(n2n, "", false)
-
-	mux := espservice.NewServiceMux(nil, nil)
-	mux.AddServiceHandler("n2n", n2n.Serve)
-	goService := espservice.NewGoService("goService", mux.Serve)
-
-	lisPoint := socket.NewListenPoint("servicePoint", nil, goService.AcceptESP)
-	boot.Add(lisPoint, "", false)
-
-	boot.TestGo(cfgFile, 15, nil)
+	s := NewService(8)
+	s.InitConfig(cfg)
+	s.Start()
+	s.Run()
+	time.Sleep(1 * time.Second)
+	s.Stop()
+	time.Sleep(100 * time.Millisecond)
 }

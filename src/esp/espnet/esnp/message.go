@@ -69,6 +69,24 @@ func (this *MessageValues) List() []string {
 	return this.coder.List(this.m.pack)
 }
 
+func (this *MessageValues) CopyFrom(m map[string]interface{}) {
+	for k, v := range m {
+		this.Set(k, v)
+	}
+}
+
+func (this *MessageValues) ToMap() (map[string]interface{}, error) {
+	return this.coder.Map(this.m.pack)
+}
+
+func (this *MessageValues) ToBean(beanPtr interface{}) (bool, error) {
+	m, err := this.ToMap()
+	if err != nil {
+		return false, err
+	}
+	return valutil.ToBean(m, beanPtr), nil
+}
+
 // Message
 func NewMessage() *Message {
 	r := new(Message)

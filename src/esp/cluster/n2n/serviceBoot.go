@@ -1,163 +1,156 @@
 package n2n
 
 import (
-	"boot"
 	"esp/espnet/esnp"
 	"fmt"
-	"logger"
 )
 
-type remoteConfigInfo struct {
-	URL  string
-	eurl *esnp.URL
+func CheckURL(v string) (*esnp.URL, error) {
+	if v == "" {
+		return nil, fmt.Errorf("URL invalid")
+	}
+	o, err := esnp.ParseURL(v)
+	if err != nil {
+		return nil, fmt.Errorf("URL invalid %s", err)
+	}
+	host := o.GetHost()
+	if host == "" {
+		return nil, fmt.Errorf("URL address miss Host")
+	}
+	return o, nil
 }
 
-type configInfo struct {
-	URL    string
-	eurl   *esnp.URL
-	Remote map[string]*remoteConfigInfo
+type RemoteConfigInfo struct {
+	Host string
+	Code string
 }
 
-func (this *configInfo) Valid() error {
-	if this.URL == "" {
-		return fmt.Errorf("URL invalid")
-	}
-	if true {
-		v, err := esnp.ParseURL(this.URL)
-		if err != nil {
-			return fmt.Errorf("URL invalid %s", err)
-		}
-		host := v.GetHost()
-		if host == "" {
-			return fmt.Errorf("URL address invalid")
-		}
-		this.eurl = v
-	}
-
-	for k, remote := range this.Remote {
-		if remote.URL == "" {
-			return fmt.Errorf("Remote[%s] invalid", k)
-		}
-		v, err := esnp.ParseURL(remote.URL)
-		if err != nil {
-			return fmt.Errorf("Remote[%s] URL invalid %s", k, err)
-		}
-		host := v.GetHost()
-		if host == "" {
-			return fmt.Errorf("Remote[%s] URL address", k)
-		}
-		remote.eurl = v
+func (this *RemoteConfigInfo) Valid() error {
+	if this.Host == "" {
+		return fmt.Errorf("invalid Host")
 	}
 	return nil
 }
 
-func (this *configInfo) Compare(old *configInfo) int {
+func (this *RemoteConfigInfo) Compare(old *RemoteConfigInfo) bool {
 	if old == nil {
-		return boot.CCR_NEED_START
+		return false
 	}
-	if this.URL != old.URL {
-		return boot.CCR_NEED_START
+	if this.Host != old.Host {
+		return false
 	}
-	r := boot.CCR_NONE
-	for k, ro := range this.Remote {
-		if old.Remote == nil {
-			r = boot.CCR_CHANGE
-			continue
+	if this.Code != old.Code {
+		return false
+	}
+	return true
+}
+
+type MapOfRemoteConfigInfo map[string]*RemoteConfigInfo
+
+func (this MapOfRemoteConfigInfo) Valid() error {
+	for k, remote := range this {
+		err := remote.Valid()
+		if err != nil {
+			return fmt.Errorf("Remote[%s] %s", k, err)
 		}
-		oro, ok := old.Remote[k]
+	}
+	return nil
+}
+
+func (this MapOfRemoteConfigInfo) Compare(old MapOfRemoteConfigInfo) bool {
+	if len(this) != len(old) {
+		return false
+	}
+	for k, ro := range this {
+		oro, ok := old[k]
 		if ok {
-			if ro.URL != oro.URL {
-				return boot.CCR_NEED_START
-			}
-		} else {
-			r = boot.CCR_CHANGE
-		}
-	}
-	if r == boot.CCR_NONE {
-		for k, _ := range old.Remote {
-			if this.Remote == nil {
-				r = boot.CCR_CHANGE
-				break
-			}
-			_, ok := this.Remote[k]
-			if !ok {
-				r = boot.CCR_CHANGE
-				break
+			if !ro.Compare(oro) {
+				return false
 			}
 		}
 	}
-
-	return r
-}
-
-func (this *Service) Name() string {
-	return this.name
-}
-
-func (this *Service) Prepare() {
-}
-func (this *Service) CheckConfig(ctx *boot.BootContext) bool {
-	co := ctx.Config
-	cfg := new(configInfo)
-	if !co.GetBeanConfig(this.name, cfg) {
-		logger.Error(tag, "'%s' miss config", this.name)
-		return false
+	for k, _ := range old {
+		_, ok := this[k]
+		if !ok {
+			return false
+		}
 	}
-	if err := cfg.Valid(); err != nil {
-		logger.Error(tag, "'%s' config error - %s", this.name, err)
-		return false
-	}
-	ccr := boot.NewConfigCheckResult(cfg.Compare(this.config), cfg)
-	ctx.CheckFlag = ccr
 	return true
 }
 
-func (this *Service) Init(ctx *boot.BootContext) bool {
-	ccr := ctx.CheckResult()
-	if ccr.Type == boot.CCR_NONE {
-		return true
+type ConfigInfo struct {
+	Host      string
+	Code      string
+	Remotes   MapOfRemoteConfigInfo
+	TimeoutMS int
+}
+
+func (this *ConfigInfo) Valid() error {
+	if this.Host == "" {
+		return fmt.Errorf("invalid Host")
 	}
-	cfg := ccr.Config.(*configInfo)
+	if this.TimeoutMS <= 0 {
+		this.TimeoutMS = 3000
+	}
+	if this.Remotes != nil {
+		err := this.Remotes.Valid()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (this *ConfigInfo) Compare(old *ConfigInfo) bool {
+	if old == nil {
+		return false
+	}
+	if this.Host != old.Host {
+		return false
+	}
+	if len(this.Remotes) != len(old.Remotes) {
+		return false
+	}
+	if this.Remotes != nil {
+		if !this.Remotes.Compare(old.Remotes) {
+			return false
+		}
+	}
+	if this.TimeoutMS != old.TimeoutMS {
+		return false
+	}
+	return true
+}
+
+func (this *Service) InitConfig(cfg *ConfigInfo) error {
 	this.config = cfg
-	return true
+	return nil
 }
 
-func (this *Service) Start(ctx *boot.BootContext) bool {
-	ccr := ctx.CheckResult()
-	if ccr.Type == boot.CCR_NONE {
-		return true
-	}
-	this.goo.Run()
-	return true
+func (this *Service) Start() bool {
+	return this.goo.Run()
 }
 
-func (this *Service) Run(ctx *boot.BootContext) bool {
-	ccr := ctx.CheckResult()
-	if ccr.Type == boot.CCR_NONE {
-		return true
-	}
-
+func (this *Service) Run() bool {
 	this.goo.DoSync(func() {
-		for k, ro := range this.config.Remote {
-			this.doCheckConnector(k, ro.eurl)
+		for k, ro := range this.config.Remotes {
+			this.doCheckConnector(k, ro.Host, ro.Code)
 		}
 	})
 	return true
 }
 
-func (this *Service) GraceStop(ctx *boot.BootContext) bool {
-	ccr := ctx.CheckResult()
-	if ccr.Type == boot.CCR_NONE {
-		return true
-	}
-	cfg := ccr.Config.(*configInfo)
-	for k, _ := range this.config.Remote {
-		if ccr.Type != boot.CCR_NEED_START {
-			if cfg.Remote != nil {
-				if _, ok := cfg.Remote[k]; ok {
-					continue
-				}
+func (this *Service) GraceStop(cfg *ConfigInfo) bool {
+	for k, oro := range this.config.Remotes {
+		var ro *RemoteConfigInfo
+		if cfg.Remotes != nil {
+			ro = cfg.Remotes[k]
+			if !ro.Compare(oro) {
+				ro = nil
 			}
+		}
+		if ro != nil {
+			continue
 		}
 		this.goo.DoSync(func() {
 			this.doCloseConnector(k)
@@ -168,10 +161,6 @@ func (this *Service) GraceStop(ctx *boot.BootContext) bool {
 
 func (this *Service) Stop() bool {
 	this.goo.Stop()
-	return true
-}
-
-func (this *Service) Close() bool {
 	return true
 }
 

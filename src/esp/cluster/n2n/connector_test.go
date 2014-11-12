@@ -1,31 +1,26 @@
 package n2n
 
 import (
-	"esp/cluster/nodeinfo"
-	"esp/espnet/esnp"
+	"esp/cluster/nodebase"
 	"fmt"
 	"os"
 	"testing"
 	"time"
 )
 
-func TestConnector(t *testing.T) {
+func T2estConnector(t *testing.T) {
 	time.AfterFunc(5*time.Second, func() {
 		fmt.Println("os exit!!!")
 		os.Exit(-1)
 	})
 
-	ninfo := nodeinfo.NewService("nodeInfo")
+	nodebase.Id = nodebase.NodeId(100)
+	nodebase.Name = "testcase"
 
-	s := NewService("test", ninfo)
+	s := NewService(8)
 	ctor := new(connector)
 	if true {
-		url, err := esnp.ParseURL("esnp://127.0.0.1:1080/")
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		ctor.InitConnector(s, "tc", url)
+		ctor.InitConnector(s, "tc", "127.0.0.1:1090", "")
 	}
 	time.Sleep(1 * time.Second)
 	ctor.Close()

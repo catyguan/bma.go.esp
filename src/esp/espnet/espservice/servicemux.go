@@ -114,10 +114,13 @@ func (this *ServiceMux) DoServe(sock *espsocket.Socket, msg *esnp.Message) error
 	if h != nil {
 		return h(sock, msg)
 	}
-	err := logger.Warn(tag, "%s not found ServiceHandler", msg.GetAddress())
-	return err
+	return Miss(msg)
 }
 
 func (this *ServiceMux) Serve(sock *espsocket.Socket, msg *esnp.Message) error {
 	return DoServiceHandle(this.DoServe, sock, msg)
+}
+
+func Miss(msg *esnp.Message) error {
+	return logger.Warn(tag, "%s not found ServiceHandler", msg.GetAddress())
 }

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"esp/espnet/esnp"
 	"logger"
+	"net"
 	"sync"
 	"time"
 )
@@ -110,8 +111,8 @@ func (this *Socket) SetProperty(name string, val interface{}) bool {
 	defer this.propLock.Unlock()
 	if this.props == nil {
 		this.props = make(map[string]interface{})
-		this.props[name] = val
 	}
+	this.props[name] = val
 	return true
 }
 
@@ -290,4 +291,22 @@ func (this *Socket) OnError(mid uint64, err error) {
 
 func (this *Socket) OnTimeout(mid uint64) {
 	this.OnError(mid, errors.New("timeout"))
+}
+
+func (this *Socket) GetRemoteAddr() (string, bool) {
+	v, ok := this.GetProperty(PROP_SOCKET_REMOTE_ADDR)
+	if !ok {
+		return "", false
+	}
+	if v == nil {
+		return "", false
+	}
+	if str, ok2 := v.(string); ok2 {
+		return str, true
+	}
+	if addr, ok2 := v.(net.Addr); ok2 {
+		return addr.String(), true
+	}
+	logger.Warn(tag, "unknow RemoteAddr(%T)", v)
+	return "", false
 }

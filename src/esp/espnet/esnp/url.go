@@ -34,7 +34,7 @@ func ParseURL(s string) (*URL, error) {
 }
 
 func (this *URL) GetHost() string {
-	if strings.ToLower(this.Data.Host) != "unknow" {
+	if strings.ToLower(this.Data.Host) != "_" {
 		return this.Data.Host
 	}
 	return ""
@@ -42,7 +42,7 @@ func (this *URL) GetHost() string {
 
 func (this *URL) GetService() string {
 	if len(this.Uri) > 0 {
-		if strings.ToLower(this.Uri[0]) != "unknow" {
+		if strings.ToLower(this.Uri[0]) != "_" {
 			return this.Uri[0]
 		}
 	}
@@ -51,7 +51,7 @@ func (this *URL) GetService() string {
 
 func (this *URL) GetOp() string {
 	if len(this.Uri) > 1 {
-		if strings.ToLower(this.Uri[1]) != "unknow" {
+		if strings.ToLower(this.Uri[1]) != "_" {
 			return this.Uri[1]
 		}
 	}
@@ -132,25 +132,32 @@ func (this *URL) BindMessage(msg *Message, bhost bool) error {
 	return this.BindAddress(addr, bhost)
 }
 
+func (this *URL) String() string {
+	if this.Data != nil {
+		return this.Data.String()
+	}
+	return "invalidURL"
+}
+
 func (this *Address) ToURL() string {
 	buf := bytes.NewBuffer(make([]byte, 0))
 	buf.WriteString("esnp://")
 	if host := this.GetHost(); host != "" {
 		buf.WriteString(host)
 	} else {
-		buf.WriteString("unknow")
+		buf.WriteString("_")
 	}
 	buf.WriteString("/")
 	if service := this.GetService(); service != "" {
 		buf.WriteString(service)
 	} else {
-		buf.WriteString("unknow")
+		buf.WriteString("_")
 	}
 	buf.WriteString("/")
 	if op := this.GetOp(); op != "" {
 		buf.WriteString(op)
 	} else {
-		buf.WriteString("unknow")
+		buf.WriteString("_")
 	}
 
 	b := false

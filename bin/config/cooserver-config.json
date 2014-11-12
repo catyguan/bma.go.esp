@@ -1,0 +1,41 @@
+{
+	"VAR" : {
+		"SMM_CODE" : "1",
+		"VERSOIN" : 123
+	},
+	"global" : {
+		"Debug" : true,
+		"DevMode" : true,
+		"GOMAXPROCS" : 5
+	},
+	"acl" : {
+		"esnp" : { "Type":"deny", "Users":["*@*"] },
+		"esnp/smm.api" : { "Type":"pass", "Users":["*@127.0.0.1"] },
+		"espnode" : { "Type":"pass", "Users":["*@*"] }
+	},
+	"esnpPointSMM" : {
+		"Port" : "1091"
+	},
+	"smmapiServ" : {
+		"Code" : "${SMM_CODE}"
+	},
+	"esnpPoint" : {
+		"Port" : "1090"
+	},
+	"espnode" : {
+		"Id" : 1,
+		"Name" : "cooNode1",		
+		"N2N" : {
+			"Host" : "_:1090",
+			"Code" : "123",
+			"Remotes" : {
+				"seed" : {
+					"Host" : "127.0.0.1:1080"
+				},
+				"node2" : {
+					"Host" : "127.0.0.1:1082"
+				}
+			}
+		}
+	}
+}

@@ -3,6 +3,7 @@ package esnp
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"sort"
 )
 
@@ -83,6 +84,23 @@ func (this *Address) GetGroup() string {
 
 func (this *Address) SetHost(val string) {
 	this.Set(ADDRESS_HOST, val)
+}
+
+func (this *Address) CheckHost(localName string, set bool) string {
+	s := this.GetHost()
+	if s == "" {
+		return ""
+	}
+	h1, p1, _ := net.SplitHostPort(s)
+	h2, _, _ := net.SplitHostPort(localName)
+	if h1 == "" || h1 == "HOST" {
+		nh := net.JoinHostPort(h2, p1)
+		if set {
+			this.SetHost(nh)
+		}
+		return nh
+	}
+	return s
 }
 
 func (this *Address) GetHost() string {

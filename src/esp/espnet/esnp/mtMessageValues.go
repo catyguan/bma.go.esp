@@ -150,3 +150,24 @@ func (O mvCoder) List(p *Package) []string {
 	}
 	return r
 }
+
+func (O mvCoder) Map(p *Package) (map[string]interface{}, error) {
+	r := make(map[string]interface{}, 0)
+	mt := O.MT()
+	for e := p.Front(); e != nil; e = e.Next() {
+		if e.MessageType() == mt {
+			v, err := e.Value(O)
+			if err != nil {
+				continue
+			}
+			if mv, ok := v.(*struct_message_value); ok {
+				var err error
+				r[mv.name], err = mv.Value(O)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+	return r, nil
+}

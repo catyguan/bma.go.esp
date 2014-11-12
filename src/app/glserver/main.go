@@ -18,8 +18,8 @@ import (
 	"net/http"
 	"os"
 	"smmapi/httpmux4smmapi"
-	_ "smmapi/smmapi4server"
 	_ "smmapi/smmapi4config"
+	_ "smmapi/smmapi4server"
 
 	_ "fileloader/http4fileloader"
 	_ "github.com/go-sql-driver/mysql"
@@ -65,8 +65,8 @@ func main() {
 	boot.AddService(smmapis)
 	smmapis.InitMuxInvoke(mux4smm, "/smm.api/invoke")
 
-	rmux4mms := aclmux.NewAclServerMux("http", mux4smm)
-	httpServiceSMM := httpserver.NewHttpServer("httpPointSMM", rmux4mms)
+	rmux4smm := aclmux.NewAclServerMux("http", mux4smm)
+	httpServiceSMM := httpserver.NewHttpServer("httpPointSMM", rmux4smm)
 	boot.AddService(httpServiceSMM)
 
 	boot.Go(cfile)
