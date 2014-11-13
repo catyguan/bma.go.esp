@@ -1,0 +1,274 @@
+<html>
+<head>
+<meta charset="utf-8" />
+<title>SMM.UI - Testcase工具</title>
+<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+</head>
+<body>
+<?golua
+httpserv.render("_:http/menu.view.htm",{})
+?>
+<table border="0" width="98%">
+	<tr>
+		<td width="50%" valign="top">
+			<table width="100%">
+				<tr>
+					<td bgcolor="#EFEFEF">
+						<input type="button" id="btSuite" value="测试用例集" onclick="switchSuite()" disabled="true">
+						<input type="button" id="btTestcase" value="测试用例" onclick="switchTestcase()" >
+						<input type="button" value="刷新" onclick="refreshView()">
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<div id="divSuite">
+							<table width="100%" id="tbSuite">
+								<tr>
+									<td colspan="3">
+										资源名称
+										<input type="text" id="txtResource">
+										<input type="button" value="打开" onclick="openSuite()">
+										<div>										
+										</div>
+									</td>
+								</tr>
+								<tr bgcolor="#9F9F9F">
+									<td>名称</td>
+									<td>说明</td>
+									<td>操作</td>
+								</tr>
+							</table>
+						</div>
+						<div id="divTestcase" style="display:none">
+							<table width="100%" id="tbTestcase">
+								<tr>
+									<td colspan="3">
+										资源名称
+										<input type="text" id="txtTestcase">
+										<input type="button" value="打开" onclick="listTestcase()">
+										<div>										
+										</div>
+									</td>
+								</tr>
+								<tr bgcolor="#9F9F9F">
+									<td>名称</td>
+									<td>说明</td>
+									<td>操作</td>
+								</tr>
+							</table>
+						</div>
+					</td>
+				</tr>				
+			</table>
+		</td>
+		<td width="50%" valign="top">
+			<span id="divName" style="background-color: #EFEFEF"></span>
+			<pre id="divDesc"></pre>
+			<div id="divParams">				
+			</div>
+			<hr>
+			<pre id="divRunResult" style="background-color: #9F9F9F"></pre>
+			<div id="divLog">
+			</div>
+		</td>
+	</tr>
+</table>
+<script type="text/javascript">
+var viewSwitch = 1;
+var TCs = [];
+var TCo;
+var TCn;
+function switchSuite() {
+	$("#btSuite").attr('disabled',true);
+	$("#btTestcase").removeAttr('disabled');
+	$("#divSuite").show();
+	$("#divTestcase").hide();
+	viewSwitch = 1
+}
+function switchTestcase() {
+	$("#btTestcase").attr('disabled',true);
+	$("#btSuite").removeAttr('disabled');
+	$("#divTestcase").show();
+	$("#divSuite").hide();
+	viewSwitch = 2
+}
+function refreshView() {
+	if(viewSwitch==1) {
+		openSuite();
+	} else {
+		listTestcase();
+	}
+}
+function openSuite() {
+	var v = $('#txtResource').val();
+	if(v=="") {
+		return;
+	}
+	$.get(
+		"testcaseSuite.gl",
+		{
+			n : v
+		},
+		null,
+		"json"
+	).done(function(data) {
+		if(data.Message) {
+			alert(data.Message);
+			return
+		}
+		if(data.Result) {
+			$("#tbSuite tr:gt(1)").each(function(idx, o) {				
+				o.remove();
+			})
+			for(var i=data.Result.length-1;i>=0;i--) {
+				var o = data.Result[i];
+				var str = "";
+				str += "<tr>";
+				str += "<td>"+o.Title+"</td>";
+				str += "<td>"+o.Help+"</td>";
+				str += "<td><input type=button value='打开' onclick=\"openTestcase('"+o.Script+"')\"></td></tr>"
+				$(str).insertAfter($("#tbSuite tr:eq(1)"));
+			}
+		}
+	}).error(function() {
+		alert("OpenSuite fail");
+	});
+}
+function openTestcase(s) {
+	switchTestcase();
+	if(!s) {
+		return;
+	}
+	$('#txtTestcase').val(s);
+	listTestcase();
+}
+function listTestcase() {
+	var v = $('#txtTestcase').val();
+	if(v=="") {
+		return;
+	}
+	$.get(
+		"testcaseList.gl",
+		{
+			n : v
+		},
+		null,
+		"json"
+	).done(function(data) {
+		if(data.Message) {
+			alert(data.Message);
+			return
+		}
+		if(data.Result) {
+			$("#tbTestcase tr:gt(1)").each(function(idx, o) {				
+				o.remove();
+			})
+			TCs = data.Result;
+			TCn = v;
+			for(var i=data.Result.length-1;i>=0;i--) {
+				var o = data.Result[i];
+				var str = "";
+				str += "<tr>";
+				if(o.Title==o.Name) {
+					str += "<td>"+o.Title+"</td>";
+				} else {
+					str += "<td>"+o.Title+"("+o.Name+")</td>";
+				}
+				str += "<td>"+o.Help+"</td>";
+				str += "<td><input type=button value='打开' onclick=\"formTestcase("+i+")\"></td></tr>"
+				$(str).insertAfter($("#tbTestcase tr:eq(1)"));
+			}
+		}
+	}).error(function() {
+		alert("list Testcase fail");
+	});
+}
+function formTestcase(idx) {
+	var o
+	if(TCs && idx<TCs.length) {
+		o = TCs[idx];
+	}
+	if(!o) {
+		alert("invalid Testcase")
+		return;
+	}
+	TCo = o;
+	var str;
+	$('#divName').text(o.Name);	
+	str = o.Desc;
+	if(!str) { str = ""	}
+	str = str.replace(/(^\s*)|(\s*$)/g, ""); 
+	$('#divDesc').text(str);
+	str = "";
+	if(o.Params) {
+		for (var i = 0; i < o.Params.length; i++) {
+			var p = o.Params[i];
+			if(str!="") {
+				str += "<br>";
+			}
+			str += (p.Title?p.Title:p.Name)+" : ";
+			str += "<input type=text id='param_"+p.Name+"' value='"+(p.Value?p.Value:"")+"'>";
+		}
+	}
+	if(str!="") {
+		str += "<br>";		
+	}
+	str += "<input type=button value='运行' onclick='runTestcase()'>"
+	$('#divParams').html(str);
+}
+function runTestcase() {
+	var o = TCo
+	if(!o) {
+		alert("run invalid Testcase");
+		return
+	}
+	var data = {
+		n : TCn,
+		f : o.Name
+	}
+	if(o.Params) {
+		for (var i = 0; i < o.Params.length; i++) {
+			var p = o.Params[i];
+			var e = $('#param_'+p.Name)			
+			var v = e.val()
+			data["p_"+p.Name] = v
+		}
+	}
+	$.post(
+		"testcaseRun.gl",
+		data,
+		null,
+		"json"
+	).done(function(data) {
+		if(data.Message) {
+			alert(data.Message);
+			return
+		}
+		if(data.Result) {
+			var str = data.Result
+			str = str.replace(/>/g, "&gt;")
+			str = str.replace(/</g, "&lt;")
+			$('#divRunResult').html(str);
+		}
+		if(data.Log) {
+			var str = "";
+			for (var i = 0; i < data.Log.length; i++) {
+				var rs = data.Log[i];
+				if(str!="") {
+					str += "<br>"
+				}
+				if(rs.err) {
+					str += "<font color=red>"+rs.msg+"</font>";
+				} else {
+					str += rs.msg;
+				}
+			}
+			$('#divLog').html(str);
+		}
+	}).error(function() {
+		alert("run Testcase fail");
+	});
+}
+</script>
+</body>
+</html>

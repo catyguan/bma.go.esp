@@ -113,7 +113,7 @@ func (this *Stream) skip2(c1 rune, c2 rune) {
 			if c0 == c2 {
 				return
 			}
-			this.backup(1)
+			this.backup(2)
 		}
 	}
 }

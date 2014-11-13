@@ -114,13 +114,15 @@ func (this *Parser) firstChar() (rune, int) {
 	// }
 	if ch == '-' {
 		if this.stream.checkNext('-') {
+			if this.stream.checkNext('[') {
+				if this.stream.checkNext('[') {
+					this.stream.skip2(']', ']')
+					return 0, -1
+				} else {
+					this.stream.backup(1)
+				}
+			}
 			this.stream.skip1('\n')
-			return 0, -1
-		}
-	}
-	if ch == '[' {
-		if this.stream.checkNext('[') {
-			this.stream.skip2(']', ']')
 			return 0, -1
 		}
 	}
@@ -150,6 +152,40 @@ func isName(ch rune, fi bool) bool {
 	return unicode.IsLetter(ch)
 }
 
+func (this *Parser) putstr(buf *bytes.Buffer, c1 rune) {
+	if c1 == '\\' {
+		c2, _ := this.stream.readChar()
+		switch c2 {
+		case 'b':
+			buf.WriteByte('\b')
+			return
+		case 't':
+			buf.WriteByte('\t')
+			return
+		case 'n':
+			buf.WriteByte('\n')
+			return
+		case 'f':
+			buf.WriteByte('\f')
+			return
+		case 'r':
+			buf.WriteByte('\r')
+			return
+		case '"':
+			buf.WriteByte('"')
+			return
+		case '\'':
+			buf.WriteByte('\'')
+			return
+		case '\\':
+			buf.WriteByte('\\')
+			return
+		}
+		this.stream.backup(1)
+	}
+	buf.WriteRune(c1)
+}
+
 func (this *Parser) lex(lval *yySymType) int {
 	ch, sp := this.firstChar()
 	for sp < 0 {
@@ -173,6 +209,25 @@ func (this *Parser) lex(lval *yySymType) int {
 		this.stream.backup(1)
 		return this.fillToken(lval, NUMBER, sp)
 	}
+	if ch == '[' {
+		if this.stream.checkNext('[') {
+			buf := bytes.NewBuffer(make([]byte, 0, 32))
+			for {
+				c1, p := this.stream.readChar()
+				if c1 == 0 {
+					return 0
+				}
+				if c1 == ']' {
+					if this.stream.checkNext(']') {
+						this.fillToken(lval, STRING, p)
+						lval.token.image = buf.String()
+						return STRING
+					}
+				}
+				this.putstr(buf, c1)
+			}
+		}
+	}
 	if ch == '"' || ch == '\'' {
 		buf := bytes.NewBuffer(make([]byte, 0, 32))
 		for {
@@ -185,37 +240,7 @@ func (this *Parser) lex(lval *yySymType) int {
 				lval.token.image = buf.String()
 				return STRING
 			}
-			if c1 == '\\' {
-				c2, _ := this.stream.readChar()
-				switch c2 {
-				case 'b':
-					buf.WriteByte('\b')
-					continue
-				case 't':
-					buf.WriteByte('\t')
-					continue
-				case 'n':
-					buf.WriteByte('\n')
-					continue
-				case 'f':
-					buf.WriteByte('\f')
-					continue
-				case 'r':
-					buf.WriteByte('\r')
-					continue
-				case '"':
-					buf.WriteByte('"')
-					continue
-				case '\'':
-					buf.WriteByte('\'')
-					continue
-				case '\\':
-					buf.WriteByte('\\')
-					continue
-				}
-				this.stream.backup(1)
-			}
-			buf.WriteRune(c1)
+			this.putstr(buf, c1)
 		}
 	}
 	if ch == '~' || (ch >= 0x21 && ch <= 0x3f) {

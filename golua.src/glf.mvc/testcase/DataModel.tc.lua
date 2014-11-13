@@ -1,9 +1,13 @@
+local r = {}
+
+function r.start(T, params)
+end
+
+function r.testParse(T, params)
+
+end
+
 require("_:service/DataModel.class.lua")
-
-go.deving()
-
-local out = httpserv.write
-out("<pre>\n")
 
 local o = class.new("FormObject")
 o.FIELD = {
@@ -58,3 +62,5 @@ if false then
 end
 
 out("</pre>")
+
+return r

@@ -27,6 +27,7 @@ func StringsModule() *VMModule {
 	m.Init("trimSuffix", GOF_strings_trimSuffix(0))
 	m.Init("substr", GOF_strings_substr(0))
 	m.Init("format", GOF_strings_format(0))
+	m.Init("formata", GOF_strings_formata(0))
 	m.Init("parsef", GOF_strings_parsef(0))
 	m.Init("md5", GOF_strings_md5(0))
 	return m
@@ -497,6 +498,37 @@ func (this GOF_strings_format) IsNative() bool {
 
 func (this GOF_strings_format) String() string {
 	return "GoFunc<strings.format>"
+}
+
+// strings.formata(string , array ) string
+type GOF_strings_formata int
+
+func (this GOF_strings_formata) Exec(vm *VM, self interface{}) (int, error) {
+	err0 := vm.API_checkStack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	s, a, err1 := vm.API_pop2X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	vs := valutil.ToString(s, "")
+	va := vm.API_toSlice(a)
+	if va == nil {
+		vm.API_push(vs)
+	} else {
+		rs := fmt.Sprintf(vs, va...)
+		vm.API_push(rs)
+	}
+	return 1, nil
+}
+
+func (this GOF_strings_formata) IsNative() bool {
+	return true
+}
+
+func (this GOF_strings_formata) String() string {
+	return "GoFunc<strings.formata>"
 }
 
 // strings.parsef(string $string , ... ) string
