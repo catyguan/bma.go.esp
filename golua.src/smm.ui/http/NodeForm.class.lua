@@ -23,6 +23,10 @@ Class.FIELD = {
 		type="string",
 		default=""
 	},
+	type={
+		type="int",
+		default=1
+	},
 	remark={
 		type="string",
 		default=""

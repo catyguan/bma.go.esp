@@ -187,7 +187,13 @@ func (this *GoLua) CloseService(id string) bool {
 		delete(this.services, id)
 	}
 	this.serviceMutex.Unlock()
-	if doClose(o) {
+	closed := false
+	if tc, ok := o.(SupportTryClose); ok {
+		closed = tc.TryClose()
+	} else {
+		closed = doClose(o)
+	}
+	if closed {
 		logger.Debug(tag, "%s close service '%s'", this, id)
 	}
 	return ok

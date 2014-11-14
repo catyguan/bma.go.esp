@@ -143,3 +143,7 @@ type ScriptPreprocess func(content string) (string, error)
 type SupportClose interface {
 	Close()
 }
+
+type SupportTryClose interface {
+	TryClose() bool
+}

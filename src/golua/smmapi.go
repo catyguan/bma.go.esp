@@ -56,13 +56,6 @@ func (this smmObject) GetInfo() (*smmapi.SMInfo, error) {
 		a.UIN = "golua/smm.ui:debugger.gl.lua"
 		r.Actions = append(r.Actions, a)
 	}
-	if true {
-		a := new(smmapi.SMAction)
-		a.Id = "boot.reload"
-		a.Title = "Reload"
-		a.Type = smmapi.SMA_API
-		r.Actions = append(r.Actions, a)
-	}
 
 	return r, nil
 }

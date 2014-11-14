@@ -170,3 +170,64 @@ func (this *Address) String() string {
 	buf.WriteString("]")
 	return buf.String()
 }
+
+func (this *Address) ToMap() map[string]interface{} {
+	r := make(map[string]interface{})
+	var str string
+	str = this.GetHost()
+	if str != "" {
+		r["Host"] = str
+	}
+	str = this.GetGroup()
+	if str != "" {
+		r["Group"] = str
+	}
+	str = this.GetService()
+	if str != "" {
+		r["Service"] = str
+	}
+	str = this.GetOp()
+	if str != "" {
+		r["Op"] = str
+	}
+	str = this.GetObject()
+	if str != "" {
+		r["Object"] = str
+	}
+	return r
+}
+
+func (this *Address) BindMap(m map[string]interface{}) {
+	var v interface{}
+	var ok bool
+	v, ok = m["Host"]
+	if ok {
+		if str, ok2 := v.(string); ok2 {
+			this.SetHost(str)
+		}
+	}
+	v, ok = m["Group"]
+	if ok {
+		if str, ok2 := v.(string); ok2 {
+			this.SetGroup(str)
+		}
+	}
+	v, ok = m["Service"]
+	if ok {
+		if str, ok2 := v.(string); ok2 {
+			this.SetService(str)
+		}
+	}
+	v, ok = m["Op"]
+	if ok {
+		if str, ok2 := v.(string); ok2 {
+			this.SetOp(str)
+		}
+	}
+	v, ok = m["Object"]
+	if ok {
+		if str, ok2 := v.(string); ok2 {
+			this.SetObject(str)
+		}
+	}
+}

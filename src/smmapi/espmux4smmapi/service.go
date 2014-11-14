@@ -69,8 +69,14 @@ func (this *Service) InitMuxInvoke(mux *espservice.ServiceMux, serName, opName s
 			r["Status"] = 500
 			r["Error"] = err.Error()
 		} else {
-			r["Status"] = 200
-			r["Result"] = result
+			bs, err2 := json.Marshal(result)
+			if err2 != nil {
+				r["Status"] = 500
+				r["Error"] = err2.Error()
+			} else {
+				r["Status"] = 200
+				r["Result"] = string(bs)
+			}
 		}
 
 		rmsg := msg.ReplyMessage()

@@ -4,6 +4,7 @@ CREATE TABLE `smm_nodes` (
   `host_name` varchar(40) NOT NULL DEFAULT '',
   `api_url` varchar(200) NOT NULL DEFAULT '',
   `code` varchar(100) NOT NULL DEFAULT '',
+  `type` int(4) NOT NULL DEFAULT '1',
   `status` int(4) NOT NULL DEFAULT '1',
   `remark` varchar(1000) NOT NULL DEFAULT '',
   `create_time` int(11) NOT NULL DEFAULT 0,

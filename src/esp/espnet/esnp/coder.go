@@ -523,7 +523,7 @@ func (this varCoder) Encode(w EncodeWriter, v interface{}) error {
 		}
 		return nil
 	case reflect.Ptr:
-		return this.Encode(w, tv.Interface())
+		return this.Encode(w, tv.Elem())
 	case reflect.Slice:
 		sz := tv.Len()
 		l := binary.PutUvarint(bs, uint64(sz))

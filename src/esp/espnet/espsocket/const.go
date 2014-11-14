@@ -48,15 +48,15 @@ func NextSocketId() uint32 {
 	}
 }
 
-func TryRelyError(sock Socket, this *esnp.Message, err error) {
-	if this.IsRequest() {
-		rmsg := this.ReplyMessage()
+func TryRelyError(sock *Socket, msg *esnp.Message, err error) {
+	if msg.IsRequest() {
+		rmsg := msg.ReplyMessage()
 		rmsg.BeError(err)
 		sock.PostMessage(rmsg)
 	}
 }
 
-func CloseAfterSend(sock Socket, msg *esnp.Message) {
+func CloseAfterSend(sock *Socket, msg *esnp.Message) {
 	sock.SendMessage(msg, func(err error) {
 		sock.AskClose()
 	})

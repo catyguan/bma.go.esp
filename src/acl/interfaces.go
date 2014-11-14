@@ -271,7 +271,7 @@ func Assert(user *User, path []string, ctx context.Context) error {
 	}
 	logger.Info(tag, "user(%s) assert(%s, %v) fail", user, strings.Join(path, "/"), rule)
 	r := new(AclError)
-	r.ErrorString = fmt.Sprintf("'%s' access '%s'!", user, strings.Join(path, "/"))
+	r.ErrorString = fmt.Sprintf("'%s' access '%s' fail", user, strings.Join(path, "/"))
 	return r
 }
 

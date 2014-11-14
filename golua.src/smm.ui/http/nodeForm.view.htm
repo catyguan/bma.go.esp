@@ -34,6 +34,14 @@ local ERRSTR = "(<font color=red>${2s}</font>)"
 		</td>
 	</tr>
 	<tr>
+		<td>接口类型</td>
+		<td>
+			<select name="type">
+				<?=node.Options("type",[{value=1,title="HTTP"},{value=2,title="ESNP"}])?>
+			</select>			
+		</td>
+	</tr>
+	<tr>
 		<td>密钥</td>
 		<td>
 			<input type="text" size="80" name="code" value="<?=node.Value("code")?>">

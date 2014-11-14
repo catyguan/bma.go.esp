@@ -151,3 +151,17 @@ function FOClass.Error(name, str1, str2)
 	if types.isEmpty(str) then return "" end
 	return strings.parsef(str, name, v)
 end
+
+function FOClass.Options(name, opts )
+	local str = ""
+	local v = self.Value(name)
+	local selected
+	for _, o in opts do
+		selected = ""
+		if v==o.value then
+			selected = "selected"
+		end
+		str = strings.format("%s<option value=\"%v\" %s>%s</option>", str, o.value,selected, o.title)
+	end
+	return str
+end

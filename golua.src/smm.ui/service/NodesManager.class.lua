@@ -22,7 +22,7 @@ function Class.List(refresh)
 	local rs = db.Query("select * from smm_nodes order by host_name")
 	local nodes = []
 	local data
-	local desc = {id="int",status="int"}
+	local desc = {id="int",status="int",type="int"}
 	while rs.Fetch(data, desc) do
 		table.insert(nodes, data)
 	end

@@ -30,13 +30,14 @@ func (this *classes) Put(n string, o *classVMTable) *classVMTable {
 	return o
 }
 
-func (this *classes) Close() {
+func (this *classes) TryClose() bool {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	for k, c := range this.data {
 		delete(this.data, k)
 		c.Clear()
 	}
+	return false
 }
 
 func getClasses(vm *golua.VM) (*classes, error) {

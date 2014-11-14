@@ -162,7 +162,7 @@ func (O mvCoder) Map(p *Package) (map[string]interface{}, error) {
 			}
 			if mv, ok := v.(*struct_message_value); ok {
 				var err error
-				r[mv.name], err = mv.Value(O)
+				r[mv.name], err = mv.Value(nil)
 				if err != nil {
 					return nil, err
 				}

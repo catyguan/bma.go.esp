@@ -13,9 +13,11 @@ end
 function Class.w(s, ...)
 	local msg = strings.formata(s, ...)
 	self.add(msg, false)
+	go.debug("T", msg)
 end
 
 function Class.error(s, ...)
 	local msg = strings.formata(s, ...)
 	self.add(msg, true)
+	go.warn("T", msg)
 end

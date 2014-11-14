@@ -4,6 +4,7 @@ import (
 	"boot"
 	"esp/acclog"
 	"esp/aclserv"
+	"esp/espnet/vmmesnp"
 	"esp/goluaserv"
 	"esp/goluaserv/httpmux4goluaserv"
 	"fileloader"
@@ -80,4 +81,5 @@ func myInitor(gl *golua.GoLua, acclog *acclog.Service) {
 	vmmjson.InitGoLua(gl)
 	vmmsql.InitGoLua(gl)
 	vmmclass.InitGoLua(gl)
+	vmmesnp.InitGoLua(gl)
 }

@@ -146,7 +146,7 @@ func (this *Service) NodeAuth(sock *espsocket.Socket, msg *esnp.Message) (bool, 
 func (this *Service) PostAuth(sock *espsocket.Socket, cd string) error {
 	token := ""
 	if true {
-		msg := esnp.NewMessage()
+		msg := esnp.NewRequestMessage()
 		addr := msg.GetAddress()
 		addr.SetService(auth.SN_AUTH)
 		addr.SetOp(auth.OP_AUTH)
@@ -169,7 +169,7 @@ func (this *Service) PostAuth(sock *espsocket.Socket, cd string) error {
 	}
 
 	if true {
-		msg := esnp.NewMessage()
+		msg := esnp.NewRequestMessage()
 		addr := msg.GetAddress()
 		addr.SetService(auth.SN_AUTH)
 		addr.SetOp(auth.OP_AUTH)

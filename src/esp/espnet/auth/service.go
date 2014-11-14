@@ -7,6 +7,7 @@ import (
 	"esp/espnet/esnp"
 	"esp/espnet/espservice"
 	"esp/espnet/espsocket"
+	"logger"
 )
 
 const (
@@ -59,13 +60,18 @@ func (this *Service) DoServe(sock *espsocket.Socket, msg *esnp.Message) error {
 			return nil
 		}
 		if addr.GetOp() != OP_AUTH {
-			return espservice.Miss(msg)
+			errMiss := espservice.Miss(msg)
+			espsocket.TryRelyError(sock, msg, errMiss)
+			return nil
 		}
 		ok, user, err := this.Auth(sock, msg)
 		if err != nil {
-			return err
+			espsocket.TryRelyError(sock, msg, err)
+			return nil
 		}
 		if !ok {
+			err = logger.Warn(tag, "invalid auth request")
+			espsocket.TryRelyError(sock, msg, err)
 			return nil
 		}
 		if user == nil {
