@@ -7,6 +7,7 @@ import (
 	"esp/espnet/vmmesnp"
 	"esp/goluaserv"
 	"esp/goluaserv/httpmux4goluaserv"
+	"esp/memserv"
 	"fileloader"
 	"golua"
 	"golua/vmmacclog"
@@ -42,6 +43,15 @@ func main() {
 
 	fl := fileloader.NewService("fileloader")
 	boot.AddService(fl)
+
+	mems := memserv.NewMemoryServ()
+	bwmems := new(boot.BootWrap)
+	bwmems.SetCleanup(func() bool {
+		mems.CloseAll(true)
+		return true
+	})
+	boot.AddService(bwmems)
+	mems.InitSMMAPI("go.memserv")
 
 	service := goluaserv.NewService("goluaServ", func(gl *golua.GoLua) {
 		myInitor(gl, acclog)

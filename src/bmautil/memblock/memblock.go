@@ -67,6 +67,10 @@ func (this *MemBlock) String() string {
 	return fmt.Sprintf("MemBlock(%d/%d)", len(this.items), this.size)
 }
 
+func (this *MemBlock) MemSize() int32 {
+	return this.size
+}
+
 func New() *MemBlock {
 	r := new(MemBlock)
 	r.items = make(map[string]*MapItem)
@@ -225,6 +229,7 @@ func (this *MemBlock) _remove(item *MapItem, rt REMOVE_TYPE) bool {
 	if this.Listener != nil {
 		this.Listener(item.Key, item, rt)
 	}
+	item.Data = nil
 	return true
 }
 
@@ -287,4 +292,17 @@ func (this *MemBlock) Count() int {
 	this.mutex.RLock()
 	defer this.mutex.RUnlock()
 	return len(this.items)
+}
+
+func (this *MemBlock) ClearAll(notice bool) {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+	item := this.head
+	for item != nil {
+		delete(this.items, item.Key)
+		if notice && this.Listener != nil {
+			this.Listener(item.Key, item, RT_CLEAR)
+		}
+		item.Data = nil
+	}
 }
