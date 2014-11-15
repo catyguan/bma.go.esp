@@ -29,7 +29,7 @@ if func==nil then
 	}
 end
 
-require("glf.testing:T.class.lua")
+require("glf.testing:service/T.class.lua")
 
 local T = class.new("glf.testing.T")
 local ok, err

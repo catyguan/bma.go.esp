@@ -1,4 +1,4 @@
--- glf.testing:T.class.lua
+-- glf.testing:service/T.class.lua
 local Class = class.define("glf.testing.T")
 
 function Class.add(msg, err)

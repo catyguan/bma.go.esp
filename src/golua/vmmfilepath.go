@@ -16,7 +16,6 @@ func FilePathModule() *VMModule {
 	m.Init("isAbs", GOF_filepath_isAbs(0))
 	m.Init("join", GOF_filepath_join(0))
 	m.Init("match", GOF_filepath_match(0))
-	m.Init("split", GOF_filepath_split(0))
 	m.Init("abs", GOF_filepath_abs(0))
 	m.Init("rel", GOF_filepath_rel(0))
 	m.Init("changeExt", GOF_filepath_changeExt(0))
@@ -36,7 +35,7 @@ func (this GOF_filepath_base) Exec(vm *VM, self interface{}) (int, error) {
 		return 0, err1
 	}
 	vs := valutil.ToString(s, "")
-	rv := path.Base(vs)
+	rv := filepath.Base(vs)
 	vm.API_push(rv)
 	return 1, nil
 }
@@ -88,9 +87,11 @@ func (this GOF_filepath_dir) Exec(vm *VM, self interface{}) (int, error) {
 		return 0, err1
 	}
 	vs := valutil.ToString(s, "")
-	rv := path.Dir(vs)
-	vm.API_push(rv)
-	return 1, nil
+	rdir := filepath.Dir(vs)
+	_, rfile := filepath.Split(vs)
+	vm.API_push(rdir)
+	vm.API_push(rfile)
+	return 2, nil
 }
 
 func (this GOF_filepath_dir) IsNative() bool {
@@ -114,7 +115,7 @@ func (this GOF_filepath_ext) Exec(vm *VM, self interface{}) (int, error) {
 		return 0, err1
 	}
 	vs := valutil.ToString(s, "")
-	rv := path.Ext(vs)
+	rv := filepath.Ext(vs)
 	vm.API_push(rv)
 	return 1, nil
 }
@@ -140,7 +141,7 @@ func (this GOF_filepath_isAbs) Exec(vm *VM, self interface{}) (int, error) {
 		return 0, err1
 	}
 	vs := valutil.ToString(s, "")
-	rv := path.IsAbs(vs)
+	rv := filepath.IsAbs(vs)
 	vm.API_push(rv)
 	return 1, nil
 }
@@ -166,7 +167,7 @@ func (this GOF_filepath_join) Exec(vm *VM, self interface{}) (int, error) {
 	for i, v := range ns {
 		slist[i] = valutil.ToString(v, "")
 	}
-	rv := path.Join(slist...)
+	rv := filepath.Join(slist...)
 	vm.API_push(rv)
 	return 1, nil
 }
@@ -193,7 +194,7 @@ func (this GOF_filepath_match) Exec(vm *VM, self interface{}) (int, error) {
 	}
 	vp := valutil.ToString(p, "")
 	vn := valutil.ToString(n, "")
-	rv, _ := path.Match(vp, vn)
+	rv, _ := filepath.Match(vp, vn)
 	vm.API_push(rv)
 	return 1, nil
 }
@@ -204,33 +205,6 @@ func (this GOF_filepath_match) IsNative() bool {
 
 func (this GOF_filepath_match) String() string {
 	return "GoFunc<filepath.match>"
-}
-
-// filepath.split(s string) (dir, filename string)
-type GOF_filepath_split int
-
-func (this GOF_filepath_split) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkStack(1)
-	if err0 != nil {
-		return 0, err0
-	}
-	s, err1 := vm.API_pop1X(-1, true)
-	if err1 != nil {
-		return 0, err1
-	}
-	vs := valutil.ToString(s, "")
-	rv1, rv2 := path.Split(vs)
-	vm.API_push(rv1)
-	vm.API_push(rv2)
-	return 2, nil
-}
-
-func (this GOF_filepath_split) IsNative() bool {
-	return true
-}
-
-func (this GOF_filepath_split) String() string {
-	return "GoFunc<filepath.split>"
 }
 
 // filepath.abs(s string) (string,bool)
@@ -309,7 +283,7 @@ func (this GOF_filepath_changeExt) Exec(vm *VM, self interface{}) (int, error) {
 	vs2 := valutil.ToString(s2, "")
 
 	var npath string
-	ext := path.Ext(vs1)
+	ext := filepath.Ext(vs1)
 	if ext != "" {
 		npath = strings.TrimRight(vs1, ext)
 	} else {

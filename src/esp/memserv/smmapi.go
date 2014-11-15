@@ -15,14 +15,17 @@ func sizestr(v uint64) string {
 }
 
 func (this *smmObject) getContent() string {
-	var sz uint64
+	var sz1 int
+	var sz2 uint64
 	this.s.lock.RLock()
 	defer this.s.lock.RUnlock()
 	c := len(this.s.mgs)
 	for _, m := range this.s.mgs {
-		sz += uint64(m.Size())
+		s1, s2 := m.Size()
+		sz1 += s1
+		sz2 += uint64(s2)
 	}
-	return fmt.Sprintf("MemGo=%d, MemSize=%s", c, sizestr(sz))
+	return fmt.Sprintf("MemGo=%d, Items=%d, MemSize=%s", c, sz1, sizestr(sz2))
 }
 
 func (this *smmObject) GetInfo() (*smmapi.SMInfo, error) {

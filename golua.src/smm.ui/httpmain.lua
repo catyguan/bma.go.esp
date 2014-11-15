@@ -1,16 +1,18 @@
 local path = httpserv.path()
 
-if path=="run.tc" then
-	local m = httpserv.formValue("m","")
-	local f = httpserv.formValue("f","")
-	if m=="" then m = "_" end
-	return go.exec(m..":testcase/"..f..".tc.lua")	
+local m = "_"
+local script = path
+local dir, fname = filepath.dir(path)
+print(dir, fname)
+if dir=="testcase" then
+	m = "glf.testing"	
+	script = fname
 end
 
-local ext = filepath.ext(path)
+local ext = filepath.ext(script)
 if ext==".gl" then
-	local npath = filepath.changeExt(path, ".gl.lua")
-	return go.exec("_:http/"..npath)
+	local nscript = filepath.changeExt(script, ".gl.lua")
+	return go.exec(m..":http/"..nscript)
 end
 
-return httpserv.writeFile("_:http.res/"..path)
+return httpserv.writeFile("_:http.res/"..script)

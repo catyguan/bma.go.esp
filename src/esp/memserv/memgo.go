@@ -100,10 +100,11 @@ func (this *MemGo) DoNow(f MBFuc) error {
 	})
 }
 
-func (this *MemGo) Size() int32 {
-	var c int32
+func (this *MemGo) Size() (int, int32) {
+	var c int
+	var c2 int32
 	this.goo.DoNow(func() {
-		c = this.mem.MemSize()
+		c, c2 = this.mem.Size()
 	})
-	return c
+	return c, c2
 }

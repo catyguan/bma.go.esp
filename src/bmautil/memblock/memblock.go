@@ -67,8 +67,8 @@ func (this *MemBlock) String() string {
 	return fmt.Sprintf("MemBlock(%d/%d)", len(this.items), this.size)
 }
 
-func (this *MemBlock) MemSize() int32 {
-	return this.size
+func (this *MemBlock) Size() (int, int32) {
+	return len(this.items), this.size
 }
 
 func New() *MemBlock {
