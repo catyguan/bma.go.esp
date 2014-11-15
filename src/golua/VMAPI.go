@@ -526,7 +526,7 @@ func (this *VM) API_require(n string) error {
 }
 
 func (this *VM) API_newObject(n string) (interface{}, error) {
-	return this.gl.NewObject(n)
+	return this.gl.NewObject(this, n)
 }
 
 func (this *VM) API_pushMemberCall(o interface{}, f interface{}) error {

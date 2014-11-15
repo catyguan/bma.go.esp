@@ -15,6 +15,7 @@ type MBFuc func(mb *memblock.MemBlock) error
 
 type MemGoConfig struct {
 	QSize         int
+	Max           int
 	ClearStep     int
 	ClearDuration time.Duration
 }
@@ -46,6 +47,7 @@ func NewMemGo(cfg *MemGoConfig) *MemGo {
 	r := new(MemGo)
 	r.cfg = cfg
 	r.mem = memblock.New()
+	r.mem.MaxCount = cfg.Max
 	r.goo.InitGoo(tag, cfg.QSize, r.doExit)
 	return r
 }

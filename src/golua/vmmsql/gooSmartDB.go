@@ -8,7 +8,7 @@ import (
 	"logger"
 )
 
-func SmartDBFactory(n string) (interface{}, error) {
+func SmartDBFactory(vm *golua.VM, n string) (interface{}, error) {
 	return golua.NewGOO(0, gooSmartDB(0)), nil
 }
 

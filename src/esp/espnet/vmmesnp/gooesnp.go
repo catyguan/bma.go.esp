@@ -7,7 +7,7 @@ import (
 	"golua"
 )
 
-func ESNPFactory(n string) (interface{}, error) {
+func ESNPFactory(vm *golua.VM, n string) (interface{}, error) {
 	return golua.NewGOO(0, gooESNP(0)), nil
 }
 

@@ -26,23 +26,27 @@ type B struct {
 	b int
 }
 
-func Test1(t *testing.T) {
+func doTest1(t *testing.T) {
+
+}
+
+func T2est1(t *testing.T) {
 	o := new(B)
 	o.p2(o)
 }
 
-func Test2(t *testing.T) {
+func T2est2(t *testing.T) {
 	var v interface{}
-	v = Test1
+	v = doTest1
 	t.Errorf("%T", v)
 }
 
-func Test3(t *testing.T) {
+func T2est3(t *testing.T) {
 	v := make([]int, 3)
 	t.Errorf("%d", len(v[:3-1]))
 }
 
-func Test4(t *testing.T) {
+func T2est4(t *testing.T) {
 	var v uint32
 	v = 0xFFFFFFFF
 	t.Errorf("%v", v)
@@ -50,7 +54,7 @@ func Test4(t *testing.T) {
 	t.Errorf("%v", v)
 }
 
-func Test5(t *testing.T) {
+func T2est5(t *testing.T) {
 	var bs []byte
 	for _, v := range bs {
 		t.Error(v)
@@ -58,7 +62,7 @@ func Test5(t *testing.T) {
 	t.Error(len(bs))
 }
 
-func TestGenRandome(t *testing.T) {
+func T2estGenRandome(t *testing.T) {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	for i := 0; i < 1000; i++ {
@@ -70,19 +74,19 @@ func TestGenRandome(t *testing.T) {
 	fmt.Println()
 }
 
-func TestSprintf(t *testing.T) {
+func T2estSprintf(t *testing.T) {
 	arr := []interface{}{1, 2}
 	s := fmt.Sprintf("%d, %d", arr...)
 	fmt.Println("ask = ", s)
 }
 
-func TestTime(t *testing.T) {
+func T2estTime(t *testing.T) {
 	tm := time.Now()
 	bs, _ := tm.MarshalText()
 	fmt.Println("TimeJson", string(bs))
 }
 
-func TestSliceAppend(t *testing.T) {
+func T2estSliceAppend(t *testing.T) {
 	var a []string
 	a = append(a, "test")
 	a = append(a, "test2")

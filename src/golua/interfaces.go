@@ -18,7 +18,7 @@ type GoObject interface {
 	Close(o interface{})
 }
 
-type GoObjectFactory func(n string) (interface{}, error)
+type GoObjectFactory func(vm *VM, n string) (interface{}, error)
 
 type GoLuaInitor func(golua *GoLua)
 

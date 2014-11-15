@@ -29,9 +29,9 @@ func (this *GoLua) SetObjectFactory(n string, of GoObjectFactory) {
 	this.ofMap[n] = of
 }
 
-func (this *GoLua) NewObject(n string) (interface{}, error) {
+func (this *GoLua) NewObject(vm *VM, n string) (interface{}, error) {
 	if of, ok := this.ofMap[n]; ok {
-		return of(n)
+		return of(vm, n)
 	}
 	return nil, fmt.Errorf("invalid object type '%s'", n)
 }
