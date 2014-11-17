@@ -341,8 +341,17 @@ func doInit(ctx *BootContext) bool {
 		fmt.Printf("GOMAXPROCS => %d\n", maxpv)
 		runtime.GOMAXPROCS(maxpv)
 	}
+	wd, _ := os.Getwd()
 	DevMode = config.Global.GetBoolConfig("global.DevMode", false)
 	Debug = config.Global.GetBoolConfig("global.Debug", false)
+	WorkDir = config.Global.GetStringConfig("global.WorkDir", "")
+	if WorkDir == "" {
+		WorkDir = filepath.Join(wd, "work")
+	}
+	TempDir = config.Global.GetStringConfig("global.TempDir", "")
+	if TempDir == "" {
+		TempDir = filepath.Join(wd, "tmp")
+	}
 	logger.DebugFlag = Debug
 
 	if !ctx.IsRestart {

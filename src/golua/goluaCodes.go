@@ -1,6 +1,7 @@
 package golua
 
 import (
+	"boot"
 	"context"
 	"fileloader"
 	"fmt"
@@ -66,7 +67,7 @@ func (this *GoLua) compile(script string, save bool, spp ScriptPreprocess) (*Chu
 
 		if this.DevMode {
 			m, file := fileloader.SplitModuleScript(script)
-			fn, _ := filepath.Abs("tmp/" + m + "/" + file)
+			fn, _ := filepath.Abs(filepath.Join(boot.TempDir, "goluac/"+m+"/"+file))
 			dir := filepath.Dir(fn)
 			os.MkdirAll(dir, os.ModePerm)
 			errF2 := ioutil.WriteFile(fn, []byte(content), os.ModePerm)
