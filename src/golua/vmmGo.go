@@ -19,7 +19,6 @@ func GoModule() *VMModule {
 	m.Init("read", GOF_go_read(0))
 	m.Init("select", GOF_go_select(0))
 	m.Init("close", GOF_go_close(0))
-	m.Init("enableSafe", GOF_go_enableSafe(0))
 	m.Init("mutex", GOF_go_mutex(0))
 	m.Init("sleep", GOF_go_sleep(0))
 	m.Init("timer", GOF_go_timer(0))
@@ -391,47 +390,6 @@ func (this GOF_go_close) IsNative() bool {
 
 func (this GOF_go_close) String() string {
 	return "GoFunc<go.close>"
-}
-
-// go.enableSafe(obj[, val bool])
-//		obj - var
-type GOF_go_enableSafe int
-
-func (this GOF_go_enableSafe) Exec(vm *VM, self interface{}) (int, error) {
-	err0 := vm.API_checkStack(1)
-	if err0 != nil {
-		return 0, err0
-	}
-	o, ival, err1 := vm.API_pop2X(-1, false)
-	if err1 != nil {
-		return 0, err1
-	}
-	if valutil.ToBool(ival, false) {
-		o, err1 = vm.API_value(o)
-		if err1 != nil {
-			return 0, err1
-		}
-	}
-	if m, ok := o.(map[string]interface{}); ok {
-		o = NewVMTable(m)
-	} else if a, ok := o.([]interface{}); ok {
-		o = NewVMArray(a)
-	}
-	if so, ok := o.(supportSafe); ok {
-		so.EnableSafe()
-		vm.API_push(o)
-		return 1, nil
-	} else {
-		return 0, fmt.Errorf("invalid safe(%T)", o)
-	}
-}
-
-func (this GOF_go_enableSafe) IsNative() bool {
-	return true
-}
-
-func (this GOF_go_enableSafe) String() string {
-	return "GoFunc<go.enableSafe>"
 }
 
 // go.mutex([rw:bool])

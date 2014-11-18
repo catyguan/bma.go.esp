@@ -228,19 +228,12 @@ func (this *classVMTable) Clear() {
 
 // ciVMTable
 type ciVMTable struct {
-	mux  *sync.RWMutex
 	data map[string]interface{}
 	cls  *classVMTable
 }
 
 func (this *ciVMTable) String() string {
 	return fmt.Sprintf("@%s,%v", this.cls.name, this.data)
-}
-
-func (this *ciVMTable) EnableSafe() {
-	if this.mux == nil {
-		this.mux = new(sync.RWMutex)
-	}
 }
 
 func (this *ciVMTable) Get(vm *golua.VM, key string) (interface{}, error) {
@@ -252,10 +245,6 @@ func (this *ciVMTable) Get(vm *golua.VM, key string) (interface{}, error) {
 }
 
 func (this *ciVMTable) Rawget(key string) interface{} {
-	if this.mux != nil {
-		this.mux.RLock()
-		defer this.mux.RUnlock()
-	}
 	return this.data[key]
 }
 
@@ -265,18 +254,10 @@ func (this *ciVMTable) Set(vm *golua.VM, key string, val interface{}) error {
 }
 
 func (this *ciVMTable) Rawset(key string, val interface{}) {
-	if this.mux != nil {
-		this.mux.Lock()
-		defer this.mux.Unlock()
-	}
 	this.data[key] = val
 }
 
 func (this *ciVMTable) Delete(key string) {
-	if this.mux != nil {
-		this.mux.Lock()
-		defer this.mux.Unlock()
-	}
 	delete(this.data, key)
 }
 
@@ -285,15 +266,5 @@ func (this *ciVMTable) Len() int {
 }
 
 func (this *ciVMTable) ToMap() map[string]interface{} {
-	if this.mux != nil {
-		this.mux.RLock()
-		defer this.mux.RUnlock()
-		r := make(map[string]interface{})
-		for k, v := range this.data {
-			r[k] = v
-		}
-		return r
-	} else {
-		return this.data
-	}
+	return this.data
 }

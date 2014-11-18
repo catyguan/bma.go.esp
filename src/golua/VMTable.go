@@ -1,13 +1,9 @@
 package golua
 
-import (
-	"fmt"
-	"sync"
-)
+import "fmt"
 
 // CommonVMTable
 type CommonVMTable struct {
-	mux       *sync.RWMutex
 	data      map[string]interface{}
 	metaTable VMTable
 }
@@ -26,25 +22,11 @@ func (this *CommonVMTable) String() string {
 	return fmt.Sprintf("@%v", this.data)
 }
 
-func (this *CommonVMTable) EnableSafe() {
-	if this.mux == nil {
-		this.mux = new(sync.RWMutex)
-	}
-}
-
 func (this *CommonVMTable) GetMetaTable() VMTable {
-	if this.mux != nil {
-		this.mux.RLock()
-		defer this.mux.RUnlock()
-	}
 	return this.metaTable
 }
 
 func (this *CommonVMTable) SetMetaTable(mt VMTable) {
-	if this.mux != nil {
-		this.mux.Lock()
-		defer this.mux.Unlock()
-	}
 	this.metaTable = mt
 }
 
@@ -72,10 +54,6 @@ func (this *CommonVMTable) Get(vm *VM, key string) (interface{}, error) {
 }
 
 func (this *CommonVMTable) _rawget(key string) (interface{}, VMTable) {
-	if this.mux != nil {
-		this.mux.RLock()
-		defer this.mux.RUnlock()
-	}
 	return this.data[key], this.metaTable
 }
 
@@ -107,10 +85,6 @@ func (this *CommonVMTable) Set(vm *VM, key string, val interface{}) error {
 }
 
 func (this *CommonVMTable) _rawset(key string, val interface{}, force bool) (bool, VMTable) {
-	if this.mux != nil {
-		this.mux.Lock()
-		defer this.mux.Unlock()
-	}
 	if val == nil {
 		delete(this.data, key)
 		return true, nil
@@ -134,10 +108,6 @@ func (this *CommonVMTable) Rawset(key string, val interface{}) {
 }
 
 func (this *CommonVMTable) Delete(key string) {
-	if this.mux != nil {
-		this.mux.Lock()
-		defer this.mux.Unlock()
-	}
 	delete(this.data, key)
 }
 
@@ -146,17 +116,7 @@ func (this *CommonVMTable) Len() int {
 }
 
 func (this *CommonVMTable) ToMap() map[string]interface{} {
-	if this.mux != nil {
-		this.mux.RLock()
-		defer this.mux.RUnlock()
-		r := make(map[string]interface{})
-		for k, v := range this.data {
-			r[k] = v
-		}
-		return r
-	} else {
-		return this.data
-	}
+	return this.data
 }
 
 func (this *VM) API_toMap(v interface{}) map[string]interface{} {

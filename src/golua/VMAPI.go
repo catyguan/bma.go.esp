@@ -312,6 +312,11 @@ func (this *VM) API_pop4X(c int, popval bool) (interface{}, interface{}, interfa
 func (this *VM) API_push(v interface{}) {
 	st := this.stack
 	pos := st.stackBegin + st.stackTop
+	if v != nil {
+		if a, ok := v.([]interface{}); ok {
+			v = this.API_newarray(a)
+		}
+	}
 	if pos < len(this.sdata) {
 		this.sdata[pos] = v
 	} else {

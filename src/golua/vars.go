@@ -1,9 +1,6 @@
 package golua
 
-import (
-	"fmt"
-	"sync"
-)
+import "fmt"
 
 // voidVar
 type voidVar struct {
@@ -46,10 +43,6 @@ func (this *globalVar) Set(vm *VM, v interface{}) (bool, error) {
 	return true, nil
 }
 
-func (this *globalVar) EnableSafe() {
-
-}
-
 func (this *globalVar) String() string {
 	return fmt.Sprintf("globalVar(%s)", this.name)
 }
@@ -57,30 +50,15 @@ func (this *globalVar) String() string {
 // localVar
 type localVar struct {
 	value interface{}
-	mux   *sync.RWMutex
 }
 
 func (this *localVar) Get(vm *VM) (interface{}, error) {
-	if this.mux != nil {
-		this.mux.RLock()
-		defer this.mux.RUnlock()
-	}
 	return this.value, nil
 }
 
 func (this *localVar) Set(vm *VM, v interface{}) (bool, error) {
-	if this.mux != nil {
-		this.mux.Lock()
-		defer this.mux.Unlock()
-	}
 	this.value = v
 	return true, nil
-}
-
-func (this *localVar) EnableSafe() {
-	if this.mux == nil {
-		this.mux = new(sync.RWMutex)
-	}
 }
 
 func (this *localVar) String() string {

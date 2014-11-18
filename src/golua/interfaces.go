@@ -26,10 +26,6 @@ type supportFuncName interface {
 	FuncName() (string, string)
 }
 
-type supportSafe interface {
-	EnableSafe()
-}
-
 type ER int
 
 var (

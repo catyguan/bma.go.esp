@@ -1,13 +1,9 @@
 package golua
 
-import (
-	"fmt"
-	"sync"
-)
+import "fmt"
 
 // CommonVMArray
 type CommonVMArray struct {
-	mux  *sync.RWMutex
 	data []interface{}
 }
 
@@ -21,17 +17,7 @@ func (this *CommonVMArray) String() string {
 	return fmt.Sprintf("@%v", this.data)
 }
 
-func (this *CommonVMArray) EnableSafe() {
-	if this.mux == nil {
-		this.mux = new(sync.RWMutex)
-	}
-}
-
 func (this *CommonVMArray) Get(vm *VM, idx int) (interface{}, error) {
-	if this.mux != nil {
-		this.mux.RLock()
-		defer this.mux.RUnlock()
-	}
 	if idx >= 0 && idx < len(this.data) {
 		return this.data[idx], nil
 	}
@@ -39,10 +25,6 @@ func (this *CommonVMArray) Get(vm *VM, idx int) (interface{}, error) {
 }
 
 func (this *CommonVMArray) Set(vm *VM, idx int, val interface{}) error {
-	if this.mux != nil {
-		this.mux.Lock()
-		defer this.mux.Unlock()
-	}
 	if idx >= 0 {
 		if idx < len(this.data) {
 			this.data[idx] = val
@@ -57,10 +39,6 @@ func (this *CommonVMArray) Set(vm *VM, idx int, val interface{}) error {
 }
 
 func (this *CommonVMArray) Insert(vm *VM, idx int, val interface{}) error {
-	if this.mux != nil {
-		this.mux.Lock()
-		defer this.mux.Unlock()
-	}
 	if idx >= 0 {
 		if idx < len(this.data) {
 			this.data = append(this.data, nil)
@@ -73,19 +51,11 @@ func (this *CommonVMArray) Insert(vm *VM, idx int, val interface{}) error {
 }
 
 func (this *CommonVMArray) Add(vm *VM, val interface{}) error {
-	if this.mux != nil {
-		this.mux.Lock()
-		defer this.mux.Unlock()
-	}
 	this.data = append(this.data, val)
 	return nil
 }
 
 func (this *CommonVMArray) Delete(vm *VM, idx int) error {
-	if this.mux != nil {
-		this.mux.Lock()
-		defer this.mux.Unlock()
-	}
 	if idx >= 0 {
 		if idx < len(this.data) {
 			this.data[idx] = nil
@@ -98,10 +68,6 @@ func (this *CommonVMArray) Delete(vm *VM, idx int) error {
 }
 
 func (this *CommonVMArray) SubArray(start int, end int) ([]interface{}, error) {
-	if this.mux != nil {
-		this.mux.Lock()
-		defer this.mux.Unlock()
-	}
 	if start >= 0 && start < len(this.data) {
 		if end > 0 && end <= len(this.data) {
 			return this.data[start:end], nil
@@ -116,15 +82,7 @@ func (this *CommonVMArray) Len() int {
 }
 
 func (this *CommonVMArray) ToArray() []interface{} {
-	if this.mux != nil {
-		this.mux.RLock()
-		defer this.mux.RUnlock()
-		r := make([]interface{}, len(this.data))
-		copy(r, this.data)
-		return r
-	} else {
-		return this.data
-	}
+	return this.data
 }
 
 func (this *VM) API_array(v interface{}) VMArray {
