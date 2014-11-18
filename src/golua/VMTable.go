@@ -2,123 +2,6 @@ package golua
 
 import "fmt"
 
-// CommonVMTable
-type CommonVMTable struct {
-	data      map[string]interface{}
-	metaTable VMTable
-}
-
-func NewVMTable(o map[string]interface{}) VMTable {
-	r := new(CommonVMTable)
-	if o == nil {
-		r.data = make(map[string]interface{})
-	} else {
-		r.data = o
-	}
-	return r
-}
-
-func (this *CommonVMTable) String() string {
-	return fmt.Sprintf("@%v", this.data)
-}
-
-func (this *CommonVMTable) GetMetaTable() VMTable {
-	return this.metaTable
-}
-
-func (this *CommonVMTable) SetMetaTable(mt VMTable) {
-	this.metaTable = mt
-}
-
-func (this *CommonVMTable) Get(vm *VM, key string) (interface{}, error) {
-	v, mt := this._rawget(key)
-	if v == nil {
-		if mt != nil {
-			f := mt.Rawget(METATABLE_INDEX)
-			if f != nil {
-				vm.API_push(f)
-				vm.API_push(this)
-				vm.API_push(key)
-				r0, err := vm.Call(2, 1, nil)
-				if err != nil {
-					return nil, err
-				}
-				v, err = vm.API_pop1X(r0, false)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-	}
-	return v, nil
-}
-
-func (this *CommonVMTable) _rawget(key string) (interface{}, VMTable) {
-	return this.data[key], this.metaTable
-}
-
-func (this *CommonVMTable) Rawget(key string) interface{} {
-	v, _ := this._rawget(key)
-	return v
-}
-
-func (this *CommonVMTable) Set(vm *VM, key string, val interface{}) error {
-	ok, mt := this._rawset(key, val, false)
-	if !ok {
-		if mt != nil {
-			f := mt.Rawget(METATABLE_NEWINDEX)
-			if f != nil {
-				vm.API_push(f)
-				vm.API_push(this)
-				vm.API_push(key)
-				vm.API_push(val)
-				_, err := vm.Call(3, 0, nil)
-				if err != nil {
-					return err
-				}
-				return nil
-			}
-		}
-		this._rawset(key, val, true)
-	}
-	return nil
-}
-
-func (this *CommonVMTable) _rawset(key string, val interface{}, force bool) (bool, VMTable) {
-	if val == nil {
-		delete(this.data, key)
-		return true, nil
-	} else {
-		if force {
-			this.data[key] = val
-			return true, nil
-		} else {
-			_, ok := this.data[key]
-			if ok {
-				this.data[key] = val
-				return true, nil
-			}
-			return false, this.metaTable
-		}
-	}
-}
-
-func (this *CommonVMTable) Rawset(key string, val interface{}) {
-	this._rawset(key, val, true)
-}
-
-func (this *CommonVMTable) Delete(key string) {
-	delete(this.data, key)
-}
-
-func (this *CommonVMTable) Len() int {
-	return len(this.data)
-}
-
-func (this *CommonVMTable) ToMap() map[string]interface{} {
-	return this.data
-}
-
 func (this *VM) API_toMap(v interface{}) map[string]interface{} {
 	if v == nil {
 		return nil
@@ -132,25 +15,17 @@ func (this *VM) API_toMap(v interface{}) map[string]interface{} {
 	return nil
 }
 
-func (this *VM) API_table(v interface{}) VMTable {
+func (this *VM) API_table(v interface{}) (VMTable, map[string]interface{}) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 	if o, ok := v.(VMTable); ok {
-		return o
+		return o, nil
 	}
-	if o, ok := v.(map[string]interface{}); ok {
-		r := new(CommonVMTable)
-		r.data = o
-		return r
+	if m, ok := v.(map[string]interface{}); ok {
+		return nil, m
 	}
-	return nil
-}
-
-func (this *VM) API_newtable() VMTable {
-	r := new(CommonVMTable)
-	r.data = make(map[string]interface{})
-	return r
+	return nil, nil
 }
 
 // objectVMTable
@@ -210,43 +85,46 @@ func (this *VM) API_object(v interface{}) interface{} {
 	return nil
 }
 
-func GoData(d interface{}) interface{} {
-	if d == nil {
+func BaseData(v interface{}) interface{} {
+	if v == nil {
 		return nil
 	}
-	switch ro := d.(type) {
-	case VMTable:
-		m := ro.ToMap()
+	switch v.(type) {
+	case bool, int, int8, int16, int32, uint, uint8, uint16, uint32, float32, int64, float64:
+		return v
+	case string, []byte, []interface{}:
+		return v
+	case map[string]interface{}:
+		m := v.(map[string]interface{})
 		rm := make(map[string]interface{})
 		for k, v := range m {
-			rm[k] = GoData(v)
+			rm[k] = BaseData(v)
 		}
 		return rm
 	case VMArray:
-		a := ro.ToArray()
+		a := v.(VMArray).ToArray()
 		ra := make([]interface{}, len(a))
 		for k, v := range a {
-			ra[k] = GoData(v)
+			ra[k] = BaseData(v)
 		}
 		return ra
 	}
-	return d
+	return nil
 }
 
-func GoluaData(d interface{}) interface{} {
+func ScriptData(d interface{}) interface{} {
 	if d == nil {
 		return nil
 	}
 	switch ro := d.(type) {
 	case map[string]interface{}:
 		for k, v := range ro {
-			ro[k] = GoluaData(v)
+			ro[k] = ScriptData(v)
 		}
-		r := NewVMTable(ro)
-		return r
+		return ro
 	case []interface{}:
 		for k, v := range ro {
-			ro[k] = GoluaData(v)
+			ro[k] = ScriptData(v)
 		}
 		r := NewVMArray(ro)
 		return r

@@ -78,7 +78,7 @@ func (this gooTime) Get(vm *VM, o interface{}, key string) (interface{}, error) 
 		case "ToMap":
 			return NewGOF("Time.ToMap", func(vm *VM, self interface{}) (int, error) {
 				vm.API_popAll()
-				vm.API_push(vm.API_table(this.ToMap(obj)))
+				vm.API_push(this.ToMap(obj))
 				return 1, nil
 			}), nil
 		case "Clock":

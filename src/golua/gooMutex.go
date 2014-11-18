@@ -58,7 +58,12 @@ func (gooLocker) Get(vm *VM, o interface{}, key string) (interface{}, error) {
 		case "Sync":
 			return NewGOF("locker:Sync", func(vm *VM, self interface{}) (int, error) {
 				// o:Sync(f)
-				f, err0 := vm.API_pop1X(-1, true)
+				errC := vm.API_checkStack(1)
+				if errC != nil {
+					return 0, errC
+				}
+				top := vm.API_gettop()
+				f, err0 := vm.API_peek(-top, true)
 				if err0 != nil {
 					return 0, err0
 				}
@@ -67,8 +72,8 @@ func (gooLocker) Get(vm *VM, o interface{}, key string) (interface{}, error) {
 				}
 				mux.Lock()
 				defer mux.Unlock()
-				vm.API_push(f)
-				r, err2 := vm.Call(0, -1, nil)
+				// vm.API_push(f)
+				r, err2 := vm.Call(top-1, -1, nil)
 				if err2 != nil {
 					return r, err2
 				}

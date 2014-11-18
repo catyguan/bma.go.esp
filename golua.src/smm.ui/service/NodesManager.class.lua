@@ -1,6 +1,7 @@
 local Class = class.define("NodesManager")
 
-Class.M = go.enableSafe({}, true)
+Class._M = {}
+Class._locker = go.mutex()
 
 function Class.getDB()
 	if not self.db then
@@ -10,12 +11,25 @@ function Class.getDB()
 	return self.db
 end
 
+function Class.getNodes()
+	self._locker.Sync(function(o)
+		return o._M.Nodes
+	end, self)
+end
+
+function Class.setNodes(v)
+	self._locker.Sync(function(o, v)
+		o._M.Nodes = v
+	end, self, v)
+end
+
 function Class.List(refresh)
 	local vb = types.bool(refresh, false)
-	if vb then self.M.Nodes = nil end
+	if vb then self.setNodes(nil) end
 
-	if self.M.Nodes~=nil then
-		return self.M.Nodes
+	local mn = self.getNodes()
+	if mn~=nil then
+		return mn
 	end
 
 	local db = self.getDB()
@@ -26,16 +40,18 @@ function Class.List(refresh)
 	while rs.Fetch(data, desc) do
 		table.insert(nodes, data)
 	end
-	self.M.Nodes = nodes
+	self.setNodes(nodes)
 	return nodes
 end
 
 function Class.Get(id)
-	if self.M.Nodes == nil then
+	
+	local mn = self.getNodes()
+	if mn==nil then
 		self.List(true)
 	end
 
-	local nodes = self.M.Nodes
+	nodes = self.getNodes()
 	if nodes~=nil then
 		for _, node in nodes do
 			if node.id == id then
@@ -61,7 +77,7 @@ function Class.Insert(data)
 	fv.modify_time = fv.create_time
 	local id
 	_, id = db.ExecInsert("smm_nodes", fv, true)
-	self.M.Nodes = nil
+	self.setNodes(nil)
 	return id
 end
 
@@ -70,13 +86,13 @@ function Class.Update(data, id)
 	local fv = table.clone(data)
 	fv.modify_time = time.now().Unix()
 	tj = {id=id}
-	self.M.Nodes = nil
+	self.setNodes(nil)
 	return db.ExecUpdate("smm_nodes", fv, tj)
 end
 
 function Class.Delete(id)
 	local db = self.getDB()
 	tj = {id=id}
-	self.M.Nodes = nil
+	self.setNodes(nil)
 	return db.ExecDelete("smm_nodes", tj)
 end

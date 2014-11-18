@@ -31,7 +31,7 @@ func (this GOF_json_encode) Exec(vm *golua.VM, self interface{}) (int, error) {
 	if err1 != nil {
 		return 0, err1
 	}
-	data = golua.GoData(data)
+	data = golua.BaseData(data)
 	buf, err2 := json.Marshal(data)
 	if err2 != nil {
 		return 0, err2
@@ -69,7 +69,7 @@ func (this GOF_json_decode) Exec(vm *golua.VM, self interface{}) (int, error) {
 			return 0, err2
 		}
 		if !valutil.ToBool(isgd, false) {
-			rv = golua.GoluaData(rv)
+			rv = golua.ScriptData(rv)
 		}
 	}
 	vm.API_push(rv)

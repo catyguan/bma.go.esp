@@ -60,29 +60,29 @@ func (gooSocket) Get(vm *golua.VM, o interface{}, key string) (interface{}, erro
 				emsg.GetAddress().BindMap(maddr)
 				ehs := emsg.Headers()
 				for k, v := range vhs {
-					ehs.Set(k, golua.GoData(v))
+					ehs.Set(k, golua.BaseData(v))
 				}
 				edt := emsg.Datas()
 				for k, v := range vdt {
-					edt.Set(k, golua.GoData(v))
+					edt.Set(k, golua.BaseData(v))
 				}
 				rmsg, err2 := obj.Call(emsg, time.Duration(vtms)*time.Millisecond)
 				if err2 != nil {
 					return 0, err2
 				}
-				r := vm.API_newtable()
+				r := make(map[string]interface{})
 				rhs := rmsg.Headers()
 				rhsm, err3 := rhs.ToMap()
 				if err3 != nil {
 					return 0, err3
 				}
-				r.Rawset("Header", rhsm)
+				r["Header"] = rhsm
 				rdt := rmsg.Datas()
 				rdtm, err4 := rdt.ToMap()
 				if err4 != nil {
 					return 0, err4
 				}
-				r.Rawset("Data", rdtm)
+				r["Data"] = rdtm
 				vm.API_push(r)
 				return 1, nil
 			}), nil

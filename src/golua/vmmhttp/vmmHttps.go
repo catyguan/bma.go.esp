@@ -64,39 +64,39 @@ func doQuery(vm *golua.VM, n string) (interface{}, error) {
 		ip, _, _ := net.SplitHostPort(req.RemoteAddr)
 		return ip, nil
 	case "form":
-		o := golua.NewVMTable(nil)
+		o := make(map[string]interface{})
 		// err := req.ParseForm()
 		// if err != nil {
 		// 	return nil, err
 		// }
 		for k, _ := range req.Form {
 			v := req.FormValue(k)
-			o.Rawset(k, v)
+			o[k] = v
 		}
 		return o, nil
 	case "post":
-		o := golua.NewVMTable(nil)
+		o := make(map[string]interface{})
 		if httputil.IsMultipartForm(req) {
-			fmt.Println(req.MultipartForm)
+			// fmt.Println(req.MultipartForm)
 			for k, vs := range req.MultipartForm.Value {
 				v := ""
 				if len(vs) > 0 {
 					v = vs[0]
 				}
-				o.Rawset(k, v)
+				o[k] = v
 			}
 		} else {
 			for k, _ := range req.PostForm {
 				v := req.PostFormValue(k)
-				o.Rawset(k, v)
+				o[k] = v
 			}
 		}
 		return o, nil
 	case "header":
-		o := golua.NewVMTable(nil)
+		o := make(map[string]interface{})
 		for k, _ := range req.Header {
 			v := req.Header.Get(k)
-			o.Rawset(k, v)
+			o[k] = v
 		}
 		return o, nil
 	}
@@ -276,12 +276,12 @@ func (this GOF_httpserv_setHeader) Exec(vm *golua.VM, self interface{}) (int, er
 		if err1 != nil {
 			return 0, err1
 		}
-		vhs := vm.API_table(hs)
+		vhs := vm.API_toMap(hs)
 		if vhs == nil {
 			return 0, fmt.Errorf("headers not a table(%T)", hs)
 		}
 		h := w.Header()
-		for k, v := range vhs.ToMap() {
+		for k, v := range vhs {
 			vv := valutil.ToString(v, "")
 			h.Set(k, vv)
 		}

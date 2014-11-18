@@ -144,8 +144,8 @@ func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
 	// build up env
 	locals := make(map[string]interface{})
 	locals[KEY_OBJECT_CONTEXT] = ctx
-	locals[KEY_CONTEXT] = NewVMTable(req.Context)
-	locals[KEY_REQUEST] = NewVMTable(req.Data)
+	locals[KEY_CONTEXT] = req.Context
+	locals[KEY_REQUEST] = req.Data
 
 	vm, err3 := this.GetVM()
 	if err3 != nil {
@@ -179,7 +179,7 @@ func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
 		logger.Debug(tag, "%s: execute %s fail - %s", this, req, err5)
 		return nil, err5
 	}
-	r = GoData(r)
+	r = BaseData(r)
 	if logger.EnableDebug(tag) {
 		execId, _ := context.ExecIdFromContext(ctx)
 		logger.Debug(tag, "%s:[%d] execute %s done -> %v", this, execId, req, r)

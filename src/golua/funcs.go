@@ -68,79 +68,6 @@ func (this GOF_error) String() string {
 	return "GoFunc<error>"
 }
 
-// setmetatable(table, metatable)
-type GOF_setmetatable int
-
-func (this GOF_setmetatable) Exec(vm *VM, self interface{}) (int, error) {
-	err00 := vm.API_checkStack(2)
-	if err00 != nil {
-		return 0, err00
-	}
-	t1, mt, err0 := vm.API_pop2X(-1, true)
-	if err0 != nil {
-		return 0, err0
-	}
-	err0 = AssertNil("table", t1)
-	if err0 != nil {
-		return 0, err0
-	}
-	err0 = AssertNil("metatable", mt)
-	if err0 != nil {
-		return 0, err0
-	}
-	vt, ok := t1.(*CommonVMTable)
-	if !ok {
-		return 0, fmt.Errorf("invalid table for setmetatable")
-	}
-	vmt := vm.API_table(mt)
-	if vmt == nil {
-		return 0, fmt.Errorf("invalid metatable for setmetatable")
-	}
-	vt.SetMetaTable(vmt)
-	return 0, nil
-}
-
-func (this GOF_setmetatable) IsNative() bool {
-	return true
-}
-
-func (this GOF_setmetatable) String() string {
-	return "GoFunc<setmetatable>"
-}
-
-// getmetatable(table) metatable
-type GOF_getmetatable int
-
-func (this GOF_getmetatable) Exec(vm *VM, self interface{}) (int, error) {
-	err00 := vm.API_checkStack(1)
-	if err00 != nil {
-		return 0, err00
-	}
-	t1, err0 := vm.API_pop1X(-1, true)
-	if err0 != nil {
-		return 0, err0
-	}
-	err0 = AssertNil("table", t1)
-	if err0 != nil {
-		return 0, err0
-	}
-	vt, ok := t1.(*CommonVMTable)
-	if !ok {
-		return 0, fmt.Errorf("invalid table for setmetatable")
-	}
-	vmt := vt.GetMetaTable()
-	vm.API_push(vmt)
-	return 1, nil
-}
-
-func (this GOF_getmetatable) IsNative() bool {
-	return true
-}
-
-func (this GOF_getmetatable) String() string {
-	return "GoFunc<getmetatable>"
-}
-
 // rawget(table, key) value
 type GOF_rawget int
 
@@ -161,14 +88,19 @@ func (this GOF_rawget) Exec(vm *VM, self interface{}) (int, error) {
 	if err0 != nil {
 		return 0, err0
 	}
-	vt := vm.API_table(t1)
-	if vt == nil {
-		return 0, fmt.Errorf("invalid table for rawget")
-	}
 	k2 := valutil.ToString(key, "")
-	r := vt.Rawget(k2)
-	vm.API_push(r)
-	return 1, nil
+	vt, m := vm.API_table(t1)
+	if m != nil {
+		r := m[k2]
+		vm.API_push(r)
+		return 1, nil
+	}
+	if vt != nil {
+		r := vt.Rawget(k2)
+		vm.API_push(r)
+		return 1, nil
+	}
+	return 0, fmt.Errorf("invalid table for rawget")
 }
 
 func (this GOF_rawget) IsNative() bool {
@@ -199,15 +131,21 @@ func (this GOF_rawset) Exec(vm *VM, self interface{}) (int, error) {
 	if err0 != nil {
 		return 0, err0
 	}
-
-	vt := vm.API_table(t1)
-	if vt == nil {
-		return 0, fmt.Errorf("invalid table for rawget")
-	}
 	k2 := valutil.ToString(key, "")
-	vt.Rawset(k2, val)
-
-	return 0, nil
+	vt, m := vm.API_table(t1)
+	if m != nil {
+		if val == nil {
+			delete(m, k2)
+		} else {
+			m[k2] = val
+		}
+		return 0, nil
+	}
+	if vt != nil {
+		vt.Rawset(k2, val)
+		return 0, nil
+	}
+	return 0, fmt.Errorf("invalid table for rawget")
 }
 
 func (this GOF_rawset) IsNative() bool {
@@ -296,8 +234,6 @@ func (this GOF_require) String() string {
 func CoreModule(gl *GoLua) {
 	gl.SetGlobal("print", GOF_print(0))
 	gl.SetGlobal("error", GOF_error(0))
-	gl.SetGlobal("setmetatable", GOF_setmetatable(0))
-	gl.SetGlobal("getmetatable", GOF_getmetatable(0))
 	gl.SetGlobal("rawget", GOF_rawget(0))
 	gl.SetGlobal("rawset", GOF_rawset(0))
 	gl.SetGlobal("pcall", GOF_pcall(0))

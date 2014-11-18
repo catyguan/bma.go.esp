@@ -20,6 +20,34 @@ func TableModule() *VMModule {
 // table.clone(v) table
 type GOF_table_clone int
 
+func doClone(v interface{}) interface{} {
+	if v == nil {
+		return v
+	}
+	switch rv := v.(type) {
+	case map[string]interface{}:
+		rm := make(map[string]interface{})
+		for k, v := range rv {
+			rm[k] = doClone(v)
+		}
+		return rm
+	case []interface{}:
+		ra := make([]interface{}, len(rv))
+		for k, v := range rv {
+			ra[k] = BaseData(v)
+		}
+		return ra
+	case VMArray:
+		a := rv.ToArray()
+		ra := make([]interface{}, len(a))
+		for k, v := range a {
+			ra[k] = BaseData(v)
+		}
+		return ra
+	}
+	return v
+}
+
 func (this GOF_table_clone) Exec(vm *VM, self interface{}) (int, error) {
 	err0 := vm.API_checkStack(1)
 	if err0 != nil {
@@ -29,7 +57,7 @@ func (this GOF_table_clone) Exec(vm *VM, self interface{}) (int, error) {
 	if err1 != nil {
 		return 0, err1
 	}
-	v := GoData(o)
+	v := doClone(o)
 	vm.API_push(v)
 	return 1, nil
 }
@@ -158,9 +186,15 @@ func (this GOF_table_remove) Exec(vm *VM, self interface{}) (int, error) {
 		vm.API_push(rv)
 		return 1, nil
 	}
-	vtb := vm.API_table(o)
+	vkey := valutil.ToString(pos, "")
+	vtb, m := vm.API_table(o)
+	if m != nil {
+		rv := m[vkey]
+		delete(m, vkey)
+		vm.API_push(rv)
+		return 1, nil
+	}
 	if vtb != nil {
-		vkey := valutil.ToString(pos, "")
 		rv := vtb.Rawget(vkey)
 		vtb.Delete(vkey)
 		vm.API_push(rv)

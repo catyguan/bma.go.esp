@@ -13,6 +13,7 @@ const (
 	RT_LOCAL_REMOVE = 1
 	RT_CLEAR        = 2
 	RT_OUT          = 3
+	RT_CLOSE        = 4
 )
 
 func (o REMOVE_TYPE) String() string {
@@ -25,6 +26,8 @@ func (o REMOVE_TYPE) String() string {
 		return "REMOVE(0)"
 	case RT_LOCAL_REMOVE:
 		return "LOCAL_REMOVE(1)"
+	case RT_CLOSE:
+		return "CLOSE(4)"
 	default:
 		return fmt.Sprintf("UNKNOW(%d)", o)
 	}
@@ -193,6 +196,8 @@ func (this *MemBlock) Put(key string, val interface{}, size int32, timeoutMS int
 	this.size += size
 	if timeoutMS > 0 {
 		item.ExpiredTime = time.Now().Add(time.Millisecond * time.Duration(timeoutMS))
+	} else {
+		item.ExpiredTime = time.Unix(0, 0)
 	}
 
 	if this.MaxCount > 0 {
@@ -209,6 +214,7 @@ func (this *MemBlock) _remove(item *MapItem, rt REMOVE_TYPE) bool {
 	}
 	this.size -= item.Size
 	delete(this.items, item.Key)
+	// fmt.Printf("before remove %p, %p, %p, %p, %p\n", this.head, this.tail, item, item.prev, item.next)
 	i1 := item.prev
 	i2 := item.next
 	if i1 != nil {
@@ -230,6 +236,7 @@ func (this *MemBlock) _remove(item *MapItem, rt REMOVE_TYPE) bool {
 		this.Listener(item.Key, item, rt)
 	}
 	item.Data = nil
+	// fmt.Printf("after remove %p, %p, %p, %p, %p\n", this.head, this.tail, item, item.prev, item.next)
 	return true
 }
 
@@ -294,15 +301,16 @@ func (this *MemBlock) Count() int {
 	return len(this.items)
 }
 
-func (this *MemBlock) ClearAll(notice bool) {
+func (this *MemBlock) CloseClear(notice bool) {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 	item := this.head
 	for item != nil {
 		delete(this.items, item.Key)
 		if notice && this.Listener != nil {
-			this.Listener(item.Key, item, RT_CLEAR)
+			this.Listener(item.Key, item, RT_CLOSE)
 		}
 		item.Data = nil
+		item = item.next
 	}
 }

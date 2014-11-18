@@ -156,11 +156,11 @@ func (this *GOF_httpclient_exec) Exec(vm *golua.VM, self interface{}) (int, erro
 	if err1 != nil {
 		return 0, err1
 	}
-	vreqd := vm.API_table(reqd)
+	vreqd := vm.API_toMap(reqd)
 	if vreqd == nil {
 		return 0, fmt.Errorf("req param invalid(%T)", reqd)
 	}
-	m := golua.GoData(vreqd).(map[string]interface{})
+	m := golua.BaseData(vreqd).(map[string]interface{})
 	req := new(httpclientRequest)
 	if !valutil.ToBean(m, req) {
 		return 0, fmt.Errorf("httpclientRequest invalid(%v)", m)
@@ -169,7 +169,7 @@ func (this *GOF_httpclient_exec) Exec(vm *golua.VM, self interface{}) (int, erro
 	if err2 != nil {
 		return 0, err2
 	}
-	vm.API_push(vm.API_table(rm))
+	vm.API_push(rm)
 	return 1, nil
 }
 

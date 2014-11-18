@@ -291,7 +291,7 @@ func (this *VM) runCode(node goyacc.Node) (int, ER, error) {
 			this.API_push(nv)
 			return 1, ER_NEXT, nil
 		case goyacc.OP_TABLE:
-			tb := this.API_newtable()
+			tb := make(map[string]interface{})
 			this.API_push(tb)
 			r1, er1, err1 := this.runCode(n.Child)
 			if er1 != ER_NEXT {
@@ -496,10 +496,8 @@ func (this *VM) runCode(node goyacc.Node) (int, ER, error) {
 			if err3 != nil {
 				return 0, ER_ERROR, err3
 			}
-			err4 := tb.(VMTable).Set(this, s1, v2)
-			if err4 != nil {
-				return 0, ER_ERROR, err4
-			}
+			m := tb.(map[string]interface{})
+			m[s1] = v2
 			return 0, ER_NEXT, nil
 		case goyacc.OP_MEMBER:
 			r1, er1, err1 := this.runCode(n.Child1)
@@ -637,9 +635,13 @@ func (this *VM) runCode(node goyacc.Node) (int, ER, error) {
 						}
 					}
 					if vlist == nil {
-						tb := this.API_table(v1)
+						tb, m := this.API_table(v1)
 						if tb == nil {
-							vlist = []interface{}{v1}
+							if m != nil {
+								mlist = m
+							} else {
+								vlist = []interface{}{v1}
+							}
 						} else {
 							mlist = tb.ToMap()
 						}

@@ -484,7 +484,11 @@ func (this *VM) API_setMember(obj interface{}, key interface{}, v interface{}) (
 		return true, nil
 	case map[string]interface{}:
 		s := valutil.ToString(key, "")
-		o[s] = v
+		if v == nil {
+			delete(o, s)
+		} else {
+			o[s] = v
+		}
 		return true, nil
 	case VMTable:
 		s := valutil.ToString(key, "")
