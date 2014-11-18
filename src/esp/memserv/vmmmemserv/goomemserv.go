@@ -16,9 +16,13 @@ type MemServFactory struct {
 }
 
 func (this *MemServFactory) FactoryFunc(vm *golua.VM, n string) (interface{}, error) {
-	o := new(ObjectMemServ)
-	o.s = this.s
-	o.gl = vm.GetGoLua()
+	gl := vm.GetGoLua()
+	o, _ := gl.SingletonService("MemServ", func() (interface{}, error) {
+		o := new(ObjectMemServ)
+		o.s = this.s
+		o.gl = gl
+		return o, nil
+	})
 	return golua.NewGOO(o, gooMemServ(0)), nil
 }
 
@@ -37,7 +41,7 @@ func API_toMemServ(vm *golua.VM, o interface{}) *ObjectMemServ {
 type gooMemServ int
 
 func (gooMemServ) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
-	if obj, ok := o.(*ObjectMemServ); !ok {
+	if obj, ok := o.(*ObjectMemServ); ok {
 		switch key {
 		case "Create":
 			return golua.NewGOF("MemServ.Create", func(vm *golua.VM, self interface{}) (int, error) {
@@ -99,8 +103,11 @@ func (gooMemServ) Get(vm *golua.VM, o interface{}, key string) (interface{}, err
 				if err2 != nil {
 					return 0, err2
 				}
-				vm.API_push(NewGOOMemGo(r))
-				return 1, nil
+				if r != nil {
+					vm.API_push(NewGOOMemGo(r))
+					return 1, nil
+				}
+				return 0, nil
 			}), nil
 		}
 	}

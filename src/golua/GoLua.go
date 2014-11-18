@@ -85,7 +85,13 @@ func (this *GoLua) Close() {
 	this.serviceMutex.Unlock()
 
 	for k, o := range tmp {
-		if doClose(o) {
+		closed := false
+		if tc, ok := o.(SupportTryClose); ok {
+			closed = tc.TryClose()
+		} else {
+			closed = doClose(o)
+		}
+		if closed {
 			if logger.EnableDebug(tag) {
 				s := k
 				idx := strings.Index(s, "!!")

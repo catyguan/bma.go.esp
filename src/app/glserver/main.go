@@ -8,6 +8,7 @@ import (
 	"esp/goluaserv"
 	"esp/goluaserv/httpmux4goluaserv"
 	"esp/memserv"
+	"esp/memserv/vmmmemserv"
 	"fileloader"
 	"golua"
 	"golua/vmmacclog"
@@ -54,7 +55,7 @@ func main() {
 	mems.InitSMMAPI("go.memserv")
 
 	service := goluaserv.NewService("goluaServ", func(gl *golua.GoLua) {
-		myInitor(gl, acclog)
+		myInitor(gl, acclog, mems)
 	})
 	boot.AddService(service)
 
@@ -83,7 +84,7 @@ func main() {
 	boot.Go(cfile)
 }
 
-func myInitor(gl *golua.GoLua, acclog *acclog.Service) {
+func myInitor(gl *golua.GoLua, acclog *acclog.Service, mems *memserv.MemoryServ) {
 	golua.InitCoreLibs(gl)
 	vmmhttp.InitGoLuaWithHttpServ(gl)
 	vmmhttp.InitGoLuaWithHttpClient(gl, acclog, "httpclient")
@@ -92,4 +93,5 @@ func myInitor(gl *golua.GoLua, acclog *acclog.Service) {
 	vmmsql.InitGoLua(gl)
 	vmmclass.InitGoLua(gl)
 	vmmesnp.InitGoLua(gl)
+	vmmmemserv.InitGoLua(gl, mems)
 }

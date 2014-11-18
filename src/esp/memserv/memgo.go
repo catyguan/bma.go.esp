@@ -34,21 +34,26 @@ func (this *MemGoConfig) Valid() error {
 }
 
 type MemGo struct {
-	mem   *memblock.MemBlock
-	goo   goo.Goo
-	timer *time.Ticker
-	tstop chan bool
-	cfg   *MemGoConfig
+	name    string
+	mem     *memblock.MemBlock
+	goo     goo.Goo
+	timer   *time.Ticker
+	tstop   chan bool
+	cfg     *MemGoConfig
+	RelEnv  interface{}
+	RelAttr map[string]interface{}
 }
 
-func NewMemGo(cfg *MemGoConfig) *MemGo {
+func NewMemGo(n string, cfg *MemGoConfig) *MemGo {
 	cfg.Valid()
 
 	r := new(MemGo)
+	r.name = n
 	r.cfg = cfg
 	r.mem = memblock.New()
 	r.mem.MaxCount = cfg.Max
 	r.goo.InitGoo(tag, cfg.QSize, r.doExit)
+	r.RelAttr = make(map[string]interface{})
 	return r
 }
 
@@ -87,7 +92,7 @@ func (this *MemGo) doExit() {
 		this.timer.Stop()
 		this.tstop <- true
 	}
-	this.mem.ClearAll(true)
+	this.mem.CloseClear(true)
 }
 
 func (this *MemGo) DoSync(f MBFuc) error {
@@ -105,7 +110,7 @@ func (this *MemGo) DoNow(f MBFuc) error {
 func (this *MemGo) Size() (int, int32) {
 	var c int
 	var c2 int32
-	this.goo.DoNow(func() {
+	this.goo.DoSync(func() {
 		c, c2 = this.mem.Size()
 	})
 	return c, c2

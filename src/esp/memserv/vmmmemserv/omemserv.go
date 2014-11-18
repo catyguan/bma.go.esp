@@ -35,7 +35,7 @@ func (this *ObjectMemServ) Get(vm *golua.VM, n string, cfg *memserv.MemGoConfig)
 		if cfg == nil {
 			cfg = this.DefaultConfig()
 		}
-		r, err, _ := this.s.GetOrCreate(n, cfg)
+		r, err := this.s.GetOrCreate(n, cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -45,7 +45,7 @@ func (this *ObjectMemServ) Get(vm *golua.VM, n string, cfg *memserv.MemGoConfig)
 		if cfg == nil {
 			cfg = this.DefaultConfig()
 		}
-		r, err, _ := this.s.GetOrCreate(key, cfg)
+		r, err := this.s.GetOrCreate(key, cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -55,7 +55,7 @@ func (this *ObjectMemServ) Get(vm *golua.VM, n string, cfg *memserv.MemGoConfig)
 		return nil, fmt.Errorf("can't get '%s*'", KEY_PREFIX_APP)
 	}
 	if cfg != nil {
-		r, err, _ := this.s.GetOrCreate(n, cfg)
+		r, err := this.s.GetOrCreate(n, cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -81,7 +81,7 @@ func (this *ObjectMemServ) Create(vm *golua.VM, n string, cfg *memserv.MemGoConf
 	return r, nil
 }
 
-func (this *ObjectMemServ) Close() bool {
+func (this *ObjectMemServ) TryClose() bool {
 	r := false
 	key := KEY_PREFIX_APP + this.gl.GetName()
 	if this.s.Close(key) {

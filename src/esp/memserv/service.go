@@ -25,28 +25,37 @@ func (this *MemoryServ) Get(n string) *MemGo {
 	return nil
 }
 
-func (this *MemoryServ) Create(n string, cfg *MemGoConfig) (*MemGo, error) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	m, ok := this.mgs[n]
-	if ok {
-		return nil, nil
-	}
-	m = NewMemGo(cfg)
+func (this *MemoryServ) _create(n string, cfg *MemGoConfig) (*MemGo, error) {
+	m := NewMemGo(n, cfg)
 	err := m.Start()
+	if err == nil {
+		this.mgs[n] = m
+	}
 	return m, err
 }
 
-func (this *MemoryServ) GetOrCreate(n string, cfg *MemGoConfig) (*MemGo, error, bool) {
+func (this *MemoryServ) GetOrCreate(n string, cfg *MemGoConfig) (*MemGo, error) {
+	mg := this.Get(n)
+	if mg != nil {
+		return mg, nil
+	}
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	m, ok := this.mgs[n]
 	if ok {
-		return m, nil, true
+		return m, nil
 	}
-	m = NewMemGo(cfg)
-	err := m.Start()
-	return m, err, false
+	return this._create(n, cfg)
+}
+
+func (this *MemoryServ) Create(n string, cfg *MemGoConfig) (*MemGo, error) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	_, ok := this.mgs[n]
+	if ok {
+		return nil, nil
+	}
+	return this._create(n, cfg)
 }
 
 func (this *MemoryServ) Remove(n string) *MemGo {

@@ -3,6 +3,7 @@ package goluaserv
 import (
 	"golua"
 	"smmapi"
+	"time"
 )
 
 type smmObject struct {
@@ -45,9 +46,9 @@ func (this smmObject) ExecuteAction(aid string, param map[string]interface{}) (i
 	switch aid {
 	case "goluaserv.reset":
 		msg := "OK"
-		if !this.s.ResetGoLua(this.gl.GetName()) {
-			msg = "Fail"
-		}
+		time.AfterFunc(100*time.Millisecond, func() {
+			this.s.ResetGoLua(this.gl.GetName())
+		})
 		return msg, nil
 	}
 	return smmapi.MISS(0), nil

@@ -247,8 +247,8 @@ function runTestcase() {
 			str = str.replace(/</g, "&lt;")
 			$('#divRunResult').html(str);
 		}
-		if(data.Log) {
-			var str = "";
+		var str = "";
+		if(data.Log) {			
 			for (var i = 0; i < data.Log.length; i++) {
 				var rs = data.Log[i];
 				if(str!="") {
@@ -259,9 +259,9 @@ function runTestcase() {
 				} else {
 					str += rs.msg;
 				}
-			}
-			$('#divLog').html(str);
+			}			
 		}
+		$('#divLog').html(str);
 	}).error(function() {
 		alert("run Testcase fail");
 	});

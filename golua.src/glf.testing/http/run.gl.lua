@@ -15,8 +15,8 @@ local name
 for k, v in form do
 	if strings.hasPrefix(k,"p_") then
 		name = strings.substr(k, 2)
-	end
-	params[name] = v
+		params[name] = v
+	end	
 end
 
 local TC = go.exec(n..".tc.lua", {})

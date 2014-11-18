@@ -102,7 +102,7 @@ func (this *MemBlock) _get(key string, tm *time.Time) (interface{}, bool) {
 	}
 	val = item.Data
 	out := false
-	if tm != nil && !item.ExpiredTime.IsZero() {
+	if tm != nil && item.ExpiredTime.Unix() != 0 {
 		out = item.ExpiredTime.Before(*tm)
 	}
 	this.mutex.RUnlock()
@@ -133,7 +133,7 @@ func (this *MemBlock) _mget(keys []string, tm *time.Time) map[string]interface{}
 			continue
 		}
 		out := false
-		if tm != nil && !item.ExpiredTime.IsZero() {
+		if tm != nil && item.ExpiredTime.Unix() != 0 {
 			out = item.ExpiredTime.Before(*tm)
 		}
 		if out {
@@ -286,7 +286,8 @@ func (this *MemBlock) Clear(maxStep int) int {
 		if item == nil {
 			break
 		}
-		if !item.ExpiredTime.IsZero() && item.ExpiredTime.Before(tm) {
+		if item.ExpiredTime.Unix() != 0 && item.ExpiredTime.Before(tm) {
+			// fmt.Println("asjdlkadjlkasjdlasd, ", item.ExpiredTime, item.ExpiredTime.Unix())
 			this._remove(item, RT_CLEAR)
 			c = c + 1
 		}
