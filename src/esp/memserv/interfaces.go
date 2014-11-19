@@ -1,5 +1,10 @@
 package memserv
 
+import (
+	"fmt"
+	"strings"
+)
+
 func MemGoData(v interface{}) (interface{}, int) {
 	if v == nil {
 		return nil, 0
@@ -40,4 +45,17 @@ func MemGoData(v interface{}) (interface{}, int) {
 		return v, sz
 	}
 	return nil, -1
+}
+
+func Key(typ, n string) string {
+	return fmt.Sprintf("%s-%s", typ, n)
+}
+
+func SplitTypeName(key string) (string, string) {
+	p := strings.SplitN(key, "-", 2)
+	if len(p) > 1 {
+		return p[0], p[1]
+	} else {
+		return key, ""
+	}
 }

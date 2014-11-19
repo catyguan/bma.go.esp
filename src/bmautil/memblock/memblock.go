@@ -80,6 +80,10 @@ func New() *MemBlock {
 	return r
 }
 
+func (this *MemBlock) Head() *MapItem {
+	return this.head
+}
+
 func (this *MemBlock) EnableMutex() {
 	this.mutex.Enable()
 }
@@ -155,28 +159,51 @@ func (this *MemBlock) _mget(keys []string, tm *time.Time) map[string]interface{}
 	return r
 }
 
+func (this *MemBlock) _lruMove(item *MapItem) {
+	if this.MaxCount > 0 {
+		// LRU
+		if item.next != nil {
+			if item.prev != nil {
+				item.prev.next = item.next
+			} else {
+				this.head = item.next
+			}
+			item.next.prev = item.prev
+			i1 := this.tail
+			this.tail = item
+			i1.next = item
+			item.prev = i1
+			item.next = nil
+		}
+	}
+}
+
+func (this *MemBlock) _utime(item *MapItem, timeoutMS int) {
+	if timeoutMS > 0 {
+		item.ExpiredTime = time.Now().Add(time.Millisecond * time.Duration(timeoutMS))
+	} else {
+		item.ExpiredTime = time.Unix(0, 0)
+	}
+}
+
+func (this *MemBlock) Touch(key string, timeoutMS int) {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+	item, ok := this.items[key]
+	if !ok {
+		return
+	}
+	this._lruMove(item)
+	this._utime(item, timeoutMS)
+}
+
 func (this *MemBlock) Put(key string, val interface{}, size int32, timeoutMS int) {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 	item, ok := this.items[key]
 	if ok {
 		this.size -= item.Size
-		if this.MaxCount > 0 {
-			// LRU
-			if item.prev != nil {
-				item.prev.next = item.next
-			} else {
-				this.head = item.next
-			}
-			if item.next != nil {
-				item.next.prev = item.prev
-				i1 := this.tail
-				this.tail = item
-				i1.next = item
-				item.prev = i1
-				item.next = nil
-			}
-		}
+		this._lruMove(item)
 	} else {
 		item = new(MapItem)
 		item.Key = key
@@ -194,11 +221,7 @@ func (this *MemBlock) Put(key string, val interface{}, size int32, timeoutMS int
 	item.Data = val
 	item.Size = size
 	this.size += size
-	if timeoutMS > 0 {
-		item.ExpiredTime = time.Now().Add(time.Millisecond * time.Duration(timeoutMS))
-	} else {
-		item.ExpiredTime = time.Unix(0, 0)
-	}
+	this._utime(item, timeoutMS)
 
 	if this.MaxCount > 0 {
 		if len(this.items) > this.MaxCount {

@@ -44,6 +44,13 @@ func (this *GoLua) GetConfig(n string) (interface{}, bool) {
 			return boot.Debug, true
 		case "DevMode":
 			return boot.DevMode, true
+		case "StartTime":
+			tm := boot.StartTime
+			return CreateGOOTime(&tm), true
+		case "WorkDir":
+			return boot.WorkDir, true
+		case "TmpDir", "TempDir":
+			return boot.TempDir, true
 		}
 		return config.Global.GetConfig(gn)
 	}

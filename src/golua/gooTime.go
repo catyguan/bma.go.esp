@@ -241,7 +241,7 @@ func (this gooTime) Get(vm *VM, o interface{}, key string) (interface{}, error) 
 				if vo != nil {
 					if vstm, ok := vo.(*time.Time); ok {
 						du := obj.Sub(*vstm)
-						vm.API_push(CreateDuration(du))
+						vm.API_push(CreateGOODuration(du))
 						return 1, nil
 					}
 				}

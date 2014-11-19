@@ -45,10 +45,12 @@ func (this GOF_go_run) Exec(vm *VM, self interface{}) (int, error) {
 	if err0 != nil {
 		return 0, err0
 	}
-	f, err1 := vm.API_pop1X(-1, true)
+	top := vm.API_gettop()
+	ps, err1 := vm.API_popN(top, true)
 	if err1 != nil {
 		return 0, err1
 	}
+	f := ps[0]
 	if !vm.API_canCall(f) {
 		return 0, fmt.Errorf("param1(%T) can't call", f)
 	}
@@ -61,7 +63,10 @@ func (this GOF_go_run) Exec(vm *VM, self interface{}) (int, error) {
 	go func() {
 		defer vm2.Finish()
 		vm2.API_push(f)
-		_, errX := vm2.Call(0, 0, nil)
+		for _, v := range ps[1:] {
+			vm2.API_push(v)
+		}
+		_, errX := vm2.Call(top-1, 0, nil)
 		if errX != nil {
 			logger.Debug(tag, "go.run %s fail - %s", vm2, errX)
 		}

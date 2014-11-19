@@ -187,6 +187,13 @@ func doAction(phase Phase, o BootObject, ctx *BootContext) (r bool) {
 }
 
 func doActions(phase Phase, ctx *BootContext) (r bool) {
+	pname := ""
+	defer func() {
+		x := recover()
+		if x != nil {
+			fmt.Printf("ERROR: %v %s fail %s\n", phase, pname, x)
+		}
+	}()
 	r = true
 	switch phase {
 	case GRACESTOP, STOP, CLOSE, CLEANUP:
@@ -194,6 +201,7 @@ func doActions(phase Phase, ctx *BootContext) (r bool) {
 		c := len(phaseActions)
 		for i := c - 1; i >= 0; i-- {
 			ainfo := phaseActions[i]
+			pname = ainfo.name
 			ctx.CheckFlag = ainfo.flag
 			if phase == GRACESTOP {
 				cr := ctx.CheckResult()

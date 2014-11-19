@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"runtime"
 	"smmapi"
+	"time"
 )
 
 type smmObject int
@@ -65,9 +66,9 @@ func (this smmObject) ExecuteAction(aid string, param map[string]interface{}) (i
 	switch aid {
 	case "boot.reload":
 		msg := "OK"
-		if !boot.Restart() {
-			msg = "Fail"
-		}
+		time.AfterFunc(100*time.Millisecond, func() {
+			boot.Restart()
+		})
 		return msg, nil
 	case "boot.profiles":
 		p := this.getProfiles()

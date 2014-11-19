@@ -34,18 +34,23 @@ func (this *MemoryServ) _create(n string, cfg *MemGoConfig) (*MemGo, error) {
 	return m, err
 }
 
-func (this *MemoryServ) GetOrCreate(n string, cfg *MemGoConfig) (*MemGo, error) {
+// return MemGo,IsCrete,error
+func (this *MemoryServ) GetOrCreate(n string, cfg *MemGoConfig) (*MemGo, bool, error) {
 	mg := this.Get(n)
 	if mg != nil {
-		return mg, nil
+		return mg, false, nil
 	}
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	m, ok := this.mgs[n]
 	if ok {
-		return m, nil
+		return m, false, nil
 	}
-	return this._create(n, cfg)
+	m2, err := this._create(n, cfg)
+	if err != nil {
+		return nil, false, err
+	}
+	return m2, true, nil
 }
 
 func (this *MemoryServ) Create(n string, cfg *MemGoConfig) (*MemGo, error) {

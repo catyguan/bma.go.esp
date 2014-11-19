@@ -1,7 +1,18 @@
 package boot
 
 type BootWrap struct {
+	name         string
 	phaseActions map[Phase]interface{}
+}
+
+func NewBootWrap(n string) *BootWrap {
+	r := new(BootWrap)
+	r.name = n
+	return r
+}
+
+func (this *BootWrap) Name() string {
+	return this.name
 }
 
 func (this *BootWrap) initObject() {

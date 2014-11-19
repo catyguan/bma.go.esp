@@ -15,8 +15,12 @@ func TimeModule() *VMModule {
 	return m
 }
 
-func CreateDuration(du time.Duration) VMTable {
+func CreateGOODuration(du time.Duration) VMTable {
 	return NewGOO(du, gooDuration(0))
+}
+
+func CreateGOOTime(tm *time.Time) VMTable {
+	return NewGOO(tm, gooTime(0))
 }
 
 // time.parseDuration(s string) string

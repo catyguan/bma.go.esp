@@ -4,19 +4,20 @@ import (
 	"esp/memserv"
 	"fmt"
 	"golua"
-	"strings"
+	"sync"
 )
 
 const (
-	KEY_GLOBAL     = "global"
-	KEY_APP        = "app"
-	KEY_PREFIX_APP = "app-"
+	KEY_GLOBAL = "global"
+	KEY_APP    = "app"
 )
 
 type ObjectMemServ struct {
-	gl  *golua.GoLua
-	s   *memserv.MemoryServ
-	cfg *memserv.MemGoConfig
+	gl      *golua.GoLua
+	s       *memserv.MemoryServ
+	cfg     *memserv.MemGoConfig
+	lock    sync.Mutex
+	appkeys map[string]bool
 }
 
 func (this *ObjectMemServ) DefaultConfig() *memserv.MemGoConfig {
@@ -29,63 +30,68 @@ func (this *ObjectMemServ) DefaultConfig() *memserv.MemGoConfig {
 	return this.cfg
 }
 
-func (this *ObjectMemServ) Get(vm *golua.VM, n string, cfg *memserv.MemGoConfig) (*memserv.MemGo, error) {
-	switch n {
-	case KEY_GLOBAL:
-		if cfg == nil {
-			cfg = this.DefaultConfig()
+func (this *ObjectMemServ) Get(vm *golua.VM, key string, cfg *memserv.MemGoConfig) (*memserv.MemGo, error) {
+	typ, n := memserv.SplitTypeName(key)
+	if n == "" {
+		if typ == KEY_APP {
+			key = "app@" + this.gl.GetName()
 		}
-		r, err := this.s.GetOrCreate(n, cfg)
-		if err != nil {
-			return nil, err
-		}
-		return r, nil
-	case KEY_APP:
-		key := KEY_PREFIX_APP + this.gl.GetName()
-		if cfg == nil {
-			cfg = this.DefaultConfig()
-		}
-		r, err := this.s.GetOrCreate(key, cfg)
-		if err != nil {
-			return nil, err
-		}
-		return r, nil
 	}
-	if strings.HasPrefix(n, KEY_PREFIX_APP) {
-		return nil, fmt.Errorf("can't get '%s*'", KEY_PREFIX_APP)
+	if cfg == nil {
+		cfg = this.DefaultConfig()
 	}
-	if cfg != nil {
-		r, err := this.s.GetOrCreate(n, cfg)
-		if err != nil {
-			return nil, err
-		}
-		return r, nil
-	} else {
-		r := this.s.Get(n)
-		return r, nil
-	}
-}
-
-func (this *ObjectMemServ) Create(vm *golua.VM, n string, cfg *memserv.MemGoConfig) (*memserv.MemGo, error) {
-	switch n {
-	case KEY_GLOBAL, KEY_APP:
-		return nil, fmt.Errorf("can't create '%s'", n)
-	}
-	if strings.HasPrefix(n, KEY_PREFIX_APP) {
-		return nil, fmt.Errorf("can't create '%s*'", KEY_PREFIX_APP)
-	}
-	r, err := this.s.Create(n, cfg)
+	r, iscreate, err := this.s.GetOrCreate(key, cfg)
 	if err != nil {
 		return nil, err
+	}
+	if iscreate && typ == KEY_APP {
+		this.lock.Lock()
+		this.appkeys[key] = true
+		this.lock.Unlock()
 	}
 	return r, nil
 }
 
+func (this *ObjectMemServ) Create(vm *golua.VM, key string, cfg *memserv.MemGoConfig) (*memserv.MemGo, error) {
+	typ, n := memserv.SplitTypeName(key)
+	if n == "" {
+		return nil, fmt.Errorf("can't create '%s'", key)
+	}
+	r, err := this.s.Create(key, cfg)
+	if err != nil {
+		return nil, err
+	}
+	if typ == KEY_APP {
+		this.lock.Lock()
+		this.appkeys[key] = true
+		this.lock.Unlock()
+	}
+	return r, nil
+}
+
+func (this *ObjectMemServ) Close(vm *golua.VM, key string) (bool, error) {
+	_, n := memserv.SplitTypeName(key)
+	if n == "" {
+		return false, fmt.Errorf("can't close '%s'", key)
+	}
+	if this.s.Close(key) {
+		this.lock.Lock()
+		delete(this.appkeys, key)
+		this.lock.Unlock()
+		return true, nil
+	}
+	return false, nil
+}
+
 func (this *ObjectMemServ) TryClose() bool {
 	r := false
-	key := KEY_PREFIX_APP + this.gl.GetName()
-	if this.s.Close(key) {
-		r = true
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	for k, _ := range this.appkeys {
+		delete(this.appkeys, k)
+		if this.s.Close(k) {
+			r = true
+		}
 	}
 	return r
 }

@@ -21,6 +21,7 @@ func (this *MemServFactory) FactoryFunc(vm *golua.VM, n string) (interface{}, er
 		o := new(ObjectMemServ)
 		o.s = this.s
 		o.gl = gl
+		o.appkeys = make(map[string]bool)
 		return o, nil
 	})
 	return golua.NewGOO(o, gooMemServ(0)), nil
@@ -43,6 +44,27 @@ type gooMemServ int
 func (gooMemServ) Get(vm *golua.VM, o interface{}, key string) (interface{}, error) {
 	if obj, ok := o.(*ObjectMemServ); ok {
 		switch key {
+		case "Close":
+			return golua.NewGOF("MemServ.Close", func(vm *golua.VM, self interface{}) (int, error) {
+				err0 := vm.API_checkStack(1)
+				if err0 != nil {
+					return 0, err0
+				}
+				n, err1 := vm.API_pop1X(-1, true)
+				if err1 != nil {
+					return 0, err1
+				}
+				vn := valutil.ToString(n, "")
+				if vn == "" {
+					return 0, fmt.Errorf("Name invalid")
+				}
+				r, err2 := obj.Close(vm, vn)
+				if err2 != nil {
+					return 0, err2
+				}
+				vm.API_push(r)
+				return 1, nil
+			}), nil
 		case "Create":
 			return golua.NewGOF("MemServ.Create", func(vm *golua.VM, self interface{}) (int, error) {
 				err0 := vm.API_checkStack(2)

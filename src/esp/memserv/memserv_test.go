@@ -49,14 +49,31 @@ func TestMemGoPro(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	m.Set("test", 1, 10)
-	m.Set("test2", "abcdef", 10)
-	m1 := make(map[string]interface{})
-	m1["f1"] = true
-	m1["f2"] = "hello kitty"
-	m.Set("test3", m1, 200)
-	m.Remove("test2")
+	m.DoSync(func(mgi *MemGoI) error {
+		mgi.Set("test", 1, 10)
+		mgi.Set("test2", "abcdef", 10)
+		m1 := make(map[string]interface{})
+		m1["f1"] = true
+		m1["f2"] = "hello kitty"
+		mgi.Set("test3", m1, 200)
+		mgi.Remove("test2")
+
+		v4, _ := mgi.Incr("myclick", 123, 0)
+		fmt.Println(v4)
+		v4, _ = mgi.Incr("myclick", 1, 0)
+		fmt.Println(v4)
+
+		return nil
+	})
+
 	fmt.Println(m.Size())
+
+	m.BeginScan("test")
+	m.Scan("test", 10, func(k string, v interface{}) {
+		fmt.Println("scan", k, v)
+	})
+	m.EndScan("test")
+
 	time.Sleep(100 * time.Millisecond)
 	m.goo.StopAndWait()
 	time.Sleep(100 * time.Millisecond)

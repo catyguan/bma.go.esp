@@ -46,7 +46,7 @@ func main() {
 	boot.AddService(fl)
 
 	mems := memserv.NewMemoryServ()
-	bwmems := new(boot.BootWrap)
+	bwmems := boot.NewBootWrap("mems")
 	bwmems.SetCleanup(func() bool {
 		mems.CloseAll(true)
 		return true

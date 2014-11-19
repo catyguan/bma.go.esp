@@ -9,7 +9,10 @@ type BootContext struct {
 }
 
 func (this *BootContext) CheckResult() *ConfigCheckResult {
-	return this.CheckFlag.(*ConfigCheckResult)
+	if this.CheckFlag != nil {
+		return this.CheckFlag.(*ConfigCheckResult)
+	}
+	return nil
 }
 
 type BootObject interface {
