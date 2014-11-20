@@ -4,6 +4,7 @@ import (
 	"bmautil/valutil"
 	"bytes"
 	"fmt"
+	"sort"
 )
 
 func TableModule() *VMModule {
@@ -14,6 +15,7 @@ func TableModule() *VMModule {
 	m.Init("remove", GOF_table_remove(0))
 	m.Init("subtable", GOF_table_subtable(0))
 	m.Init("newArray", GOF_table_newArray(0))
+	m.Init("sort", GOF_table_sort(0))
 	return m
 }
 
@@ -275,4 +277,84 @@ func (this GOF_table_newArray) IsNative() bool {
 
 func (this GOF_table_newArray) String() string {
 	return "GoFunc<table.newArray>"
+}
+
+// table.sort(...) table
+type GOF_table_sort int
+
+type theTableSorter struct {
+	vm   *VM
+	f    interface{}
+	data []interface{}
+}
+
+func (this *theTableSorter) Len() int {
+	return len(this.data)
+}
+func (this *theTableSorter) Swap(i, j int) {
+	a := this.data
+	a[i], a[j] = a[j], a[i]
+}
+func (this *theTableSorter) Less(i, j int) bool {
+	v1 := this.data[i]
+	v2 := this.data[j]
+	this.vm.API_push(this.f)
+	this.vm.API_push(v1)
+	this.vm.API_push(v2)
+	_, err := this.vm.Call(2, 1, nil)
+	if err != nil {
+		panic(err)
+	}
+	r, err2 := this.vm.API_pop1X(1, true)
+	if err2 != nil {
+		panic(err2)
+	}
+	return valutil.ToBool(r, false)
+}
+
+func (this GOF_table_sort) Exec(vm *VM, self interface{}) (int, error) {
+	err0 := vm.API_checkStack(2)
+	if err0 != nil {
+		return 0, err0
+	}
+	arr, f, err1 := vm.API_pop2X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	vo := vm.API_array(arr)
+	if vo == nil {
+		return 0, fmt.Errorf("invalid array(%T)", arr)
+	}
+	if !vm.API_canCall(f) {
+		return 0, fmt.Errorf("invalid SortFunc(%T)", f)
+	}
+	varr := vo.ToArray()
+	var sorter theTableSorter
+	sorter.vm = vm
+	sorter.f = f
+	sorter.data = varr
+	err2 := func() (err error) {
+		defer func() {
+			x := recover()
+			if x != nil {
+				if tmp, ok := x.(error); ok {
+					err = tmp
+				}
+			}
+		}()
+		sort.Sort(&sorter)
+		return nil
+	}()
+	if err2 != nil {
+		return 0, err2
+	}
+	return 0, nil
+}
+
+func (this GOF_table_sort) IsNative() bool {
+	return true
+}
+
+func (this GOF_table_sort) String() string {
+	return "GoFunc<table.sort>"
 }

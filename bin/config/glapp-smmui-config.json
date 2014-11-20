@@ -4,7 +4,7 @@
 			"smm.ui" : {
 				"FL" : {
 					"Type" : "file",
-					"Dirs" : ["${CWD}/../golua.src"]
+					"Dirs" : ["${CWD}/../golua.src","${CWD}/../golua.local"]
 				},
 				"Startup" : "smm.ui:startup.lua"
 			}

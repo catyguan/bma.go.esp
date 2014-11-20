@@ -167,11 +167,11 @@ func (this *configTable) Get(vm *VM, key string) (interface{}, error) {
 	if this.prex != "" {
 		n = this.prex + "." + n
 	}
-	v, ok := vm.gl.GetConfig(n)
-	if ok {
-		return v, nil
+	v, err := vm.gl.ParseConfig(n)
+	if err != nil {
+		return nil, err
 	}
-	return nil, nil
+	return v, nil
 }
 
 func (this *configTable) Rawget(key string) interface{} {

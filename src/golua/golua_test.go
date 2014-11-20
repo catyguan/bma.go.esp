@@ -1,7 +1,6 @@
 package golua
 
 import (
-	"boot"
 	"config"
 	"context"
 	"fileloader"
@@ -11,7 +10,7 @@ import (
 	"time"
 )
 
-func T2estExecute(t *testing.T) {
+func TestExecute(t *testing.T) {
 	if true {
 		runtime.GOMAXPROCS(5)
 		safeCall()
@@ -34,9 +33,10 @@ func T2estExecute(t *testing.T) {
 
 		trace := false
 		// f := "/s_add.lua"
-		f := "test_vmmGo.lua"
+		// f := "test_vmmGo.lua"
 		// f := "test_vmmConfig.lua"
 		// f := "test_vmmStrings.lua"
+		f := "test_vmmTable.lua"
 		data["a"] = 1
 		data["b"] = 2
 
@@ -62,7 +62,7 @@ func T2estExecute(t *testing.T) {
 	}
 }
 
-func TestDebugger(t *testing.T) {
+func T2estDebugger(t *testing.T) {
 	if true {
 		runtime.GOMAXPROCS(5)
 		safeCall()
