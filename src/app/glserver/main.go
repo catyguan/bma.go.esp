@@ -25,6 +25,7 @@ import (
 	_ "smmapi/smmapi4server"
 
 	_ "fileloader/http4fileloader"
+	_ "fileloader/sql4fileloader"
 	_ "github.com/go-sql-driver/mysql"
 	// _ "github.com/mattn/go-sqlite3"
 )
