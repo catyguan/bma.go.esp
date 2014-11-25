@@ -1,0 +1,141 @@
+<html>
+<head>
+<meta charset="utf-8" />
+<title>ServiceCall Sample</title>
+<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+</head>
+<body>
+<h1>ServiceCall范例说明</h1>
+
+<h2>使用方式</h2>
+需求：调用sample的say方法<br>
+原型：sample.say(world) bool<br>
+<br>
+GoLuaScript
+<pre style="background-color: #EFEFEF">
+local scs = go.new("ServiceCall") -- 获取组件对象
+local sc = scs.Assert("sample", 1000) -- 获取sample服务接口
+local r = sc.CallTimeout("say", 1000, "Kitty") -- 调用
+</pre>
+<p>
+<input type="button" value="Run SayHello" onclick="runSayHello()">
+<script type="text/javascript">
+function runSayHello() {
+	$.get("sampleServiceCall.gl?ajax=1&do=say",null,function(data) {
+		alert("Result = "+data);
+	}).fail(function() {
+		alert("Invoke Fail");
+	});
+}	
+</script>
+</p>
+
+<h2>服务定位</h2>
+<h3>1. 应用服务器配置文件中配置</h3>
+<pre style="background-color: #EFEFEF">
+"serviceCall" : {
+	"Services" : {
+		"sample" : {
+			"Type" : "http",
+			"URL" : "http://127.0.0.1:1080/sample/servicecall.gl"
+		}
+	}
+},
+</pre>
+
+<h3>2. 程序中直接设置服务</h3>
+GoLang
+<pre style="background-color: #EFEFEF">
+var s *servicecall.Service
+s = ...
+s.SetServiceCall("name", serviceCaller, true)
+</pre>
+GoLuaScript
+<pre style="background-color: #EFEFEF">
+local f = function(methodName, params)
+	...
+	return ...
+end
+local scs = go.new("ServiceCall") -- 获取组件对象
+scs.Bind("name", f, true)
+</pre>
+<p>
+<input type="button" value="Run Bind" onclick="runBind()">
+<script type="text/javascript">
+function runBind() {
+	$.get("sampleServiceCall.gl?ajax=1&do=bind",null,function(data) {
+		alert("Result = "+data);
+	}).fail(function() {
+		alert("Invoke Fail");
+	});
+}	
+</script>
+</p>
+
+<h3>3. lookup服务定位</h3>
+
+原型: lookup.do(serviceName) : ServiceDesc<br>
+返回对应服务的描述数据<br><br>
+
+各环境通过提供索引服务，实现服务定位
+
+<h1>服务描述数据</h1>
+
+<table border="1">
+	<tr>
+		<td>类型</td>
+		<td>格式</td>
+		<td>说明</td>
+	</tr>
+	<tr>
+		<td>http</td>
+		<td>
+<pre style="background-color: #EFEFEF">
+{
+	"Type" : "http",
+	"URL" : "http://xxxxxx",
+	"Host" : "xxxx",
+	"TimeoutMS" : 1234
+}</pre>
+		</td>			
+		<td>
+			HTTP格式调用，请求参数m为方法名,p为json格式的调用参数<br>
+			响应为json的数据
+		</td>
+	</tr>
+	<tr>
+		<td>memp</td>
+		<td>
+<pre style="background-color: #EFEFEF">
+{
+	"Type" : "memp",
+	"Name" : "xxxxxx:a",
+	"TimeoutMS" : 1234
+}</pre>
+		</td>			
+		<td>
+			内存通道的ESNP调用，地址{service=serviceName, op=methodName},请求参数p为调用参数<br>
+			响应s为状态码(200成功)，r为返回数据
+		</td>
+	</tr>
+	<tr>
+		<td>golua</td>
+		<td>
+<pre style="background-color: #EFEFEF">
+{
+	"Type" : "golua",
+	"Script" : "abc:def.sc.lua",
+	"Class" : "xxxxx"
+}</pre>
+		</td>			
+		<td>
+			GoLua应用脚本的服务调用<br>
+			require(Script) -> obj = class.New(Class) -> obj.Invoke(method, params, timeoutMS)			
+		</td>
+	</tr>
+</table>
+
+<hr>
+
+</body>
+</html>

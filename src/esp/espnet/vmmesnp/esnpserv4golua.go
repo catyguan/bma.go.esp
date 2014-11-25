@@ -44,7 +44,7 @@ func (this *esnpserv) Create(host string, tms int) (*espsocket.Socket, error) {
 	if err := cfg.Valid(); err != nil {
 		return nil, err
 	}
-	sock, err1 := espsocket.Dial("vmmesnp", cfg, espsocket.SOCKET_CHANNEL_CODER_ESPNET)
+	sock, err1 := espsocket.Dial("vmmesnp", cfg, espsocket.SOCKET_CHANNEL_CODER_ESPNET, true)
 	if err1 != nil {
 		logger.Debug(tag, "socket create '%s' fail - %s", host, err1)
 		return nil, err1

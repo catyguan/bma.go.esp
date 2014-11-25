@@ -26,6 +26,14 @@
 	},
 	"fileloader" : {
 	},
+	"serviceCall" : {
+		"Services" : {
+			"sample" : {
+				"Type" : "http",
+				"URL" : "http://127.0.0.1:1080/sample/servicecall.gl"
+			}
+		}
+	},
 	"goluaServ" : {
 		"GoLua" : {
 			"app1" : {
@@ -44,6 +52,6 @@
 			}
 		]
 	},
-	"MERGE-testApp" : "glapp-test-config.json",
+	"MERGE-sampleApp" : "glapp-sample-config.json",
 	"MERGE-smmuiApp" : "glapp-smmui-config.json"
 }

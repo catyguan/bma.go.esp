@@ -1,6 +1,7 @@
 package retryst
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -15,10 +16,9 @@ func TestRetryBase(t *testing.T) {
 	rst := new(RetryState)
 	rst.Config = cfg
 	rst.Begin(func(lastTry bool) bool {
-
-		t.Error(time.Now())
+		fmt.Println(time.Now())
 		if lastTry {
-			t.Error("lastTry!")
+			fmt.Println("lastTry!")
 		}
 		if true {
 			panic("test")
@@ -27,5 +27,5 @@ func TestRetryBase(t *testing.T) {
 	})
 	time.Sleep(time.Duration(2) * time.Second)
 	rst.Cancel()
-	t.Error(rst)
+	fmt.Println(rst)
 }

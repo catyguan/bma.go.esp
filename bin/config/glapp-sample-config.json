@@ -1,0 +1,23 @@
+{
+	"goluaServ" : {
+		"GoLua" : {
+			"sample" : {
+				"FL" : {
+					"Type" : "file",
+					"Dirs" : ["${CWD}/../golua.src","${CWD}/../golua.local"]
+				},
+				"Startup" : "app.sample:startup.lua"
+			}
+		}
+	},
+	"goluaMux" : {
+		"App" : [
+			{
+				"Name" : "sample",
+				"Location" : "/sample/",
+				"Script" : "app.sample:httpmain.lua",
+				"IndexName" : "index.gl"
+			}
+		]
+	}
+}

@@ -47,6 +47,9 @@ func (this *memPipelineChannel) Shutdown() {
 }
 
 func (this *memPipelineChannel) GetProperty(name string) (interface{}, bool) {
+	if name == espsocket.PROP_SOCKET_REMOTE_ADDR {
+		return this.name, true
+	}
 	return nil, false
 }
 
@@ -99,8 +102,8 @@ func NewMemPipeline(n string, sz int) *MemPipeline {
 	this.ca = make(chan *esnp.Message, sz)
 	this.cb = make(chan *esnp.Message, sz)
 
-	this.cha = this.initChannle(fmt.Sprintf("%d_a", n), this.ca, this.cb)
-	this.chb = this.initChannle(fmt.Sprintf("%d_b", n), this.cb, this.ca)
+	this.cha = this.initChannle(fmt.Sprintf("%s:a", n), this.ca, this.cb)
+	this.chb = this.initChannle(fmt.Sprintf("%s:b", n), this.cb, this.ca)
 
 	return this
 }

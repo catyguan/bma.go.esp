@@ -8,6 +8,10 @@ import (
 
 // simple dial
 func Dial(name string, cfg *DialConfig, sinit SocketInit) (*Socket, error) {
+	return Dial2(name, cfg, sinit, true)
+}
+
+func Dial2(name string, cfg *DialConfig, sinit SocketInit, log bool) (*Socket, error) {
 	if err := cfg.Valid(); err != nil {
 		return nil, err
 	}
@@ -20,7 +24,9 @@ func Dial(name string, cfg *DialConfig, sinit SocketInit) (*Socket, error) {
 		conn, err = net.DialTimeout(cfg.Net, cfg.Address, time.Duration(cfg.TimeoutMS)*time.Millisecond)
 	}
 	if err != nil {
-		logger.Debug(tag, "dial (%s %s) fail - %s", cfg.Net, cfg.Address, err.Error())
+		if log {
+			logger.Debug(tag, "dial (%s %s) fail - %s", cfg.Net, cfg.Address, err.Error())
+		}
 		return nil, err
 	}
 	sock := NewSocket(conn, 32, 0)

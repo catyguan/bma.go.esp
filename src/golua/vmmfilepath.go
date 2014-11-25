@@ -4,7 +4,6 @@ import (
 	"bmautil/valutil"
 	"path"
 	"path/filepath"
-	"strings"
 )
 
 func FilePathModule() *VMModule {
@@ -285,7 +284,7 @@ func (this GOF_filepath_changeExt) Exec(vm *VM, self interface{}) (int, error) {
 	var npath string
 	ext := filepath.Ext(vs1)
 	if ext != "" {
-		npath = strings.TrimRight(vs1, ext)
+		npath = vs1[:len(vs1)-len(ext)]
 	} else {
 		npath = vs1
 	}

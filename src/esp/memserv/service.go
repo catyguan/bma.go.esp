@@ -1,6 +1,7 @@
 package memserv
 
 import (
+	"boot"
 	"sync"
 )
 
@@ -97,4 +98,13 @@ func (this *MemoryServ) CloseAll(wait bool) {
 			m.Stop()
 		}
 	}
+}
+
+func (this *MemoryServ) CreateBootService(n string) *boot.BootWrap {
+	r := boot.NewBootWrap(n)
+	r.SetClose(func() bool {
+		this.CloseAll(true)
+		return true
+	})
+	return r
 }

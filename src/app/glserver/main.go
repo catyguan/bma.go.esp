@@ -4,11 +4,15 @@ import (
 	"boot"
 	"esp/acclog"
 	"esp/aclserv"
+	"esp/espnet/espnetss"
+	"esp/espnet/mempipeline"
 	"esp/espnet/vmmesnp"
 	"esp/goluaserv"
 	"esp/goluaserv/httpmux4goluaserv"
 	"esp/memserv"
 	"esp/memserv/vmmmemserv"
+	"esp/servicecall"
+	"esp/servicecall/vmmservicecall"
 	"fileloader"
 	"golua"
 	"golua/vmmacclog"
@@ -55,8 +59,28 @@ func main() {
 	boot.AddService(bwmems)
 	mems.InitSMMAPI("go.memserv")
 
+	memp := mempipeline.NewService()
+	boot.AddService(memp.CreateBootService("mempipeline"))
+
+	ssp := espnetss.NewService()
+	boot.AddService(ssp.CreateBootService("espnetss"))
+
+	scs := servicecall.NewService("serviceCall", nil)
+	scs.AddServiceCallerFactory("http", servicecall.HttpServiceCallerFactory(0))
+	if true {
+		fac := new(servicecall.ESNPMemPipelineServiceCallerFactory)
+		fac.S = memp
+		scs.AddServiceCallerFactory("memp", fac)
+	}
+	if true {
+		fac := new(servicecall.ESNPNetServiceCallerFactory)
+		fac.S = ssp
+		scs.AddServiceCallerFactory("esnp", fac)
+	}
+	boot.AddService(scs)
+
 	service := goluaserv.NewService("goluaServ", func(gl *golua.GoLua) {
-		myInitor(gl, acclog, mems)
+		myInitor(gl, acclog, mems, scs)
 	})
 	boot.AddService(service)
 
@@ -85,7 +109,7 @@ func main() {
 	boot.Go(cfile)
 }
 
-func myInitor(gl *golua.GoLua, acclog *acclog.Service, mems *memserv.MemoryServ) {
+func myInitor(gl *golua.GoLua, acclog *acclog.Service, mems *memserv.MemoryServ, scs *servicecall.Service) {
 	golua.InitCoreLibs(gl)
 	vmmhttp.InitGoLuaWithHttpServ(gl)
 	vmmhttp.InitGoLuaWithHttpClient(gl, acclog, "httpclient")
@@ -95,4 +119,5 @@ func myInitor(gl *golua.GoLua, acclog *acclog.Service, mems *memserv.MemoryServ)
 	vmmclass.InitGoLua(gl)
 	vmmesnp.InitGoLua(gl)
 	vmmmemserv.InitGoLua(gl, mems)
+	vmmservicecall.InitGoLua(gl, scs)
 }

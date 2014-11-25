@@ -1,11 +1,7 @@
 package espsocket
 
-import (
-	"bmautil/socket"
-	"time"
-)
-
-// ChannelFactory
+/*
+// dialPoolSocketFactory
 type dialPoolSocketFactory struct {
 	service      *socket.DialPool
 	channelCoder string
@@ -53,3 +49,4 @@ func (this *dialPoolSocketFactory) socketReturn(s *socket.Socket) {
 func (this *dialPoolSocketFactory) IsBreak() bool {
 	return this.service.IsBreak()
 }
+*/

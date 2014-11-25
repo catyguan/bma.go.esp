@@ -41,8 +41,8 @@ func NewSocket(ch Channel) *Socket {
 	return this
 }
 
-func Dial(name string, cfg *socket.DialConfig, coderName string) (*Socket, error) {
-	sock, err := socket.Dial(name, cfg, nil)
+func Dial(name string, cfg *socket.DialConfig, coderName string, log bool) (*Socket, error) {
+	sock, err := socket.Dial2(name, cfg, nil, log)
 	if err != nil {
 		return nil, err
 	}
