@@ -8,32 +8,20 @@ import (
 )
 
 type esnpnetpProvider struct {
-	s    *espnetss.Service
-	cfg  *esnpnetpConfig
-	sock *espsocket.Socket
+	ss        *espnetss.SocketSource
+	timeoutMS int
 }
 
 func (this *esnpnetpProvider) GetSocket() (*espsocket.Socket, error) {
-	if this.sock == nil {
-		ss := this.s.Get(this.cfg.Host, this.cfg.User)
-		if ss == nil {
-			return nil, fmt.Errorf("invalid espnet(%s)", espnetss.Key(this.cfg.Host, this.cfg.User))
-		}
-		if this.cfg.LoginType != "" {
-			ss.Add(this.cfg.Certificate, this.cfg.LoginType)
-		}
-		sock, err := ss.Open(this.cfg.TimeoutMS)
-		if err != nil {
-			return nil, err
-		}
-		this.sock = sock
+	sock, err := this.ss.Open(this.timeoutMS)
+	if err != nil {
+		return nil, err
 	}
-	return this.sock, nil
+	return sock, nil
 }
 
-func (this *esnpnetpProvider) Close() {
-	this.sock.AskClose()
-	this.sock = nil
+func (this *esnpnetpProvider) Finish(sock *espsocket.Socket) {
+	this.ss.Return(sock)
 }
 
 type esnpnetpConfig struct {
@@ -79,9 +67,13 @@ func (this *ESNPNetServiceCallerFactory) Create(n string, cfg map[string]interfa
 	var co esnpnetpConfig
 	valutil.ToBean(cfg, &co)
 
+	ss, err0 := this.S.Open(&co.Config)
+	if err0 != nil {
+		return nil, err0
+	}
+
 	prov := new(esnpnetpProvider)
-	prov.s = this.S
-	prov.cfg = &co
+	prov.ss = ss
 
 	r := new(ESNPServiceCaller)
 	r.name = n

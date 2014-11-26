@@ -2,40 +2,8 @@ package espnetss
 
 import (
 	"boot"
-	"fmt"
 	"sync"
 )
-
-type Config struct {
-	Host        string
-	User        string
-	LoginType   string
-	Certificate string
-	PreConns    int
-}
-
-func (this *Config) Valid() error {
-	if this.Host == "" {
-		return fmt.Errorf("Host empty")
-	}
-	return nil
-}
-
-func (this *Config) Compare(o *Config) bool {
-	if this.Host != o.Host {
-		return false
-	}
-	if this.User != o.User {
-		return false
-	}
-	if this.LoginType != o.LoginType {
-		return false
-	}
-	if this.Certificate != o.Certificate {
-		return false
-	}
-	return true
-}
 
 type Service struct {
 	lock sync.RWMutex
@@ -48,12 +16,8 @@ func NewService() *Service {
 	return r
 }
 
-func Key(host string, user string) string {
-	return fmt.Sprintf("%s@%s", user, host)
-}
-
 func (this *Service) Add(ss *SocketSource) bool {
-	k := ss.Name()
+	k := ss.Key()
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	_, ok := this.ss[k]
@@ -64,23 +28,36 @@ func (this *Service) Add(ss *SocketSource) bool {
 	return false
 }
 
-func (this *Service) Register(cfg *Config) {
-	k := Key(cfg.Host, cfg.User)
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	ss, ok := this.ss[k]
-	if !ok {
-		ss = NewSocketSource(cfg.Host, cfg.User, cfg.PreConns)
-		this.ss[k] = ss
-	}
-	ss.Add(cfg.Certificate, cfg.LoginType)
-}
-
-func (this *Service) Get(host string, user string) *SocketSource {
-	k := Key(host, user)
+func (this *Service) Get(cfg *Config) *SocketSource {
+	k := cfg.Key()
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	return this.ss[k]
+}
+
+func (this *Service) Open(cfg *Config) (*SocketSource, error) {
+	k := cfg.Key()
+	this.lock.RLock()
+	ss, ok := this.ss[k]
+	this.lock.RUnlock()
+	if ok {
+		return ss, nil
+	}
+	err := cfg.Valid()
+	if err != nil {
+		return nil, err
+	}
+	ss = NewSocketSource(cfg)
+	ss.Start()
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	ss2, ok2 := this.ss[k]
+	if ok2 {
+		ss.Close()
+		return ss2, nil
+	}
+	this.ss[k] = ss
+	return ss, nil
 }
 
 func (this *Service) CloseAll() {

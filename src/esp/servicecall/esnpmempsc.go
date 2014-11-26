@@ -16,7 +16,7 @@ func (this *esnpmempProvider) GetSocket() (*espsocket.Socket, error) {
 	return this.sock, nil
 }
 
-func (this *esnpmempProvider) Close() {
+func (this *esnpmempProvider) Finish(sock *espsocket.Socket) {
 
 }
 

@@ -29,7 +29,7 @@ func (this *ESNPServiceCaller) Start() error {
 }
 
 func (this *ESNPServiceCaller) Stop() {
-	this.provider.Close()
+
 }
 
 func (this *ESNPServiceCaller) Call(method string, params []interface{}, timeout time.Duration) (interface{}, error) {

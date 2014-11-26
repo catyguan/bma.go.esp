@@ -1,0 +1,137 @@
+<html>
+<head>
+<meta charset="utf-8" />
+<title>WebAction Sample</title>
+<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+</head>
+<body>
+<h1>WebAction范例说明</h1>
+
+<h2>相关文件</h2>
+<pre style="background-color: #EFEFEF">
+golua.src/app.sample/httpmain.lua
+golua.src/app.sample/http/sampleWebAction.gl.lua
+golua.src/smm.ui/http/NodeForm.class.lua
+golua.src/smm.ui/http/commitNode.gl.lua
+</pre>
+
+
+<h2>请求调度处理</h2>
+应用服务器配置
+<pre style="background-color: #EFEFEF">
+"goluaMux" : {
+	"App" : [
+		{
+			"Name" : "sample", -- GoLua服务名称
+			"Location" : "/sample/",
+			"Script" : "app.sample:httpmain.lua", -- 定义调度脚本
+			"IndexName" : "index.gl"
+		}
+	]
+}
+</pre>
+调度脚本 httpmain.lua
+<pre style="background-color: #EFEFEF">
+local path = httpserv.path()
+
+local m = "_"
+local script = path
+local dir, fname = filepath.dir(path)
+
+local ext = filepath.ext(script)
+if ext==".gl" then
+	local nscript = filepath.changeExt(script, ".gl.lua")
+	return go.exec(m..":http/"..nscript)
+end
+
+if fname=="favicon.ico" then
+	return {Status=404}
+end
+
+return httpserv.writeFile("_:http.res/"..script)
+</pre>
+
+
+<h2>获取请求参数</h2>
+<h3>直接获取</h3>
+<pre style="background-color: #EFEFEF">
+local form = httpserv.form()
+local ajax = types.int(form, "ajax", 0)
+local pdo = types.string(form, "pdo", "msg")
+local msg = types.string(form, "msg", "")
+
+local v1 = httpserv.formValue("ajax", 0)
+</pre>
+<p>
+<input type="button" value="Run SendMessage" onclick="runSendMessage()">
+<script type="text/javascript">
+function runSendMessage() {
+	var msg = prompt("Message","")
+	if(!msg) {
+		return;
+	}
+	var data = {
+		ajax : 1,
+		pdo : "msg",
+		msg : msg
+	}
+	$.get("sampleWebAction.gl",data,function(data) {
+		alert("Result = "+data);
+	}).fail(function() {
+		alert("Invoke Fail");
+	});
+}	
+</script>
+</p>
+
+<h3>表单对象模式</h3>
+定义表单对象
+<pre style="background-color: #EFEFEF">
+local Class = class.define("NodeForm", "FormObject")
+Class.FIELD = {
+	id={
+		type="int",
+		default=0
+	},
+	name={
+		type="string",
+		valid="notEmpty"
+	}
+}
+</pre>
+使用表单对象获取参数和校验
+<pre style="background-color: #EFEFEF">
+local form = httpserv.form()
+local fo = class.new("NodeForm")
+fo.Parse(form)
+local ok = fo.Valid()
+</pre>
+
+<h2>响应结果</h2>
+<h3>1. httpserv的setHeader, writeHeader, write方法</h3>
+<pre style="background-color: #EFEFEF">
+httpserv.setHeader("X-Powered-By", "GoLua/1.0.0.0")
+httpserv.writeHeader(200)
+httpserv.write("hello world")
+</pre>
+
+<h3>2. 处理脚本直接返回结果</h3>
+<pre style="background-color: #EFEFEF">
+return {
+	Status = 200,
+	Header = {
+		["X-Powered-By"] = "GoLua/1.0.0.0"
+	},
+	Content = "hello world"
+}
+</pre>
+
+<h3>3. httpserv.render方法</h3>
+<pre style="background-color: #EFEFEF">
+httpserv.render("_:http/sampleWebAction.view.html", {a=1, b=2})
+</pre>
+
+<hr>
+
+</body>
+</html>

@@ -32,5 +32,5 @@ type ServiceCallHub interface {
 
 type SocketProvider interface {
 	GetSocket() (*espsocket.Socket, error)
-	Close()
+	Finish(sock *espsocket.Socket)
 }

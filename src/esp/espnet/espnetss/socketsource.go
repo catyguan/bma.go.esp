@@ -16,75 +16,58 @@ type loginInfo struct {
 }
 
 type SocketSource struct {
-	host       string
-	user       string
+	cfg        *Config
 	pool       chan *espsocket.Socket
-	logins     []*loginInfo
 	closed     uint32
 	doFail     bool
 	doFailTime time.Time
 }
 
-func NewSocketSource(host string, user string, preconns int) *SocketSource {
+func NewSocketSource(cfg *Config) *SocketSource {
 	r := new(SocketSource)
-	r.host = host
-	r.user = user
-	r.pool = make(chan *espsocket.Socket, preconns)
-	r.logins = make([]*loginInfo, 0)
+	r.cfg = cfg
+	if cfg.PoolSize > 0 {
+		if cfg.PreConns > cfg.PoolSize {
+			cfg.PreConns = cfg.PoolSize
+		}
+		r.pool = make(chan *espsocket.Socket, cfg.PoolSize)
+	}
 	return r
 }
 
 func (this *SocketSource) Name() string {
-	return fmt.Sprintf("%s@%s", this.user, this.host)
+	return fmt.Sprintf("%s@%s", this.cfg.User, this.cfg.Host)
+}
+
+func (this *SocketSource) Key() string {
+	return this.cfg.Key()
 }
 
 func (this *SocketSource) String() string {
-	return fmt.Sprintf("%s@%s(%d)", this.user, this.host, len(this.logins))
+	return this.Name()
 }
 
 func (this *SocketSource) IsClose() bool {
 	return atomic.LoadUint32(&this.closed) == 1
 }
 
-func (this *SocketSource) Add(cert string, lt string) bool {
-	lh := GetLoginHandler(lt)
-	if lh == nil {
-		return false
-	}
-	for _, li := range this.logins {
-		if li.certificate == cert && li.loginType == lt {
-			return false
-		}
-	}
-	this.logins = append(this.logins, &loginInfo{lt, lh, cert})
-	return true
-}
-
 func (this *SocketSource) _login(sock *espsocket.Socket) (bool, error) {
-	lgs := this.logins
-	if len(lgs) > 0 {
-		done := false
-		var lastErr error
-		for _, li := range lgs {
-			ok, err1 := li.loginh(sock, this.user, li.certificate)
-			if err1 != nil {
-				logger.Debug(tag, "dologin(%s, %v) fail - %s", this.user, li.loginType, err1)
-				lastErr = err1
-			}
-			if ok {
-				lastErr = nil
-				done = true
-				break
-			}
+	var li LoginHandler
+	if this.cfg.LoginType != "" {
+		li = GetLoginHandler(this.cfg.LoginType)
+		if li == nil {
+			return false, fmt.Errorf("invalid login handler(%s)", this.cfg.LoginType)
 		}
-		return done, lastErr
+	}
+	if li != nil {
+		return li(sock, this.cfg.User, this.cfg.Certificate)
 	}
 	return true, nil
 }
 
 func (this *SocketSource) _create(timeoutMS int, log bool) (*espsocket.Socket, error) {
 	cfg := new(socket.DialConfig)
-	cfg.Address = this.host
+	cfg.Address = this.cfg.Host
 	cfg.TimeoutMS = timeoutMS
 	sock, err := espsocket.Dial(this.Name(), cfg, espsocket.SOCKET_CHANNEL_CODER_ESPNET, log)
 	if err != nil {
@@ -115,17 +98,25 @@ func (this *SocketSource) logFail(msg string, err error) {
 	}
 }
 
+func (this *SocketSource) isFull() bool {
+	return len(this.pool) >= this.cfg.PreConns
+}
+
 func (this *SocketSource) preConn() {
 	if this.IsClose() {
 		return
 	}
-	if len(this.pool) == cap(this.pool) {
+	if this.isFull() {
 		return
 	}
 	sock, err := this._create(30*1000, false)
 	if err != nil {
 		this.logFail("preConn(%s) fail - %s", err)
 	} else {
+		if this.isFull() {
+			sock.Shutdown()
+			return
+		}
 		func() {
 			defer func() {
 				recover()
@@ -145,6 +136,29 @@ func (this *SocketSource) preConn() {
 	this.preConn()
 }
 
+func (this *SocketSource) Return(sock *espsocket.Socket) bool {
+	if sock.IsBreak() {
+		return false
+	}
+	if this.IsClose() {
+		return false
+	}
+	defer func() {
+		recover()
+	}()
+	select {
+	case this.pool <- sock:
+		sock.SetCloseListener("SocketSource", func() {
+			this.onSocketClose(sock)
+		})
+		logger.Debug(tag, "%s return -> %s", this, sock)
+		return true
+	default:
+		sock.Shutdown()
+		return false
+	}
+}
+
 func (this *SocketSource) Open(timeoutMS int) (*espsocket.Socket, error) {
 	var sock *espsocket.Socket
 	select {
@@ -161,7 +175,7 @@ func (this *SocketSource) Open(timeoutMS int) (*espsocket.Socket, error) {
 
 func (this *SocketSource) KeepLive(acceptor espsocket.SocketAcceptor) error {
 	if cap(this.pool) == 0 {
-		return fmt.Errorf("preConns is 0, can't keeplive")
+		return fmt.Errorf("PoolSize is 0, can't keeplive")
 	}
 	if this.IsClose() {
 		return nil
@@ -210,7 +224,12 @@ func (this *SocketSource) onSocketClose(sock *espsocket.Socket) {
 			recover()
 		}()
 		for _, s := range sl {
-			this.pool <- s
+			select {
+			case this.pool <- s:
+			default:
+				s.SetCloseListener("SocketSource", nil)
+				s.Shutdown()
+			}
 		}
 	}()
 	go this.preConn()

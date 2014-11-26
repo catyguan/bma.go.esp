@@ -1,0 +1,89 @@
+<html>
+<head>
+<meta charset="utf-8" />
+<title>ServiceCall Sample</title>
+<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+</head>
+<body>
+<h1>DB操作范例说明</h1>
+
+<h2>相关文件</h2>
+<pre style="background-color: #EFEFEF">
+golua.src/app.sample/http/sampleDb.gl.lua
+golua.src/smm.ui/startup.lua
+golua.src/smm.ui/service/NodesManager.class.lua
+</pre>
+
+<h2>获取DB对象</h2>
+<h3>直接打开</h3>
+<pre style="background-color: #EFEFEF">
+local db1 = sql.open("127.0.0.1:1234","xxxxx", 10, 5)
+local db2 = sql.create("127.0.0.1:1234","xxxxx", 10, 5) -- 新建
+</pre>
+<h3>SmartDB模式</h3>
+startup时候注册连接
+<pre style="background-color: #EFEFEF">
+local sdb = go.new("SmartDB")
+local cfg = {
+	Name="test",
+	Driver="mysql", DataSource="user:password@tcp(172.19.16.195:3306)/test_db",
+	MaxIdleConns=10, MaxOpenConns=100,
+	ReadOnly=false, Priority=5
+}
+sdb.Add(cfg, true)
+</pre>
+获取对应表的DB
+<pre style="background-color: #EFEFEF">
+local sdb = go.new("SmartDB")
+local db1 = sdb.Select("smm_nodes")
+</pre>
+
+
+<h2>DB操作</h2>
+<h3>基本操作</h3>
+<pre style="background-color: #EFEFEF">
+DB.Exec(sql, ...) RowsAffected:int
+DB.ExecLastId(sql, ...) RowsAffected,int, LastInsertId:int
+DB.ExecInsert(tableName:string, fieldsAndValues:table[, lastId:bool]) RowsAffected:int, LastInsertId:int
+DB.ExecUpdate(tableName:string, fieldsAndValues:table, ConditionFieldsAndValues:table) RowsAffected:int
+DB.ExecDelete(tableName:string, conditionFieldsAndValues:table) RowsAffected:int
+DB.Ping()
+DB.Prepare(sql:string) STMT:object
+DB.Query(sql, ...) ROWS:object
+STMT.Close()
+STMT.Exec
+STMT.ExecLastId
+STMT.Query
+ROWS.Close()
+ROWS.Fetch(resultData:VAR[, fieldsAndTypes:table]) fetchOK:bool, data:table
+</pre>
+
+<h3>事务</h3>
+<pre style="background-color: #EFEFEF">
+DB.Begin() TX:object
+TX.Commit()
+TX.Rollback()
+TX.Exec
+TX.ExecLastId
+TX.Stmt(stmt:object) : STMT:object
+TX.Prepare
+TX.Query
+</pre>
+
+<p>
+<input type="button" value="Run DB.Query" onclick="runDBQuery()">
+<script type="text/javascript">
+function runDBQuery() {
+	$.get("sampleDb.gl?ajax=1&pdo=query",null,function(data) {
+		alert("Result = "+data);
+	}).fail(function() {
+		alert("Invoke Fail");
+	});
+}	
+</script>
+</p>
+
+<hr>
+
+</body>
+</html>
