@@ -3,8 +3,8 @@
 		"GoLua" : {
 			"sample" : {
 				"FL" : {
-					"Type" : "file",
-					"Dirs" : ["${CWD}/../golua.src","${CWD}/../golua.local"]
+					"Type" : "c",
+					"FL" : ["src","local"]
 				},
 				"Startup" : "app.sample:startup.lua"
 			}

@@ -3,8 +3,8 @@
 		"GoLua" : {
 			"test" : {
 				"FL" : {
-					"Type" : "file",
-					"Dirs" : ["${CWD}/golua/test"]
+					"Type" : "c",
+					"FL" : ["test"]
 				},
 				"Startup" : "startup.lua"
 			}

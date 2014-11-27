@@ -73,11 +73,10 @@ func (this *goluaConfigInfo) Valid() error {
 			return err
 		}
 	}
-	fac := fileloader.CommonFileLoaderFactory
 	if this.FL == nil {
 		return fmt.Errorf("empty ScriptSource")
 	}
-	err1 := fac.Valid(this.FL)
+	err1 := fileloader.DoValid(this.FL)
 	if err1 != nil {
 		return err1
 	}
@@ -110,8 +109,7 @@ func (this *goluaConfigInfo) Compare(old *goluaConfigInfo) int {
 		return boot.CCR_NEED_START
 	}
 
-	fac := fileloader.CommonFileLoaderFactory
-	r2 := fac.Compare(this.FL, old.FL)
+	r2 := fileloader.DoCompare(this.FL, old.FL)
 	if !r2 {
 		return boot.CCR_NEED_START
 	}
@@ -207,8 +205,7 @@ func (this *Service) startupApp(k string, gli *glInfo, startup []string) {
 }
 
 func (this *Service) _create(k string, glcfg *goluaConfigInfo) bool {
-	fac := fileloader.CommonFileLoaderFactory
-	ss, err0 := fac.Create(glcfg.FL)
+	ss, err0 := fileloader.DoCreate(glcfg.FL)
 	if err0 != nil {
 		logger.Error(tag, "create ScriptSource[%s, %s] fail %s", k, glcfg.FL, err0)
 		return false

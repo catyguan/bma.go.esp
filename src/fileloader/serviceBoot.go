@@ -22,11 +22,11 @@ func NewService(n string) *Service {
 }
 
 type configInfo struct {
-	MLoader map[string]map[string]interface{}
+	FL map[string]map[string]interface{}
 }
 
 func (this *configInfo) Valid() error {
-	for n, mlcfg := range this.MLoader {
+	for n, mlcfg := range this.FL {
 		ff, _, err := GetFileLoaderFactoryByType(mlcfg)
 		if err != nil {
 			return fmt.Errorf("'%s' %s", n, err)
@@ -43,12 +43,12 @@ func (this *configInfo) Compare(old *configInfo) int {
 	if old == nil {
 		return boot.CCR_NEED_START
 	}
-	if len(this.MLoader) != len(old.MLoader) {
+	if len(this.FL) != len(old.FL) {
 		return boot.CCR_NEED_START
 	}
 	r := boot.CCR_NONE
-	for k, o := range this.MLoader {
-		oo, ok := old.MLoader[k]
+	for k, o := range this.FL {
+		oo, ok := old.FL[k]
 		if ok {
 			if !DoCompare(o, oo) {
 				return boot.CCR_NEED_START
@@ -93,14 +93,13 @@ func (this *Service) Init(ctx *boot.BootContext) bool {
 	return true
 }
 
-func (this *Service) _create(k string, mlcfg map[string]interface{}) bool {
+func (this *Service) _create(k string, mlcfg map[string]interface{}) error {
 	fl, err := DoCreate(mlcfg)
 	if err != nil {
-		logger.Error(tag, "FileLoader('%s') create fail - %s", k, err)
-		return false
+		return err
 	}
 	DefineFileLoader(k, fl)
-	return true
+	return nil
 }
 
 func (this *Service) Start(ctx *boot.BootContext) bool {
@@ -108,8 +107,10 @@ func (this *Service) Start(ctx *boot.BootContext) bool {
 	if ccr.Type == boot.CCR_NONE {
 		return true
 	}
-	for k, mlcfg := range this.config.MLoader {
-		if this._create(k, mlcfg) {
+	for k, mlcfg := range this.config.FL {
+		err := this._create(k, mlcfg)
+		if err != nil {
+			fmt.Printf("FileLoader('%s') create fail - %s\n", k, err)
 			return false
 		}
 	}
@@ -130,9 +131,9 @@ func (this *Service) GraceStop(ctx *boot.BootContext) bool {
 		return true
 	}
 	cfg := ccr.Config.(*configInfo)
-	for k, o := range this.config.MLoader {
-		if cfg.MLoader != nil {
-			if oo, ok := cfg.MLoader[k]; ok {
+	for k, o := range this.config.FL {
+		if cfg.FL != nil {
+			if oo, ok := cfg.FL[k]; ok {
 				if DoCompare(o, oo) {
 					continue
 				}
@@ -153,7 +154,7 @@ func (this *Service) Close() bool {
 
 func (this *Service) Cleanup() bool {
 	if this.config != nil {
-		for k, _ := range this.config.MLoader {
+		for k, _ := range this.config.FL {
 			UndefineFileLoader(k)
 		}
 	}

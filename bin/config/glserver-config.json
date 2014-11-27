@@ -25,6 +25,20 @@
 		]
 	},
 	"fileloader" : {
+		"FL" : {
+			"local" : {
+				"Type" : "file",
+				"Dirs" : ["${CWD}/../golua.local"]
+			},
+			"test" : {
+				"Type" : "file",
+				"Dirs" : ["${CWD}/golua/test"]
+			},
+			"src" : {
+				"Type" : "file",
+				"Dirs" : ["${CWD}/../golua.src"]
+			}
+		}
 	},
 	"serviceCall" : {
 		"Services" : {
