@@ -1,0 +1,101 @@
+<html>
+<head>
+<meta charset="utf-8" />
+<title>MemsAndSession Sample</title>
+<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+</head>
+<body>
+<h1>MemServ And Session范例说明</h1>
+
+<h2>相关文件</h2>
+<pre style="background-color: #EFEFEF">
+golua.src/app.sample/http/sampleMemsAndSession.gl.lua
+</pre>
+
+
+<h2>内存容器</h2>
+<h3>获取容器和操作</h3>
+<pre style="background-color: #EFEFEF">
+local o = go.new("MemServ")
+local mg = o.Get("app") -- 应用关联容器
+mg.Set(key, val)
+mg.Get(key)
+mg.Remove(key)
+</pre>
+
+<input type="button" value="Run GetMems" onclick="runGetMems()">
+<script type="text/javascript">
+function runGetMems() {
+	var data = {
+		ajax : 1,
+		pdo : "getmems"		
+	}
+	$.get("sampleMemsAndSession.gl",data,function(data) {
+		alert("Result = "+data);
+	}).fail(function() {
+		alert("Invoke Fail");
+	});
+}	
+</script>
+<input type="button" value="Run SetMems" onclick="runSetMems()">
+<script type="text/javascript">
+function runSetMems() {
+	var data = {
+		ajax : 1,
+		pdo : "setmems"		
+	}
+	$.get("sampleMemsAndSession.gl",data,function(data) {
+		alert("Result = "+data);
+	}).fail(function() {
+		alert("Invoke Fail");
+	});
+}	
+</script>
+
+<h2>Session</h2>
+<h3>获取Session和操作</h3>
+<pre style="background-color: #EFEFEF">
+local sess = go.new("HttpSession")
+sess.Get(key)
+sess.MGet(keys)
+sess.Set(key, value)
+sess.MSet(keyAndValues:table)
+sess.Delete(key)
+sess.MDelete(keys)
+sess.Close()
+sess.SetUser({"Account":xxx, "Domain":"xxxx"})
+sess.GetUser()
+</pre>
+<input type="button" value="Run GetSession" onclick="runGetSession()">
+<script type="text/javascript">
+function runGetSession() {
+	var data = {
+		ajax : 1,
+		pdo : "getsess"		
+	}
+	$.get("sampleMemsAndSession.gl",data,function(data) {
+		alert("Result = "+data);
+	}).fail(function() {
+		alert("Invoke Fail");
+	});
+}	
+</script>
+<input type="button" value="Run SetSession" onclick="runSetSession()">
+<script type="text/javascript">
+function runSetSession() {
+	var data = {
+		ajax : 1,
+		pdo : "setsess"		
+	}
+	$.get("sampleMemsAndSession.gl",data,function(data) {
+		alert("Result = "+data);
+	}).fail(function() {
+		alert("Invoke Fail");
+	});
+}	
+</script>
+
+<hr>
+
+</body>
+</html>

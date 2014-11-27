@@ -1,17 +1,20 @@
 package memserv
 
+import "sync"
 import (
-	"boot"
-	"sync"
+	"strings"
 )
 
 type MemoryServ struct {
-	lock sync.RWMutex
-	mgs  map[string]*MemGo
+	name   string
+	config *serviceConfigInfo
+	lock   sync.RWMutex
+	mgs    map[string]*MemGo
 }
 
-func NewMemoryServ() *MemoryServ {
+func NewMemoryServ(n string) *MemoryServ {
 	r := new(MemoryServ)
+	r.name = n
 	r.mgs = make(map[string]*MemGo)
 	return r
 }
@@ -47,6 +50,9 @@ func (this *MemoryServ) GetOrCreate(n string, cfg *MemGoConfig) (*MemGo, bool, e
 	if ok {
 		return m, false, nil
 	}
+	if cfg == nil {
+		cfg = this.GetDefaultConfig(n)
+	}
 	m2, err := this._create(n, cfg)
 	if err != nil {
 		return nil, false, err
@@ -75,7 +81,7 @@ func (this *MemoryServ) Remove(n string) *MemGo {
 	return nil
 }
 
-func (this *MemoryServ) Close(n string) bool {
+func (this *MemoryServ) CloseIt(n string) bool {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	m, ok := this.mgs[n]
@@ -100,11 +106,28 @@ func (this *MemoryServ) CloseAll(wait bool) {
 	}
 }
 
-func (this *MemoryServ) CreateBootService(n string) *boot.BootWrap {
-	r := boot.NewBootWrap(n)
-	r.SetClose(func() bool {
-		this.CloseAll(true)
-		return true
-	})
-	return r
+func (this *MemoryServ) GetDefaultConfig(n string) *MemGoConfig {
+	cfg := this.config
+	ml := 0
+	var mc *MemGoConfig
+	if cfg != nil {
+		for k, c := range cfg.Configs {
+			if k == n {
+				return c
+			}
+			if strings.HasPrefix(n, k) {
+				if len(k) > ml {
+					ml = len(k)
+					mc = c
+				}
+			}
+			if k == "*" && mc == nil {
+				mc = c
+			}
+		}
+	}
+	if mc == nil {
+		return DEFAULT_CONFIG
+	}
+	return mc
 }

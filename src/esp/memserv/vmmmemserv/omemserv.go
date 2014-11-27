@@ -20,25 +20,12 @@ type ObjectMemServ struct {
 	appkeys map[string]bool
 }
 
-func (this *ObjectMemServ) DefaultConfig() *memserv.MemGoConfig {
-	if this.cfg == nil {
-		c := new(memserv.MemGoConfig)
-		c.QSize = 128
-		c.Valid()
-		this.cfg = c
-	}
-	return this.cfg
-}
-
 func (this *ObjectMemServ) Get(vm *golua.VM, key string, cfg *memserv.MemGoConfig) (*memserv.MemGo, error) {
 	typ, n := memserv.SplitTypeName(key)
 	if n == "" {
 		if typ == KEY_APP {
 			key = "app@" + this.gl.GetName()
 		}
-	}
-	if cfg == nil {
-		cfg = this.DefaultConfig()
 	}
 	r, iscreate, err := this.s.GetOrCreate(key, cfg)
 	if err != nil {
@@ -74,7 +61,7 @@ func (this *ObjectMemServ) Close(vm *golua.VM, key string) (bool, error) {
 	if n == "" {
 		return false, fmt.Errorf("can't close '%s'", key)
 	}
-	if this.s.Close(key) {
+	if this.s.CloseIt(key) {
 		this.lock.Lock()
 		delete(this.appkeys, key)
 		this.lock.Unlock()
@@ -89,7 +76,7 @@ func (this *ObjectMemServ) TryClose() bool {
 	defer this.lock.Unlock()
 	for k, _ := range this.appkeys {
 		delete(this.appkeys, k)
-		if this.s.Close(k) {
+		if this.s.CloseIt(k) {
 			r = true
 		}
 	}

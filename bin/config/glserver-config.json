@@ -44,7 +44,7 @@
 			}
 		}
 	},
-	"goluaMux" : {
+	"goluaHttp" : {
 		"App" : [
 			{
 				"Name" : "app1",

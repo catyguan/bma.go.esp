@@ -26,7 +26,7 @@ func TestMemServ(t *testing.T) {
 
 		data := make(map[string]interface{})
 
-		s := memserv.NewMemoryServ()
+		s := memserv.NewMemoryServ("test")
 
 		dirs := []string{"../../../golua/samplecodes/"}
 		sr := new(fileloader.FileFileLoader)

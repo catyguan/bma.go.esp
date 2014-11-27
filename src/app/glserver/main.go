@@ -8,8 +8,9 @@ import (
 	"esp/espnet/mempipeline"
 	"esp/espnet/vmmesnp"
 	"esp/goluaserv"
-	"esp/goluaserv/httpmux4goluaserv"
+	"esp/http4goluaserv"
 	"esp/memserv"
+	"esp/memserv/memserv4httpsession"
 	"esp/memserv/vmmmemserv"
 	"esp/servicecall"
 	"esp/servicecall/vmmservicecall"
@@ -50,14 +51,12 @@ func main() {
 	fl := fileloader.NewService("fileloader")
 	boot.AddService(fl)
 
-	mems := memserv.NewMemoryServ()
-	bwmems := boot.NewBootWrap("mems")
-	bwmems.SetCleanup(func() bool {
-		mems.CloseAll(true)
-		return true
-	})
-	boot.AddService(bwmems)
+	mems := memserv.NewMemoryServ("memServ")
+	boot.AddService(mems)
 	mems.InitSMMAPI("go.memserv")
+
+	sess := memserv4httpsession.NewService("sessionServ", mems)
+	boot.AddService(sess)
 
 	memp := mempipeline.NewService()
 	boot.AddService(memp.CreateBootService("mempipeline"))
@@ -80,7 +79,7 @@ func main() {
 	boot.AddService(scs)
 
 	service := goluaserv.NewService("goluaServ", func(gl *golua.GoLua) {
-		myInitor(gl, acclog, mems, scs)
+		myInitor(gl, acclog, mems, sess, scs)
 	})
 	boot.AddService(service)
 
@@ -89,10 +88,10 @@ func main() {
 	mux4app := http.NewServeMux()
 	mux4app.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir(wd+"/public"))))
 
-	mux4gl := httpmux4goluaserv.NewService("goluaMux", service)
-	mux4gl.SetupAcclog(acclog, "httpserv")
-	mux4gl.InitMux(mux4app, "/")
-	boot.AddService(mux4gl)
+	http4gl := http4goluaserv.NewService("goluaHttp", service)
+	http4gl.SetupAcclog(acclog, "httpserv")
+	http4gl.InitMux(mux4app, "/")
+	boot.AddService(http4gl)
 
 	httpService := httpserver.NewHttpServer("httpPoint", mux4app)
 	boot.AddService(httpService)
@@ -102,14 +101,20 @@ func main() {
 	boot.AddService(smmapis)
 	smmapis.InitMuxInvoke(mux4smm, "/smm.api/invoke")
 
-	rmux4smm := aclmux.NewAclServerMux("http", mux4smm)
+	rmux4smm := aclmux.NewAclServerMux("http", mux4smm, nil)
 	httpServiceSMM := httpserver.NewHttpServer("httpPointSMM", rmux4smm)
 	boot.AddService(httpServiceSMM)
 
 	boot.Go(cfile)
 }
 
-func myInitor(gl *golua.GoLua, acclog *acclog.Service, mems *memserv.MemoryServ, scs *servicecall.Service) {
+func myInitor(
+	gl *golua.GoLua,
+	acclog *acclog.Service,
+	mems *memserv.MemoryServ,
+	sess *memserv4httpsession.Service,
+	scs *servicecall.Service,
+) {
 	golua.InitCoreLibs(gl)
 	vmmhttp.InitGoLuaWithHttpServ(gl)
 	vmmhttp.InitGoLuaWithHttpClient(gl, acclog, "httpclient")
@@ -120,4 +125,5 @@ func myInitor(gl *golua.GoLua, acclog *acclog.Service, mems *memserv.MemoryServ,
 	vmmesnp.InitGoLua(gl)
 	vmmmemserv.InitGoLua(gl, mems)
 	vmmservicecall.InitGoLua(gl, scs)
+	http4goluaserv.InitGoLua(gl, sess)
 }

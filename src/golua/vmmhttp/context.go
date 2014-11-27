@@ -2,6 +2,7 @@ package vmmhttp
 
 import (
 	"context"
+	"golua"
 	"net/http"
 )
 
@@ -16,6 +17,15 @@ func CreateServ(ctx context.Context, w http.ResponseWriter, req *http.Request) c
 	return ctx
 }
 
+func RequestFromVM(vm *golua.VM) *http.Request {
+	ctx := vm.API_getContext()
+	if ctx == nil {
+		return nil
+	}
+	r, _ := RequestFromContext(ctx)
+	return r
+}
+
 func RequestFromContext(ctx context.Context) (*http.Request, bool) {
 	v := ctx.Value(key4req)
 	if v != nil {
@@ -23,6 +33,15 @@ func RequestFromContext(ctx context.Context) (*http.Request, bool) {
 		return r, ok
 	}
 	return nil, false
+}
+
+func ResponseFromVM(vm *golua.VM) http.ResponseWriter {
+	ctx := vm.API_getContext()
+	if ctx == nil {
+		return nil
+	}
+	r, _ := ResponseFromContext(ctx)
+	return r
 }
 
 func ResponseFromContext(ctx context.Context) (http.ResponseWriter, bool) {

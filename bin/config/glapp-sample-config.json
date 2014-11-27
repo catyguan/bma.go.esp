@@ -10,7 +10,7 @@
 			}
 		}
 	},
-	"goluaMux" : {
+	"goluaHttp" : {
 		"App" : [
 			{
 				"Name" : "sample",

@@ -14,10 +14,10 @@ const (
 type MBFuc func(mgi *MemGoI) error
 
 type MemGoConfig struct {
-	QSize         int
-	Max           int
-	ClearStep     int
-	ClearDuration time.Duration
+	QSize     int
+	Max       int
+	ClearStep int
+	ClearMS   int
 }
 
 func (this *MemGoConfig) Valid() error {
@@ -27,10 +27,36 @@ func (this *MemGoConfig) Valid() error {
 	if this.ClearStep <= 0 {
 		this.ClearStep = 100
 	}
-	if this.ClearDuration == 0 {
-		this.ClearDuration = 5 * time.Millisecond
+	if this.ClearMS == 0 {
+		this.ClearMS = 5
 	}
 	return nil
+}
+
+func (this *MemGoConfig) Compare(old *MemGoConfig) bool {
+	if this.QSize != old.QSize {
+		return false
+	}
+	if this.Max != old.Max {
+		return false
+	}
+	if this.ClearStep != old.ClearStep {
+		return false
+	}
+	if this.ClearMS != old.ClearMS {
+		return false
+	}
+	return true
+}
+
+var (
+	DEFAULT_CONFIG *MemGoConfig
+)
+
+func init() {
+	DEFAULT_CONFIG = new(MemGoConfig)
+	DEFAULT_CONFIG.QSize = 128
+	DEFAULT_CONFIG.Valid()
 }
 
 type MemGo struct {
@@ -75,7 +101,7 @@ func (this *MemGo) Start() error {
 	if !this.goo.Run() {
 		return fmt.Errorf("goo run fail")
 	}
-	this.timer = time.NewTicker(this.cfg.ClearDuration)
+	this.timer = time.NewTicker(time.Duration(this.cfg.ClearMS) * time.Millisecond)
 	this.tstop = make(chan bool)
 	go func() {
 		for {

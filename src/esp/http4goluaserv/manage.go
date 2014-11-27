@@ -1,4 +1,4 @@
-package httpmux4goluaserv
+package http4goluaserv
 
 import (
 	"encoding/json"
