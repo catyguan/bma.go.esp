@@ -3,7 +3,6 @@ package fileloader
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 )
@@ -15,7 +14,7 @@ func safeCall() {
 	})
 }
 
-func TestFFLoader(t *testing.T) {
+func T2estFFLoader(t *testing.T) {
 	// tt := "app1/default/../../hello.txt"
 	// fmt.Println(filepath.Clean("/" + tt))
 	// if true {
@@ -29,7 +28,7 @@ func TestFFLoader(t *testing.T) {
 	dirs = append(dirs, "./")
 	cfg["Dirs"] = dirs
 
-	fl, err := CommonFileLoaderFactory.Create(cfg)
+	fl, err := DoCreate(cfg)
 	if err != nil {
 		t.Error(err)
 		return
@@ -44,25 +43,25 @@ func TestFFLoader(t *testing.T) {
 	fmt.Println(string(bs))
 }
 
-func T2estMFLoader(t *testing.T) {
-
-	tt := "../../abcd"
-	fmt.Println(filepath.Abs(tt))
-
-	if true {
-		return
-	}
+func TestCFLoader(t *testing.T) {
 
 	safeCall()
 
-	ff := new(FileFileLoader)
-	ff.Dirs = []string{"./testdir/$F"}
-	SetModuleFileLoader("*", ff)
+	cfg0 := make(map[string]interface{})
+	cfg0["Type"] = "file"
+	cfg0["Dirs"] = "./testdir/$!M$F"
+	ff, err0 := DoCreate(cfg0)
+	if err0 != nil {
+		t.Error(err0)
+		return
+	}
+	DefineFileLoader("fl1", ff)
 
 	cfg := make(map[string]interface{})
-	cfg["Type"] = "m"
+	cfg["Type"] = "c"
+	cfg["FL"] = "fl1"
 
-	fl, err := CommonFileLoaderFactory.Create(cfg)
+	fl, err := DoCreate(cfg)
 	if err != nil {
 		t.Error(err)
 		return
@@ -74,4 +73,5 @@ func T2estMFLoader(t *testing.T) {
 		return
 	}
 	fmt.Println(string(bs))
+	fmt.Println("END")
 }

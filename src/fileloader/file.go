@@ -23,17 +23,25 @@ func (this *FileFileLoader) vfile(script string) (string, error) {
 	n = filepath.Clean("/" + n)[1:]
 	for _, dir := range this.Dirs {
 		fn := dir
-		if strings.Contains(fn, VAR_M) {
-			fn = strings.Replace(fn, VAR_M, module, -1)
-		} else {
-			if module != "" {
-				fn = path.Join(fn, module)
+		if !strings.Contains(fn, VAR_NO_M) {
+			if strings.Contains(fn, VAR_M) {
+				fn = strings.Replace(fn, VAR_M, module, -1)
+			} else {
+				if module != "" {
+					fn = path.Join(fn, module)
+				}
 			}
-		}
-		if strings.Contains(fn, VAR_F) {
-			fn = strings.Replace(fn, VAR_F, n, -1)
 		} else {
-			fn = path.Join(fn, n)
+			fn = strings.Replace(fn, VAR_NO_M, "", -1)
+		}
+		if !strings.Contains(fn, VAR_NO_F) {
+			if strings.Contains(fn, VAR_F) {
+				fn = strings.Replace(fn, VAR_F, n, -1)
+			} else {
+				fn = path.Join(fn, n)
+			}
+		} else {
+			fn = strings.Replace(fn, VAR_NO_F, "", -1)
 		}
 		var err0 error
 		fn, err0 = filepath.Abs(fn)

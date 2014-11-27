@@ -50,7 +50,7 @@ func (this *configInfo) Compare(old *configInfo) int {
 	for k, o := range this.MLoader {
 		oo, ok := old.MLoader[k]
 		if ok {
-			if !commonFileLoaderFactory(0).Compare(o, oo) {
+			if !DoCompare(o, oo) {
 				return boot.CCR_NEED_START
 			}
 		} else {
@@ -94,12 +94,12 @@ func (this *Service) Init(ctx *boot.BootContext) bool {
 }
 
 func (this *Service) _create(k string, mlcfg map[string]interface{}) bool {
-	fl, err := commonFileLoaderFactory(0).Create(mlcfg)
+	fl, err := DoCreate(mlcfg)
 	if err != nil {
 		logger.Error(tag, "FileLoader('%s') create fail - %s", k, err)
 		return false
 	}
-	SetModuleFileLoader(k, fl)
+	DefineFileLoader(k, fl)
 	return true
 }
 
@@ -133,12 +133,12 @@ func (this *Service) GraceStop(ctx *boot.BootContext) bool {
 	for k, o := range this.config.MLoader {
 		if cfg.MLoader != nil {
 			if oo, ok := cfg.MLoader[k]; ok {
-				if commonFileLoaderFactory(0).Compare(o, oo) {
+				if DoCompare(o, oo) {
 					continue
 				}
 			}
 		}
-		RemoveModuleFileLoader(k)
+		UndefineFileLoader(k)
 	}
 	return true
 }
@@ -154,7 +154,7 @@ func (this *Service) Close() bool {
 func (this *Service) Cleanup() bool {
 	if this.config != nil {
 		for k, _ := range this.config.MLoader {
-			RemoveModuleFileLoader(k)
+			UndefineFileLoader(k)
 		}
 	}
 	return true
