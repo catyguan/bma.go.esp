@@ -1,0 +1,83 @@
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Testcase Sample</title>
+<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+</head>
+<body>
+<h1>Testcase范例说明</h1>
+
+<h2>相关文件</h2>
+<pre style="background-color: #EFEFEF">
+golua.src/app.sample/httpmain.lua
+golua.src/gz.tcs.lua
+golua.src/go.memserv/testcase/suite.tcs.lua
+golua.src/go.memserv/testcase/Base.tc.lua
+</pre>
+
+
+<h2>启用测试用例运行应用</h2>
+调度脚本 httpmain.lua
+<pre style="background-color: #EFEFEF">
+if dir=="testcase" then
+	m = "glf.testing"	
+	script = fname
+end
+</pre>
+
+<h2>定义测试用例套</h2>
+编写Testcase Suite(*.tcs.lua)文件
+<pre style="background-color: #EFEFEF">
+local r = TCS
+if r==nil then r = [] end
+table.insert(r, {
+	Script = "go.memserv:testcase/Base",
+	Title = "go.memserv base TC",
+	Help = "基础功能"
+})
+return r
+</pre>
+聚合
+<pre style="background-color: #EFEFEF">
+local r = []
+go.exec("glf.mvc:testcase/suite.tcs.lua", {TCS=r})
+go.exec("go.memserv:testcase/suite.tcs.lua", {TCS=r})
+return r
+</pre>
+
+<h2>定义测试用例</h2>
+编写Testcase(*.tc.lua)文件<br><br>
+
+编写测试用例方法
+<pre style="background-color: #EFEFEF">
+local TC = {}
+function TC.testServBase(T, params)
+	local n,key,val,act
+	n = types.string(params, "n", "")
+	T.w("param n=%v", n)
+	...
+end
+return TC
+</pre>
+
+定义测试用例方法的协助信息（后续会改为注解模式）
+<pre style="background-color: #EFEFEF">
+TC.helpServBase = {
+	Params = [
+		{
+			Name="n",
+			Title="MemGo Name",
+			Value="app"
+		}
+	]
+}
+</pre>
+
+<h3>打开测试用例界面</h3>
+<pre style="background-color: #EFEFEF">
+http://xxxxxx/APP/testcase/
+</pre>
+<hr>
+
+</body>
+</html>

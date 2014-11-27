@@ -29,4 +29,4 @@ if ajax==1 then
 	end
 end
 
-httpserv.render("_:http/sampleServiceCall.view.html",{})
+httpserv.render("_:http/sampleServiceCall.view.htm",{})

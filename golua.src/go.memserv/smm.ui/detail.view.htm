@@ -1,0 +1,116 @@
+<html>
+<head>
+<meta charset="utf-8" />
+<title>SMM.UI - 节点[<?=node.name?>]的MemServ信息</title>
+<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+</head>
+<body>
+节点[<?=node.name?>]的MemServ信息 [<a href="#" onclick="loadMemGo();return false;">刷新</a>|<a href="node.gl?id=<?=nodeId?>">返回节点</a>]
+<hr>
+<?golua
+httpserv.render("smm.ui:http/js4node.view.htm",{})
+?>
+
+<table width="100%">
+	<tr width="100%">
+		<td width="49%" valign="top">
+			<table border="1" id="tbMemGo" width="100%">
+				<tr>
+					<td>容器名称</td>
+					<td>数据项</td>
+					<td>内存大小</td>
+					<td>操作</td>
+				</tr>
+			</table>
+		</td>
+		<td width="49%" valign="top">
+			容器名称:<span id="divName"></span><br>
+			过滤:<input type="text" size=40 id="txtFilter" value=""><br>
+			起始:<input type="text" size=6 id="txtStart" value="0">
+			条数:<input type="text" size=6 id="txtCount" value="100">
+			<input type="button" value="查询" onclick="doDump()">
+			<table border="1" id="tbValues" width="100%">
+				<tr>
+					<td>键</td>
+					<td>数据</td>
+					<td>操作</td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+</table>
+
+<script>
+function openMemGo(n) {	
+	$("#divName").text(n)	
+	doDump()
+}
+function deleteKey(k) {
+	var n = $('#divName').text()
+	if(n=="") {
+		return
+	}
+	if(!confirm("确实删除?")) {
+		return
+	}
+	var params = {
+		"name" : n,
+		"key" : k
+	}
+	doNodeAction(null,'memserv.delete',params,function(data) {		
+		alert(data.Result);
+	})
+}
+function doDump() {
+	var n = $('#divName').text()
+	if(n=="") {
+		return
+	}
+	$("#tbValues tr:gt(0)").each(function(idx, o) {		
+		o.remove();
+	})
+	var params = {
+		"name":n,
+		"filter":$("#txtFilter").val(),
+		"start":$("#txtStart").val(),
+		"count":$("#txtCount").val()
+	}
+	doNodeAction(null,'memserv.dump',params,function(data) {		
+		if(data.Result.Message) {
+			alert(data.Result.Message);
+		}
+		res = data.Result.Data;
+		if (res) {
+			for(var i=res.length-1;i>=0;i--) {			
+				var o = res[i];
+				var str = "";
+				str += "<tr>";
+				str += "<td>"+o.Key+"</td>";
+				str += "<td>"+o.Value+"</td>";
+				str += "<td><input type=button value='删除' onclick=\"deleteKey('"+o.Key+"')\"></td></tr>"
+				$(str).insertAfter($("#tbValues tr:eq(0)"));
+			}
+		}
+	})	
+}
+function loadMemGo() {
+	doNodeAction(null,'memserv.list',null,function(data) {
+		$("#tbMemGo tr:gt(0)").each(function(idx, o) {				
+			o.remove();
+		})
+		for(var i=data.Result.length-1;i>=0;i--) {			
+			var o = data.Result[i];
+			var str = "";
+			str += "<tr>";
+			str += "<td>"+o.Name+"</td>";
+			str += "<td>"+o.Count+"</td>";
+			str += "<td>"+o.Size+"</td>";
+			str += "<td><input type=button value='打开' onclick=\"openMemGo('"+o.Name+"')\"></td></tr>"
+			$(str).insertAfter($("#tbMemGo tr:eq(0)"));
+		}
+	})	
+}
+loadMemGo()
+</script>
+</body>
+</html>

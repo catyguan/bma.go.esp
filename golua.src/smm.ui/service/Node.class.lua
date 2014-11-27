@@ -42,7 +42,7 @@ function Class.httpInvoke(nodeInfo, param)
 	req.Data = data
 
 	local resp = httpclient.exec(req)
-	print("here", resp)
+	-- print("here", resp)
 	local co = resp.Content
 	if co==nil then co = "null" end
 	if resp.Status~=200 then		

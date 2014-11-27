@@ -17,4 +17,4 @@ if ajax==1 then
 	end
 end
 
-httpserv.render("_:http/sampleDb.view.html",{})
+httpserv.render("_:http/sampleDb.view.htm",{})

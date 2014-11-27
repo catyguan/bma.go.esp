@@ -1,1 +1,1 @@
-httpserv.render("_:http/index.view.html",{})
+httpserv.render("_:http/index.view.htm",{})

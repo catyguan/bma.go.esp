@@ -176,7 +176,7 @@ func (this *Service) Close() bool {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 	for k, _ := range this.dbs {
-		fmt.Println("here", 4)
+		// fmt.Println("here", 4)
 		this._remove(k)
 	}
 	return true

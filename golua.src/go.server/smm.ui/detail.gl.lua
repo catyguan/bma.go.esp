@@ -1,1 +1,1 @@
-httpserv.render("_:detail.view.htm",{node=node, nodeId=nodeId, actionId=aid, id=id})
+httpserv.render("_:detail.view.html",{node=node, nodeId=nodeId, actionId=aid, id=id})

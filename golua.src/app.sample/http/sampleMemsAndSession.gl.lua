@@ -35,4 +35,4 @@ if ajax==1 then
 	end
 end
 
-httpserv.render("_:http/sampleMemsAndSession.view.html",{})
+httpserv.render("_:http/sampleMemsAndSession.view.htm",{})
