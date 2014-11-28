@@ -73,7 +73,7 @@ func (this cFileLoader) Check(script string) (uint64, error) {
 type cflConfig struct {
 	Deny   []string
 	Accept []string
-	FL     []string
+	FL     []interface{}
 }
 
 type cFileLoaderFactory int
@@ -133,9 +133,29 @@ func (this cFileLoaderFactory) Compare(cfg map[string]interface{}, old map[strin
 		if len(co.FL) != len(oo.FL) {
 			return false
 		}
-		for i, s := range oo.FL {
-			if oo.FL[i] != s {
-				return false
+		for i, v := range co.FL {
+			switch rv := v.(type) {
+			case string:
+				v2 := oo.FL[i]
+				if rv2, ok := v2.(string); ok {
+					if rv2 != rv {
+						return false
+					}
+				} else {
+					return false
+				}
+			case map[string]interface{}:
+				v2 := oo.FL[i]
+				if rv2, ok := v2.(map[string]interface{}); ok {
+					if len(rv2) != len(rv) {
+						return false
+					}
+					if !DoCompare(rv, rv2) {
+						return false
+					}
+				} else {
+					return false
+				}
 			}
 		}
 	}
@@ -154,12 +174,21 @@ func (this cFileLoaderFactory) Create(cfg map[string]interface{}) (FileLoader, e
 	r.deny = co.Deny
 	r.accept = co.Accept
 	r.loader = make([]FileLoader, 0)
-	for _, n := range co.FL {
-		fl := GetDefinedFileLoader(n)
-		if fl == nil {
-			return nil, fmt.Errorf("DefinedFileLoader('%s') miss", n)
+	for _, v := range co.FL {
+		switch rv := v.(type) {
+		case string:
+			fl := GetDefinedFileLoader(rv)
+			if fl == nil {
+				return nil, fmt.Errorf("DefinedFileLoader('%s') miss", rv)
+			}
+			r.loader = append(r.loader, fl)
+		case map[string]interface{}:
+			fl, err := DoCreate(rv)
+			if err != nil {
+				return nil, err
+			}
+			r.loader = append(r.loader, fl)
 		}
-		r.loader = append(r.loader, fl)
 	}
 	return r, nil
 }

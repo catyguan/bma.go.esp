@@ -46,12 +46,16 @@ func TestP1(t *testing.T) {
 		return
 	}
 	p := NewParser("test", content)
-	node, err := p.Parse()
+	node, anno, err := p.Parse()
 	if err != nil {
 		fmt.Println(content)
 		t.Error(err)
 		return
 	}
 	fmt.Println("------------NODE---------------")
+	if anno != nil {
+		fmt.Println(anno)
+		fmt.Println("------------NODE---------------")
+	}
 	fmt.Println(DumpNode("", node))
 }

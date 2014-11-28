@@ -13,6 +13,7 @@ golua.src/app.sample/httpmain.lua
 golua.src/gz.tcs.lua
 golua.src/go.memserv/testcase/suite.tcs.lua
 golua.src/go.memserv/testcase/Base.tc.lua
+golua.src/glf.mvc/testcase/Sample.tc.lua
 </pre>
 
 
@@ -60,17 +61,16 @@ end
 return TC
 </pre>
 
-定义测试用例方法的协助信息（后续会改为注解模式）
+注解测试用例方法的协助信息
 <pre style="background-color: #EFEFEF">
-TC.helpServBase = {
-	Params = [
-		{
-			Name="n",
-			Title="MemGo Name",
-			Value="app"
-		}
-	]
-}
+--[[@title:加法]]
+--[[@help:测试加法实现]]
+--[[@desc:
+传入参数a, b
+算出a + b结果
+]]
+--[[@params:{"Name":"a"}]]
+--[[@params:{"Name":"b","Title":"B", "Value":2}]]
 </pre>
 
 <h3>打开测试用例界面</h3>

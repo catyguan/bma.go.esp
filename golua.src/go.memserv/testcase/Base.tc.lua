@@ -1,29 +1,9 @@
 local TC = {}
 
-TC.helpServBase = {
-	Params = [
-		{
-			Name="n",
-			Title="MemGo Name",
-			Value="app"
-		},
-		{
-			Name="key",
-			Title="Key Name",
-			Value="key1"
-		},
-		{
-			Name="val",
-			Title="Value",
-			Value="world"
-		},
-		{
-			Name="act",
-			Title="Get(1) Set(2) Remove(3)",
-			Value="1"
-		}
-	]
-}
+--[[@params:{"Name":"n", "Title":"MemGo Name", "Value":"app"}]]
+--[[@params:{"Name":"key", "Title":"Key Name", "Value":"key1"}]]
+--[[@params:{"Name":"val", "Title":"Value", "Value":"world"}]]
+--[[@params:{"Name":"act", "Title":"Get(1) Set(2) Remove(3)", "Value":"1"}]]
 function TC.testServBase(T, params)
 	local n,key,val,act
 	n = types.string(params, "n", "")

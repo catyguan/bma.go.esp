@@ -314,7 +314,7 @@ func (this *VM) API_push(v interface{}) {
 	pos := st.stackBegin + st.stackTop
 	if v != nil {
 		if a, ok := v.([]interface{}); ok {
-			v = this.API_newarray(a)
+			v = NewVMArray(a)
 		}
 	}
 	if pos < len(this.sdata) {

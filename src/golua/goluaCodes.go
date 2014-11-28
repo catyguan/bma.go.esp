@@ -80,14 +80,14 @@ func (this *GoLua) compile(script string, save bool, spp ScriptPreprocess) (*Chu
 	}
 
 	p := goyacc.NewParser(script, content)
-	node, err2 := p.Parse()
+	node, anno, err2 := p.Parse()
 	if err2 != nil {
 		err0 := fmt.Errorf("compile '%s' fail - %s", script, err2)
 		logger.Debug(tag, "%s: %s", this, err0)
 		return nil, err0
 	}
 	logger.Debug(tag, "%s: compile('%s') done", this, script)
-	r := NewChunk(script, node)
+	r := NewChunk(script, node, anno)
 
 	if save {
 		if this.DevMode {

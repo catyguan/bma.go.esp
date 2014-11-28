@@ -210,6 +210,11 @@ func bindFuncName(yylex yyLexer, fval *yySymType, n *yySymType, ns string) {
 	}
 	fnode := fval.value.(*NodeFunc)
 	fnode.Name = ns
+	p := yylex.(*Parser)
+	if len(p.annotations) > 0 {
+		fnode.Annotation = p.annotations
+		p.annotations = nil
+	}
 }
 
 func opFunc(yylex yyLexer, lval *yySymType, par *yySymType, block *yySymType) {
@@ -544,6 +549,33 @@ func endChunk(yylex yyLexer, lval *yySymType) {
 	}
 	p := yylex.(*Parser)
 	p.chunk = n
+}
+
+func defineAnnotation(yylex yyLexer, lval *yySymType) {
+	if yyDebug >= 2 {
+		fmt.Println("defineAnnotation", lval.token.image)
+	}
+	str := lval.token.image
+	doc := false
+	if strings.HasPrefix(str, "doc") {
+		doc = true
+		str = str[3:]
+	}
+	a := new(Annotation)
+	idx := strings.Index(str, ":")
+	if idx == -1 {
+		a.Name = ""
+		a.Value = strings.TrimSpace(str)
+	} else {
+		a.Name = str[:idx]
+		a.Value = strings.TrimSpace(str[idx+1:])
+	}
+	p := yylex.(*Parser)
+	if doc {
+		p.docAnnotation = append(p.docAnnotation, a)
+	} else {
+		p.annotations = append(p.annotations, a)
+	}
 }
 
 func walk(node Node, f func(n Node) bool) bool {

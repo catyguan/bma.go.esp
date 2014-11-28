@@ -1,10 +1,9 @@
---[[
-abcd
-]]
-local s = [[
-line1
-line2
-]]
+--[[@doc title: abcd]]
+--[[@doc help: paasd]]
+-- local s = [[
+-- line1
+-- line2
+-- ]]
 -- local v1 = 100
 -- local v2 = 1+2*3+v1
 -- print("helloWorld = ", v1, v2)
@@ -59,6 +58,8 @@ obj.p("hello world")
 -- end
 -- vr = f1(1, 2)
 local o = {}
+--[[@title:这是注解]]
+--[[@param:a,{aaa,xxx,yyy}]]
 function o.f2(a,b)
 	print(self, a, b)
 end

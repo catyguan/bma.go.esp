@@ -7,11 +7,13 @@ import (
 )
 
 type Parser struct {
-	name         string
-	stream       *Stream
-	lastl, lastc int
-	err          error
-	chunk        Node
+	name          string
+	stream        *Stream
+	lastl, lastc  int
+	err           error
+	chunk         Node
+	docAnnotation Annotations
+	annotations   Annotations
 }
 
 func NewParser(n string, str string) *Parser {
@@ -40,13 +42,13 @@ func (this *Parser) Error(e string) {
 	this.Error3(e, l, c)
 }
 
-func (this *Parser) Parse() (Node, error) {
+func (this *Parser) Parse() (Node, Annotations, error) {
 	yyParse(this)
 	if this.err != nil {
-		return nil, this.err
+		return nil, nil, this.err
 	}
 	execOptimize(this.chunk)
-	return this.chunk, nil
+	return this.chunk, this.docAnnotation, nil
 }
 
 //////////////////////////////////////////////////
@@ -89,17 +91,17 @@ func (this *Parser) fillToken(lval *yySymType, k, p int) int {
 	return k
 }
 
-func (this *Parser) firstChar() (rune, int) {
+func (this *Parser) firstChar() (rune, int, string) {
 	ch, sp := this.stream.readChar()
 	if ch == 0 {
-		return ch, sp
+		return ch, sp, ""
 	}
 	if unicode.IsSpace(ch) {
 		for unicode.IsSpace(ch) {
 			ch, sp = this.stream.readChar()
 		}
 		this.stream.backup(1)
-		return 0, -1
+		return 0, -1, ""
 	}
 	// if ch == '/' {
 	// 	c2, _ := this.stream.readChar()
@@ -116,17 +118,22 @@ func (this *Parser) firstChar() (rune, int) {
 		if this.stream.checkNext('-') {
 			if this.stream.checkNext('[') {
 				if this.stream.checkNext('[') {
-					this.stream.skip2(']', ']')
-					return 0, -1
+					if this.stream.checkNext('@') {
+						str := this.stream.keepSkip2(']', ']')
+						return 0, -1, str
+					} else {
+						this.stream.skip2(']', ']')
+						return 0, -1, ""
+					}
 				} else {
 					this.stream.backup(1)
 				}
 			}
 			this.stream.skip1('\n')
-			return 0, -1
+			return 0, -1, ""
 		}
 	}
-	return ch, sp
+	return ch, sp, ""
 }
 
 func (this *Parser) Lex(lval *yySymType) int {
@@ -187,9 +194,14 @@ func (this *Parser) putstr(buf *bytes.Buffer, c1 rune) {
 }
 
 func (this *Parser) lex(lval *yySymType) int {
-	ch, sp := this.firstChar()
+	ch, sp, anno := this.firstChar()
 	for sp < 0 {
-		ch, sp = this.firstChar()
+		if anno != "" {
+			this.fillToken(lval, ANNOTATION, this.stream.bufpos)
+			lval.token.image = anno
+			return ANNOTATION
+		}
+		ch, sp, anno = this.firstChar()
 	}
 	if unicode.IsDigit(ch) {
 		dot := false

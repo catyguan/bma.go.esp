@@ -220,14 +220,15 @@ func (this *NodeLocal) GetNumChildren() int {
 // NodeFunc
 type NodeFunc struct {
 	baseNode
-	Name   string
-	Params []string
-	CVars  []string
-	Block  Node
+	Name       string
+	Params     []string
+	CVars      []string
+	Block      Node
+	Annotation Annotations
 }
 
 func (this *NodeFunc) String() string {
-	return fmt.Sprintf("func(%v, %v, %v)", this.Name, this.Params, this.CVars)
+	return fmt.Sprintf("func(%v, %v, %v, %s)", this.Name, this.Params, this.CVars, this.Annotation)
 }
 
 func (this *NodeFunc) GetChild(i int) Node {

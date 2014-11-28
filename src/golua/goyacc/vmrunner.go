@@ -34,6 +34,8 @@ func ExecNumberType(val interface{}) NumberType {
 		return 64
 	case int8, uint8, int16, uint16, int32, uint32, int, uint:
 		return 32
+	case string:
+		return 1
 	default:
 		return 0
 	}
@@ -157,6 +159,11 @@ func ExecOp2(op OP, val1 interface{}, val2 interface{}) (bool, interface{}, erro
 		case 64:
 			return true, nt.ToInt64(val1) < nt.ToInt64(val2), nil
 		default:
+			if nt1 == 1 && nt2 == 1 {
+				s1 := val1.(string)
+				s2 := val2.(string)
+				return true, s1 < s2, nil
+			}
 			return false, nil, fmt.Errorf("invalid %v < %v", val1, val2)
 		}
 	case OP_LTEQ:
@@ -168,6 +175,11 @@ func ExecOp2(op OP, val1 interface{}, val2 interface{}) (bool, interface{}, erro
 		case 64:
 			return true, nt.ToInt64(val1) <= nt.ToInt64(val2), nil
 		default:
+			if nt1 == 1 && nt2 == 1 {
+				s1 := val1.(string)
+				s2 := val2.(string)
+				return true, s1 <= s2, nil
+			}
 			return false, nil, fmt.Errorf("invalid %v <= %v", val1, val2)
 		}
 	case OP_GT:
@@ -179,6 +191,11 @@ func ExecOp2(op OP, val1 interface{}, val2 interface{}) (bool, interface{}, erro
 		case 64:
 			return true, nt.ToInt64(val1) > nt.ToInt64(val2), nil
 		default:
+			if nt1 == 1 && nt2 == 1 {
+				s1 := val1.(string)
+				s2 := val2.(string)
+				return true, s1 > s2, nil
+			}
 			return false, nil, fmt.Errorf("invalid %v > %v", val1, val2)
 		}
 	case OP_GTEQ:
@@ -190,6 +207,11 @@ func ExecOp2(op OP, val1 interface{}, val2 interface{}) (bool, interface{}, erro
 		case 64:
 			return true, nt.ToInt64(val1) >= nt.ToInt64(val2), nil
 		default:
+			if nt1 == 1 && nt2 == 1 {
+				s1 := val1.(string)
+				s2 := val2.(string)
+				return true, s1 >= s2, nil
+			}
 			return false, nil, fmt.Errorf("invalid %v >= %v", val1, val2)
 		}
 	case OP_EQ, OP_NOTEQ:

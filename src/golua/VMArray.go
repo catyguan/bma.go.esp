@@ -113,7 +113,7 @@ func (this *VM) API_toSlice(v interface{}) []interface{} {
 	return nil
 }
 
-func (this *VM) API_newarray(ds []interface{}) VMArray {
+func (this *VM) API_newarray() VMArray {
 	r := new(CommonVMArray)
 	r.data = make([]interface{}, 0)
 	return r

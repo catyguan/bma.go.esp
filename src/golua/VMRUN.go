@@ -12,13 +12,19 @@ type ChunkCode struct {
 	name  string
 	node  goyacc.Node
 	mtime uint64
+	anno  goyacc.Annotations
 }
 
-func NewChunk(name string, node goyacc.Node) *ChunkCode {
+func NewChunk(name string, node goyacc.Node, anno goyacc.Annotations) *ChunkCode {
 	r := new(ChunkCode)
 	r.name = name
 	r.node = node
+	r.anno = anno
 	return r
+}
+
+func (this *ChunkCode) Annotation() goyacc.Annotations {
+	return this.anno
 }
 
 func (this *ChunkCode) Exec(vm *VM, self interface{}) (int, error) {

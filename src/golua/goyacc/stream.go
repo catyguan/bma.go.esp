@@ -1,5 +1,9 @@
 package goyacc
 
+import (
+	"bytes"
+)
+
 type Stream struct {
 	bufpos    int
 	bufsize   int
@@ -113,9 +117,28 @@ func (this *Stream) skip2(c1 rune, c2 rune) {
 			if c0 == c2 {
 				return
 			}
-			this.backup(2)
+			this.backup(1)
 		}
 	}
+}
+
+func (this *Stream) keepSkip2(c1 rune, c2 rune) string {
+	buf := bytes.NewBuffer([]byte{})
+	for {
+		ch, _ := this.readChar()
+		if ch == 0 {
+			break
+		}
+		if ch == c1 {
+			c0, _ := this.readChar()
+			if c0 == c2 {
+				break
+			}
+			this.backup(1)
+		}
+		buf.WriteRune(ch)
+	}
+	return buf.String()
 }
 
 func (this *Stream) getColumn() int {

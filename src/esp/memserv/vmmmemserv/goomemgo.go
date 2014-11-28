@@ -136,7 +136,7 @@ func (gooMemGo) Get(vm *golua.VM, o interface{}, key string) (interface{}, error
 					}
 					return 0, nil
 				case "do":
-					ra := vm.API_newarray(make([]interface{}, 0))
+					ra := vm.API_newarray()
 					vcount := valutil.ToInt(count, 10)
 					isEnd, err2 := obj.Scan(vn, vcount, func(k string, v interface{}) {
 						m := make(map[string]interface{})

@@ -38,6 +38,8 @@ package goyacc
 %token MORE
 %token STRADD
 
+%token ANNOTATION
+
 %left  OR
 %left  AND
 %left  '<' SLTEQ '>' SGTEQ SEQ SNOTEQ
@@ -65,6 +67,7 @@ StatList:
 
 Stat:
 	Binding
+	| ANNOTATION { defineAnnotation(yylex, &$$) }
 	| DO Block END { $$ = $2 }
 	| WHILE Exp DO Block END { op2(yylex, &$$, OP_WHILE, &$2, &$4) }
 	| Repetition DO Block END { opForBind(yylex, &$$, &$1, &$3) }

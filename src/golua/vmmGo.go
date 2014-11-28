@@ -3,6 +3,7 @@ package golua
 import (
 	"bmautil/valutil"
 	"fmt"
+	"golua/goyacc"
 	"logger"
 	"reflect"
 	"runtime"
@@ -34,6 +35,10 @@ func GoModule() *VMModule {
 	m.Init("yield", GOF_go_yield(0))
 	m.Init("lookup", GOF_go_lookup(0))
 	m.Init("breakpoint", GOF_go_breakpoint(0))
+	m.Init("annoHas", GOF_go_annoHas(0))
+	m.Init("annoGet", GOF_go_annoGet(0))
+	m.Init("annoList", GOF_go_annoList(0))
+	m.Init("annoAll", GOF_go_annoAll(0))
 	return m
 }
 
@@ -820,4 +825,167 @@ func (this GOF_go_breakpoint) IsNative() bool {
 
 func (this GOF_go_breakpoint) String() string {
 	return "GoFunc<go.breakpoint>"
+}
+
+func annotations(vm *VM, o interface{}) (goyacc.Annotations, error) {
+	if o != nil {
+		if n, ok := o.(string); ok {
+			gl := vm.GetGoLua()
+			cc, err := gl.ChunkLoad(vm, n, true, nil)
+			if err != nil {
+				return nil, err
+			}
+			return cc.anno, nil
+		}
+		if f, ok := o.(*VMFunc); ok {
+			return f.node.Annotation, nil
+		}
+	}
+	return nil, fmt.Errorf("unknow Annotations(%T)", o)
+}
+
+// go.annoHas(o, n) bool
+type GOF_go_annoHas int
+
+func (this GOF_go_annoHas) Exec(vm *VM, self interface{}) (int, error) {
+	err0 := vm.API_checkStack(2)
+	if err0 != nil {
+		return 0, err0
+	}
+	o, n, err1 := vm.API_pop2X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	ann, err2 := annotations(vm, o)
+	if err2 != nil {
+		return 0, err2
+	}
+	if ann == nil {
+		vm.API_push(false)
+		return 1, nil
+	}
+	vn := valutil.ToString(n, "")
+	vm.API_push(ann.Has(vn))
+	return 1, nil
+}
+
+func (this GOF_go_annoHas) IsNative() bool {
+	return true
+}
+
+func (this GOF_go_annoHas) String() string {
+	return "GoFunc<go.annoHas>"
+}
+
+// go.annoGet(o, n) string
+type GOF_go_annoGet int
+
+func (this GOF_go_annoGet) Exec(vm *VM, self interface{}) (int, error) {
+	err0 := vm.API_checkStack(2)
+	if err0 != nil {
+		return 0, err0
+	}
+	o, n, err1 := vm.API_pop2X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	ann, err2 := annotations(vm, o)
+	if err2 != nil {
+		return 0, err2
+	}
+	if ann == nil {
+		vm.API_push("")
+		return 1, nil
+	}
+	vn := valutil.ToString(n, "")
+	vm.API_push(ann.Get(vn))
+	return 1, nil
+}
+
+func (this GOF_go_annoGet) IsNative() bool {
+	return true
+}
+
+func (this GOF_go_annoGet) String() string {
+	return "GoFunc<go.annoGet>"
+}
+
+// go.annoList(o, n) []string
+type GOF_go_annoList int
+
+func (this GOF_go_annoList) Exec(vm *VM, self interface{}) (int, error) {
+	err0 := vm.API_checkStack(2)
+	if err0 != nil {
+		return 0, err0
+	}
+	o, n, err1 := vm.API_pop2X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	ann, err2 := annotations(vm, o)
+	if err2 != nil {
+		return 0, err2
+	}
+	vn := valutil.ToString(n, "")
+	r := make([]interface{}, 0)
+	if ann != nil {
+		for _, s := range ann.List(vn) {
+			r = append(r, s)
+		}
+	}
+	vm.API_push(r)
+	return 1, nil
+}
+
+func (this GOF_go_annoList) IsNative() bool {
+	return true
+}
+
+func (this GOF_go_annoList) String() string {
+	return "GoFunc<go.annoList>"
+}
+
+// go.annoAll(o) bool
+type GOF_go_annoAll int
+
+func (this GOF_go_annoAll) Exec(vm *VM, self interface{}) (int, error) {
+	err0 := vm.API_checkStack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	o, err1 := vm.API_pop1X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	ann, err2 := annotations(vm, o)
+	if err2 != nil {
+		return 0, err2
+	}
+	r := make(map[string]interface{})
+	if ann != nil {
+		for _, a := range ann {
+			if v, ok := r[a.Name]; ok {
+				if s, ok2 := v.(string); ok2 {
+					arr := NewVMArray(nil)
+					arr.Add(vm, s)
+					arr.Add(vm, a.Value)
+				} else {
+					arr := v.(VMArray)
+					arr.Add(vm, a.Value)
+				}
+			} else {
+				r[a.Name] = a.Value
+			}
+		}
+	}
+	vm.API_push(r)
+	return 1, nil
+}
+
+func (this GOF_go_annoAll) IsNative() bool {
+	return true
+}
+
+func (this GOF_go_annoAll) String() string {
+	return "GoFunc<go.annoAll>"
 }
