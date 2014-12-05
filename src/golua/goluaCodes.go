@@ -121,6 +121,10 @@ func (this *GoLua) getChunkCode(script string) *ChunkCode {
 }
 
 func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
+	return this.DoExecute(ctx, nil)
+}
+
+func (this *GoLua) DoExecute(ctx context.Context, locals map[string]interface{}) (interface{}, error) {
 	req, ok := RequestFromContext(ctx)
 	if !ok {
 		return nil, fmt.Errorf("nil request")
@@ -142,10 +146,16 @@ func (this *GoLua) Execute(ctx context.Context) (interface{}, error) {
 	}
 
 	// build up env
-	locals := make(map[string]interface{})
+	if locals == nil {
+		locals = make(map[string]interface{})
+	}
 	locals[KEY_OBJECT_CONTEXT] = ctx
-	locals[KEY_CONTEXT] = req.Context
-	locals[KEY_REQUEST] = req.Data
+	if req.Context != nil {
+		locals[KEY_CONTEXT] = req.Context
+	}
+	if req.Data != nil {
+		locals[KEY_REQUEST] = req.Data
+	}
 
 	vm, err3 := this.GetVM()
 	if err3 != nil {

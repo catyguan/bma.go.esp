@@ -48,7 +48,8 @@ func (this *ThriftServer) Name() string {
 
 func (this *ThriftServer) Init() bool {
 	cfg := configInfo{}
-	if config.GetBeanConfig(this.name, &cfg) {
+	co := config.Global
+	if co.GetBeanConfig(this.name, &cfg) {
 		if cfg.Disable {
 			this.disable = cfg.Disable
 			logger.Debug(tag, "'%s' disable", this.name)

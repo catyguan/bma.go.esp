@@ -1,0 +1,48 @@
+{
+	"global" : {
+		"Debug" : true,
+		"DevMode" : true,
+		"GOMAXPROCS" : 5
+	},
+	"goluaServ" : {
+		"GoLua" : {
+			"servproxy" : {
+				"FL" : {
+					"Type" : "file",
+					"Dirs" : ["${CWD}"]
+				}
+			}
+		}
+	},
+	"test" : {
+		"Ports" : {
+			"thrift1080" : {
+				"Port" : 1080,
+				"Type" : "thrift",
+				"GoLua" : "servproxy",
+				"Script" : "test.lua"
+			}
+		},
+		"Targets" : {
+			"thrfit_test" : {
+				"Type" : "thrift",
+				"Remotes" : [
+					{
+						"Host" : "127.0.0.1:12345"
+					}
+				]
+			},
+			"opendao" : {
+				"Type" : "thrift",
+				"Remotes" : [
+					{
+						"Host" : "111.178.146.10:8090",
+						"Params" : {
+							"PoolInit" : 0
+						}
+					}
+				]
+			}
+		}
+	}
+}
