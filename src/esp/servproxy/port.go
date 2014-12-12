@@ -11,13 +11,13 @@ import (
 type PortObj struct {
 	s        *Service
 	name     string
-	handler  ProxyHandler
+	handler  PortHandler
 	cfg      *PortConfigInfo
 	listener net.Listener
 	closed   uint32
 }
 
-func NewPortObj(s *Service, n string, cfg *PortConfigInfo, h ProxyHandler) *PortObj {
+func NewPortObj(s *Service, n string, cfg *PortConfigInfo, h PortHandler) *PortObj {
 	r := new(PortObj)
 	r.s = s
 	r.name = n

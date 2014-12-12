@@ -6,11 +6,11 @@ type TargetObj struct {
 	s       *Service
 	name    string
 	cfg     *TargetConfigInfo
-	handler ProxyHandler
+	handler RemoteHandler
 	remotes []*RemoteObj
 }
 
-func NewTargetObj(s *Service, n string, cfg *TargetConfigInfo, h ProxyHandler) *TargetObj {
+func NewTargetObj(s *Service, n string, cfg *TargetConfigInfo, h RemoteHandler) *TargetObj {
 	r := new(TargetObj)
 	r.s = s
 	r.name = n

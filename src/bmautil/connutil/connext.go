@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type ConnDebuger func(b []byte, read bool)
+type ConnDebuger func(conn net.Conn, b []byte, read bool)
 
 type ConnExt struct {
 	Debuger ConnDebuger
@@ -69,7 +69,7 @@ func (this *ConnExt) Read(b []byte) (n int, err error) {
 		n, err = this.conn.Read(b)
 	}
 	if n > 0 && this.Debuger != nil {
-		this.Debuger(b[:n], true)
+		this.Debuger(this.conn, b[:n], true)
 	}
 	return n, err
 }
@@ -77,7 +77,7 @@ func (this *ConnExt) Read(b []byte) (n int, err error) {
 func (this *ConnExt) Write(b []byte) (n int, err error) {
 	n, err = this.conn.Write(b)
 	if n > 0 && this.Debuger != nil {
-		this.Debuger(b[:n], false)
+		this.Debuger(this.conn, b[:n], false)
 	}
 	return n, err
 }

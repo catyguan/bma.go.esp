@@ -30,7 +30,7 @@ func (this *PortConfigInfo) Valid() error {
 	if this.Type == "" {
 		return fmt.Errorf("Type invalid")
 	}
-	_, err := AssertProxyHandler(this.Type)
+	_, err := AssertPortHandler(this.Type)
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func (this *TargetConfigInfo) Valid() error {
 	if this.Type == "" {
 		return fmt.Errorf("Type empty")
 	}
-	h, err := AssertProxyHandler(this.Type)
+	h, err := AssertRemoteHandler(this.Type)
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func (this *TargetConfigInfo) Compare(old *TargetConfigInfo) bool {
 	if this.Type != old.Type {
 		return false
 	}
-	h, err := AssertProxyHandler(this.Type)
+	h, err := AssertRemoteHandler(this.Type)
 	if err != nil {
 		return false
 	}

@@ -257,6 +257,10 @@ func (this *DialPool) ActiveConn() int32 {
 	return atomic.LoadInt32(&this.count)
 }
 
+func (this *DialPool) GetInitSize() int {
+	return this.config.InitSize
+}
+
 func (this *DialPool) Run() bool {
 	c := atomic.LoadInt32(&this.count)
 	for i := int(c); i < this.config.InitSize; i++ {

@@ -4,80 +4,81 @@ import (
 	"fmt"
 	"logger"
 	"net"
-	"time"
 )
 
-type ProxyHandler interface {
-	Handle(s *Service, port *PortObj, conn net.Conn)
-	AnswerError(port *PortObj, req interface{}, err error) error
+type ProxyRequest interface {
+	Type() string
+	BeginRead() error
+	Read() (bool, []byte, error)
+	Finish()
+	HasResponse() bool
+}
 
+type PortHandler interface {
+	Handle(s *Service, port *PortObj, conn net.Conn)
+	Write(port *PortObj, req interface{}, b []byte) error
+	AnswerError(port *PortObj, req interface{}, err error) error
+}
+
+type RemoteSession interface {
+	Write(b []byte) error
+	Read() (bool, []byte, error)
+	Fail()
+	Finish()
+}
+
+type RemoteHandler interface {
 	Valid(cfg *RemoteConfigInfo) error
 	Compare(cfg *RemoteConfigInfo, old *RemoteConfigInfo) bool
 	Start(obj *RemoteObj) error
 	Stop(obj *RemoteObj) error
-	Forward(port *PortObj, req interface{}, remote *RemoteObj) error
+	Ping(remote *RemoteObj) (canPing bool, ok bool)
+	Begin(remote *RemoteObj) (RemoteSession, error)
 }
 
 var (
-	ghlibs map[string]ProxyHandler = make(map[string]ProxyHandler)
+	gphlibs map[string]PortHandler   = make(map[string]PortHandler)
+	grhlibs map[string]RemoteHandler = make(map[string]RemoteHandler)
 )
 
-func AddProxyHandler(n string, h ProxyHandler) {
-	ghlibs[n] = h
+func AddPortHandler(n string, h PortHandler) {
+	gphlibs[n] = h
 }
 
-func GetProxyHandler(n string) ProxyHandler {
-	return ghlibs[n]
+func GetPortHandler(n string) PortHandler {
+	return gphlibs[n]
 }
 
-func AssertProxyHandler(typ string) (ProxyHandler, error) {
-	h := GetProxyHandler(typ)
+func AssertPortHandler(typ string) (PortHandler, error) {
+	h := GetPortHandler(typ)
 	if h == nil {
-		return nil, fmt.Errorf("invalid ProxyHandler Type(%s)", typ)
+		return nil, fmt.Errorf("invalid PortHandler Type(%s)", typ)
 	}
 	return h, nil
 }
 
-type DebugConn struct {
-	conn net.Conn
+func AddRemoteHandler(n string, h RemoteHandler) {
+	grhlibs[n] = h
 }
 
-func (this *DebugConn) Read(b []byte) (n int, err error) {
-	n, err = this.conn.Read(b)
-	if n > 0 {
-		logger.Debug(tag, "%X", b[:n])
+func GetRemoteHandler(n string) RemoteHandler {
+	return grhlibs[n]
+}
+
+func AssertRemoteHandler(typ string) (RemoteHandler, error) {
+	h := GetRemoteHandler(typ)
+	if h == nil {
+		return nil, fmt.Errorf("invalid RemoteHandler Type(%s)", typ)
 	}
-	return n, err
+	return h, nil
 }
 
-func (this *DebugConn) Write(b []byte) (n int, err error) {
-	return this.conn.Write(b)
-}
-
-func (this *DebugConn) Close() error {
-	return this.conn.Close()
-}
-
-func (this *DebugConn) LocalAddr() net.Addr {
-	return this.conn.LocalAddr()
-}
-
-func (this *DebugConn) RemoteAddr() net.Addr {
-	return this.conn.RemoteAddr()
-}
-
-func (this *DebugConn) SetDeadline(t time.Time) error {
-	return this.conn.SetDeadline(t)
-}
-
-func (this *DebugConn) SetReadDeadline(t time.Time) error {
-	return this.conn.SetReadDeadline(t)
-}
-
-func (this *DebugConn) SetWriteDeadline(t time.Time) error {
-	return this.conn.SetWriteDeadline(t)
-}
-
-func (this *DebugConn) String() string {
-	return this.conn.RemoteAddr().String()
+func ConnDebuger(conn net.Conn, b []byte, read bool) {
+	if logger.EnableDebug(tag) {
+		if read {
+			logger.Debug(tag, "%s -> %X", conn.RemoteAddr(), b)
+		} else {
+			logger.Debug(tag, "%s <- %X", conn.RemoteAddr(), b)
+		}
+	}
 }

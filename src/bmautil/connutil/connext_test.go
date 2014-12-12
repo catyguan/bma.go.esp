@@ -16,8 +16,8 @@ func safeCall() {
 	})
 }
 
-func testDebuger(b []byte, read bool) {
-	fmt.Printf("%v : %X\n", read, b)
+func testDebuger(conn net.Conn, b []byte, read bool) {
+	fmt.Printf("%s [%v] %X\n", conn.RemoteAddr(), read, b)
 }
 
 func T2estConnUtil(t *testing.T) {

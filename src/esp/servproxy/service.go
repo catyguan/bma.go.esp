@@ -40,7 +40,7 @@ func (this *Service) _createPort(n string, cfg *PortConfigInfo) error {
 	if _, ok := this.ports[n]; ok {
 		return nil
 	}
-	h, err0 := AssertProxyHandler(cfg.Type)
+	h, err0 := AssertPortHandler(cfg.Type)
 	if err0 != nil {
 		return err0
 	}
@@ -59,7 +59,7 @@ func (this *Service) _createTarget(n string, cfg *TargetConfigInfo) error {
 	if _, ok := this.targets[n]; ok {
 		return nil
 	}
-	h, err0 := AssertProxyHandler(cfg.Type)
+	h, err0 := AssertRemoteHandler(cfg.Type)
 	if err0 != nil {
 		return err0
 	}
@@ -107,7 +107,7 @@ func (this *Service) RemoveTarget(n string) error {
 	return nil
 }
 
-func (this *Service) Execute(port *PortObj, o golua.VMTable, req interface{}) (interface{}, error) {
+func (this *Service) Execute(port *PortObj, o golua.VMTable, req ProxyRequest) (interface{}, error) {
 	cfg := port.cfg
 
 	ri := golua.NewRequestInfo()
@@ -172,7 +172,7 @@ func (this *Service) Select(tar string, write bool) (*RemoteObj, error) {
 	if ok {
 		p := 0
 		for _, ro := range tobj.remotes {
-			if !ro.Valid() {
+			if !ro.Ping() {
 				continue
 			}
 			if write && ro.cfg.ReadOnly {
@@ -192,14 +192,71 @@ func (this *Service) Select(tar string, write bool) (*RemoteObj, error) {
 	return robj, nil
 }
 
-func (this *Service) DoForward(port *PortObj, tar string, req interface{}, write bool) error {
-	robj, err := this.Select(tar, write)
-	if err != nil {
-		return err
+func (this *Service) DoForward(port *PortObj, tar string, req ProxyRequest, write bool) error {
+	for {
+		robj, err := this.Select(tar, write)
+		if err != nil {
+			return err
+		}
+		if robj == nil {
+			return fmt.Errorf("no usable Remote for target(%s)", tar)
+		}
+		logger.Debug(tag, "forward '%s' to Remote(%s)", req, robj.name)
+		session, err1 := robj.handler.Begin(robj)
+		if err1 != nil {
+			robj.Fail()
+			logger.Debug(tag, "Remote(%s) begin session fail - %s", robj.name, err1)
+			continue
+		}
+		defer session.Finish()
+
+		err2 := req.BeginRead()
+		if err2 != nil {
+			return err2
+		}
+		writed := false
+		wdone := false
+		for {
+			ok, data, err3 := req.Read()
+			if err3 != nil {
+				if writed {
+					session.Fail()
+				}
+				return err3
+			}
+			if !ok {
+				wdone = true
+				break
+			}
+			err4 := session.Write(data)
+			if err4 != nil {
+				session.Fail()
+				logger.Debug(tag, "Remote(%s) session write fail - %s", robj.name, err4)
+				break
+			}
+			writed = true
+		}
+		if !wdone {
+			continue
+		}
+		if !req.HasResponse() {
+			return nil
+		}
+
+		for {
+			ok, data, err3 := session.Read()
+			if err3 != nil {
+				session.Fail()
+				return err3
+			}
+			if !ok {
+				break
+			}
+			err4 := port.handler.Write(port, req, data)
+			if err4 != nil {
+				return err4
+			}
+		}
+		return nil
 	}
-	if robj == nil {
-		return fmt.Errorf("no usable Remote for target(%s)", tar)
-	}
-	logger.Debug(tag, "forward '%s' to Remote(%s)", req, robj.name)
-	return robj.handler.Forward(port, req, robj)
 }

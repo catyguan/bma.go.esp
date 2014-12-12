@@ -3,12 +3,12 @@ package servproxy
 type RemoteObj struct {
 	s       *Service
 	name    string
-	handler ProxyHandler
+	handler RemoteHandler
 	cfg     *RemoteConfigInfo
 	Data    interface{}
 }
 
-func NewRemoteObj(s *Service, n string, cfg *RemoteConfigInfo, h ProxyHandler) *RemoteObj {
+func NewRemoteObj(s *Service, n string, cfg *RemoteConfigInfo, h RemoteHandler) *RemoteObj {
 	r := new(RemoteObj)
 	r.s = s
 	r.name = n
@@ -25,6 +25,10 @@ func (this *RemoteObj) Stop() error {
 	return this.handler.Stop(this)
 }
 
-func (this *RemoteObj) Valid() bool {
+func (this *RemoteObj) Ping() bool {
 	return true
+}
+
+func (this *RemoteObj) Fail() {
+
 }
