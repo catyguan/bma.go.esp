@@ -1,0 +1,88 @@
+{
+	"global" : {
+		"Debug" : true,
+		"DevMode" : true,
+		"GOMAXPROCS" : 5
+	},
+	"httpPointSMM" : {
+		"Port" : "1081"
+	},
+	"smmapiServ" : {
+		"Code" : "1"
+	},
+	"acl" : {
+		"http" : { "Type":"deny", "Users":["*@*"] },
+		"http/smm.api" : { "Type":"pass", "Users":["*@127.0.0.1"] }
+	},
+	"acclog": {
+		"Nodes" : [
+			{
+				"Name" : "*"
+			}
+		]
+	},
+	"fileloader" : {
+		"FL" : {
+			"local" : {
+				"Type" : "file",
+				"Dirs" : ["${CWD}/../golua.local"]
+			},
+			"test" : {
+				"Type" : "file",
+				"Dirs" : ["${CWD}/golua/servproxy"]
+			},
+			"src" : {
+				"Type" : "file",
+				"Dirs" : ["${CWD}/../golua.src"]
+			}
+		}
+	},
+	"goluaServ" : {
+		"GoLua" : {
+			"servproxy" : {
+				"FL" : {
+					"Type" : "c",
+					"FL" : ["src", "local", "test"]
+				}
+			}
+		}
+	},
+	"servproxy" : {
+		"Ports" : {
+			"thrift1080" : {
+				"Port" : 1080,
+				"Type" : "thrift",
+				"GoLua" : "servproxy",
+				"Script" : "test.lua",
+				"BlackIp" : "127.0.0.2"
+			}
+		},
+		"Targets" : {
+			"thrfit_test" : {
+				"Type" : "thrift",
+				"Remotes" : [
+					{
+						"Host" : "127.0.0.1:12345"
+					}
+				]
+			},
+			"opendao" : {
+				"Type" : "thrift",
+				"Remotes" : [
+					{
+						"Host" : "112.178.146.10:8090",
+						"Params" : {
+							"PoolInit" : -1
+						}
+					},
+					{
+						"Host" : "112.178.146.10:8090",
+						"Params" : {
+							"PoolInit" : 0
+						}
+					}
+				]
+			}
+		}
+	}
+}

@@ -83,15 +83,16 @@ func (this *PortObj) Stop() {
 
 func (this *PortObj) accept(conn net.Conn) {
 	defer func() {
-		if logger.EnableDebug(tag) {
-			logger.Debug(tag, "connection close - %s", conn.RemoteAddr())
-		}
 		err := recover()
 		if err != nil {
 			trace := make([]byte, 1024)
 			runtime.Stack(trace, true)
 			logger.Warn(tag, "process panic: %v\n%s", err, trace)
 		}
+		if logger.EnableDebug(tag) {
+			logger.Debug(tag, "connection close - %s", conn.RemoteAddr())
+		}
+		conn.Close()
 	}()
 	if logger.EnableDebug(tag) {
 		logger.Debug(tag, "connection accept - %s", conn.RemoteAddr())

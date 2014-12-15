@@ -36,7 +36,7 @@
 				"Type" : "thrift",
 				"Remotes" : [
 					{
-						"Host" : "111.178.146.10:8090",
+						"Host" : "112.178.146.10:8090",
 						"Params" : {
 							"PoolInit" : 0
 						}

@@ -8,6 +8,7 @@ import (
 	"golua"
 	"logger"
 	"sync"
+	"time"
 )
 
 const (
@@ -125,6 +126,16 @@ func (this *Service) Execute(port *PortObj, o golua.VMTable, req ProxyRequest) (
 	ctx, _ = context.CreateExecId(ctx)
 	ctx = golua.CreateRequest(ctx, ri)
 
+	dl := req.Deadline()
+	if dl.IsZero() {
+		dl = time.Now().Add(time.Duration(port.cfg.TimeoutMS) * time.Millisecond)
+		req.SetDeadline(dl)
+	}
+	tmdu := dl.Sub(time.Now())
+	nctx, cancel := context.WithTimeout(ctx, tmdu)
+	defer cancel()
+	ctx = nctx
+
 	locals := make(map[string]interface{})
 	locals["request"] = o
 	r, errE := gl.DoExecute(ctx, locals)
@@ -153,8 +164,7 @@ func (this *Service) Execute(port *PortObj, o golua.VMTable, req ProxyRequest) (
 			if tar == "" {
 				return nil, fmt.Errorf("invalid forward Target - %v", res)
 			}
-			write := valutil.ToBool(res["Write"], false)
-			errF := this.DoForward(port, tar, req, write)
+			errF := this.DoForward(port, tar, req)
 			if errF != nil {
 				return nil, port.handler.AnswerError(port, req, errF)
 			}
@@ -192,7 +202,111 @@ func (this *Service) Select(tar string, write bool) (*RemoteObj, error) {
 	return robj, nil
 }
 
-func (this *Service) DoForward(port *PortObj, tar string, req ProxyRequest, write bool) error {
+func (this *Service) Port2Remote(port *PortObj, req ProxyRequest, rname string, session RemoteSession) (returnErr error, retry bool) {
+	err01 := req.BeginRead()
+	if err01 != nil {
+		return err01, false
+	}
+	defer req.EndRead()
+
+	err02 := session.BeginWrite()
+	if err02 != nil {
+		session.Fail()
+		logger.Debug(tag, "Remote(%s) session beginWrite fail - %s", rname, err02)
+		return err02, true
+	}
+	defer session.EndWrite()
+
+	writed := false
+	for {
+		ok, data, err3 := req.Read()
+		if err3 != nil {
+			if writed {
+				session.ForceClose()
+			}
+			return err3, false
+		}
+		if !ok {
+			break
+		}
+		err4 := session.Write(data)
+		if err4 != nil {
+			session.Fail()
+			logger.Debug(tag, "Remote(%s) session write fail - %s", rname, err4)
+			return err4, true
+		}
+		writed = true
+	}
+	return nil, false
+}
+
+func (this *Service) Remote2Port(port *PortObj, req ProxyRequest, rname string, session RemoteSession) (returnErr error, retry bool) {
+	err01 := session.BeginRead(req.Deadline())
+	if err01 != nil {
+		session.Fail()
+		logger.Debug(tag, "Remote(%s) session beginRead fail - %s", rname, err01)
+		return err01, true
+	}
+	defer session.EndRead()
+
+	err02 := port.handler.BeginWrite(port, req)
+	if err02 != nil {
+		session.ForceClose()
+		return err02, false
+	}
+	defer port.handler.EndWrite(port, req)
+
+	for {
+		ok, data, err3 := session.Read()
+		if err3 != nil {
+			session.Fail()
+			return err3, true
+		}
+		if !ok {
+			break
+		}
+		err4 := port.handler.Write(port, req, data)
+		if err4 != nil {
+			session.ForceClose()
+			return err4, false
+		}
+	}
+	return nil, false
+}
+
+func (this *Service) PortForwardRemote(port *PortObj, rname string, req ProxyRequest, session RemoteSession) (returnErr error, retry bool) {
+	defer session.Finish()
+	logger.Debug(tag, "'%s' -> '%s' port2remote ...", req, rname)
+	err1, retry1 := this.Port2Remote(port, req, rname, session)
+	if err1 != nil {
+		logger.Debug(tag, "'%s' -> '%s' port2remote fail - %v, %s", req, rname, retry1, err1)
+		return err1, retry1
+	}
+	if req.CheckFlag(PRF_NO_RESPONSE) {
+		logger.Debug(tag, "'%s' -> '%s' no response, forward done", req, rname)
+		return nil, false
+	}
+
+	logger.Debug(tag, "'%s' -> '%s' remote2port ...", req, rname)
+	err2, retry2 := this.Remote2Port(port, req, rname, session)
+	if err2 != nil {
+		logger.Debug(tag, "'%s' -> '%s' remote2port fail - %v, %s", req, rname, retry2, err2)
+		if retry2 {
+			if req.CheckFlag(PRF_WRITE) {
+				// don't retry on write operation
+				logger.Debug(tag, "'%s' -> '%s' skip failover on write operate", req, rname)
+				retry2 = false
+			}
+		}
+		return err2, retry2
+	}
+	logger.Debug(tag, "'%s' -> '%s' forward done", req, rname)
+	return nil, false
+}
+
+func (this *Service) DoForward(port *PortObj, tar string, req ProxyRequest) error {
+	defer req.Finish()
+	write := req.CheckFlag(PRF_WRITE)
 	for {
 		robj, err := this.Select(tar, write)
 		if err != nil {
@@ -201,61 +315,21 @@ func (this *Service) DoForward(port *PortObj, tar string, req ProxyRequest, writ
 		if robj == nil {
 			return fmt.Errorf("no usable Remote for target(%s)", tar)
 		}
-		logger.Debug(tag, "forward '%s' to Remote(%s)", req, robj.name)
-		session, err1 := robj.handler.Begin(robj)
+		rname := robj.name
+		logger.Debug(tag, "forward '%s' to Remote(%s)", req, rname)
+		session, err1 := robj.handler.Begin(robj, RequestTimeout(req))
 		if err1 != nil {
 			robj.Fail()
-			logger.Debug(tag, "Remote(%s) begin session fail - %s", robj.name, err1)
+			logger.Debug(tag, "Remote(%s) begin session fail - %s", rname, err1)
 			continue
 		}
-		defer session.Finish()
-
-		err2 := req.BeginRead()
+		logger.Debug(tag, "Remote(%s) begin session(%s)", rname, session)
+		err2, retry := this.PortForwardRemote(port, rname, req, session)
 		if err2 != nil {
+			if retry {
+				continue
+			}
 			return err2
-		}
-		writed := false
-		wdone := false
-		for {
-			ok, data, err3 := req.Read()
-			if err3 != nil {
-				if writed {
-					session.Fail()
-				}
-				return err3
-			}
-			if !ok {
-				wdone = true
-				break
-			}
-			err4 := session.Write(data)
-			if err4 != nil {
-				session.Fail()
-				logger.Debug(tag, "Remote(%s) session write fail - %s", robj.name, err4)
-				break
-			}
-			writed = true
-		}
-		if !wdone {
-			continue
-		}
-		if !req.HasResponse() {
-			return nil
-		}
-
-		for {
-			ok, data, err3 := session.Read()
-			if err3 != nil {
-				session.Fail()
-				return err3
-			}
-			if !ok {
-				break
-			}
-			err4 := port.handler.Write(port, req, data)
-			if err4 != nil {
-				return err4
-			}
 		}
 		return nil
 	}

@@ -13,6 +13,7 @@ type PortConfigInfo struct {
 	Type      string
 	GoLua     string
 	Script    string
+	TimeoutMS int
 	WhiteIp   string
 	whiteList []string
 	BlackIp   string
@@ -46,6 +47,9 @@ func (this *PortConfigInfo) Valid() error {
 	if this.BlackIp != "" {
 		this.blackList = strings.Split(this.BlackIp, ",")
 	}
+	if this.TimeoutMS <= 0 {
+		this.TimeoutMS = 30 * 1000
+	}
 	return nil
 }
 
@@ -60,6 +64,15 @@ func (this *PortConfigInfo) Compare(old *PortConfigInfo) bool {
 		return false
 	}
 	if this.Script != old.GoLua {
+		return false
+	}
+	if this.WhiteIp != old.WhiteIp {
+		return false
+	}
+	if this.BlackIp != old.BlackIp {
+		return false
+	}
+	if this.TimeoutMS != old.TimeoutMS {
 		return false
 	}
 	return true
@@ -113,11 +126,12 @@ func (this *TargetConfigInfo) Compare(old *TargetConfigInfo) bool {
 }
 
 type RemoteConfigInfo struct {
-	Host      string
-	TimeoutMS int
-	Priority  int
-	ReadOnly  bool
-	Params    map[string]interface{}
+	Host        string
+	TimeoutMS   int
+	Priority    int
+	ReadOnly    bool
+	FailRetryMS int
+	Params      map[string]interface{}
 }
 
 func (this *RemoteConfigInfo) Compare(old *RemoteConfigInfo) bool {

@@ -4,26 +4,59 @@ import (
 	"fmt"
 	"logger"
 	"net"
+	"time"
+)
+
+const (
+	PRF_NO_RESPONSE = "noResponse"
+	PRF_WRITE       = "write"
+)
+
+const (
+	debugTraffic = false
 )
 
 type ProxyRequest interface {
 	Type() string
+
 	BeginRead() error
 	Read() (bool, []byte, error)
+	EndRead()
+
+	Deadline() time.Time
+	SetDeadline(dl time.Time)
+
 	Finish()
-	HasResponse() bool
+	CheckFlag(n string) bool
+}
+
+func RequestTimeout(req ProxyRequest) time.Duration {
+	tm := req.Deadline()
+	if tm.IsZero() {
+		return 0
+	}
+	return tm.Sub(time.Now())
 }
 
 type PortHandler interface {
 	Handle(s *Service, port *PortObj, conn net.Conn)
-	Write(port *PortObj, req interface{}, b []byte) error
-	AnswerError(port *PortObj, req interface{}, err error) error
+	BeginWrite(port *PortObj, req ProxyRequest) error
+	Write(port *PortObj, req ProxyRequest, b []byte) error
+	EndWrite(port *PortObj, req ProxyRequest)
+	AnswerError(port *PortObj, req ProxyRequest, err error) error
 }
 
 type RemoteSession interface {
+	BeginWrite() error
 	Write(b []byte) error
+	EndWrite()
+
+	BeginRead(deadline time.Time) error
 	Read() (bool, []byte, error)
+	EndRead()
+
 	Fail()
+	ForceClose()
 	Finish()
 }
 
@@ -33,7 +66,7 @@ type RemoteHandler interface {
 	Start(obj *RemoteObj) error
 	Stop(obj *RemoteObj) error
 	Ping(remote *RemoteObj) (canPing bool, ok bool)
-	Begin(remote *RemoteObj) (RemoteSession, error)
+	Begin(remote *RemoteObj, timeout time.Duration) (RemoteSession, error)
 }
 
 var (

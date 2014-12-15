@@ -4,36 +4,8 @@ import (
 	"bmautil/valutil"
 	"fmt"
 	"golua"
-	"net"
+	"time"
 )
-
-type ThriftProxyReq struct {
-	s         *Service
-	conn      net.Conn
-	size      int
-	readed    int
-	hsize     int
-	name      string
-	typeId    int32
-	seqId     int32
-	responsed bool
-	oneway    bool
-}
-
-func (this *ThriftProxyReq) IsOneway() bool {
-	if this.typeId == 4 {
-		return true
-	}
-	return this.oneway
-}
-
-func (this *ThriftProxyReq) Remain() int {
-	return this.size - this.readed
-}
-
-func (this *ThriftProxyReq) String() string {
-	return fmt.Sprintf("[%s, %d, %d](%d:%d)", this.name, this.typeId, this.seqId, this.size, this.readed)
-}
 
 type gooThriftProxyReq int
 
@@ -52,6 +24,8 @@ func (gooThriftProxyReq) Get(vm *golua.VM, o interface{}, key string) (interface
 			return obj.Remain(), nil
 		case "Oneway":
 			return obj.IsOneway(), nil
+		case "Write":
+			return obj.write, nil
 		case "String":
 			return obj.String(), nil
 		}
@@ -70,6 +44,11 @@ func (gooThriftProxyReq) Set(vm *golua.VM, o interface{}, key string, val interf
 			obj.seqId = valutil.ToInt32(val, obj.seqId)
 		case "Oneway":
 			obj.oneway = valutil.ToBool(val, obj.oneway)
+		case "Write":
+			obj.write = valutil.ToBool(val, obj.write)
+		case "Timeout":
+			tm := valutil.ToInt(val, 0)
+			obj.deadline = time.Now().Add(time.Duration(tm) * time.Millisecond)
 		case "Size":
 		case "Remain":
 		default:
@@ -88,6 +67,7 @@ func (gooThriftProxyReq) ToMap(o interface{}) map[string]interface{} {
 		r["Size"] = obj.size
 		r["Remain"] = obj.Remain()
 		r["Oneway"] = obj.IsOneway()
+		r["Write"] = obj.write
 	}
 	return r
 }

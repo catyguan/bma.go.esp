@@ -71,6 +71,7 @@ type DialPool struct {
 	timer    *time.Ticker
 	markTime time.Time
 	count    int32
+	active   int32
 	wait     chan *connutil.ConnExt
 }
 
@@ -96,14 +97,14 @@ func (this *DialPool) Name() string {
 }
 
 func (this *DialPool) String() string {
-	return fmt.Sprintf("ConnDialPool[%s, %d:%d/%d]", this.name, len(this.wait), this.count, this.config.MaxSize)
+	return fmt.Sprintf("ConnDialPool[%s, %d:%d/%d/%d]", this.name, len(this.wait), this.active, this.count, this.config.MaxSize)
 }
 
-func (this *DialPool) GetConn(timeout time.Duration, log bool) (net.Conn, error) {
+func (this *DialPool) GetConn(timeout time.Duration, log bool) (*connutil.ConnExt, error) {
 	if this.IsClosing() {
 		return nil, errors.New("closed")
 	}
-	var s net.Conn
+	var s *connutil.ConnExt
 	select {
 	case s = <-this.wait:
 		if s == nil {
@@ -124,7 +125,8 @@ func (this *DialPool) GetConn(timeout time.Duration, log bool) (net.Conn, error)
 			atomic.AddInt32(&this.count, -1)
 			return nil, err
 		}
-		return s, nil
+		atomic.AddInt32(&this.active, 1)
+		return connutil.NewConnExt(s, nil), nil
 	}
 	// wait it
 	if log {
@@ -145,6 +147,7 @@ func (this *DialPool) GetConn(timeout time.Duration, log bool) (net.Conn, error)
 func (this *DialPool) doCloseConn(conn net.Conn) int32 {
 	conn.Close()
 	c := atomic.AddInt32(&this.count, -1)
+	atomic.AddInt32(&this.active, -1)
 	return c
 }
 
@@ -159,7 +162,7 @@ func (this *DialPool) CloseConn(conn net.Conn) {
 	}
 }
 
-func (this *DialPool) ReturnConn(conn net.Conn) {
+func (this *DialPool) ReturnConn(conn *connutil.ConnExt) {
 	if this.IsClosing() {
 		this.doCloseConn(conn)
 		return
@@ -178,7 +181,7 @@ func (this *DialPool) ReturnConn(conn net.Conn) {
 			conn.Close()
 		}
 	}()
-	this.wait <- connutil.NewConnExt(conn, nil)
+	this.wait <- conn
 }
 
 func (this *DialPool) Start() bool {
@@ -254,7 +257,7 @@ func (this *DialPool) reconnectConn(rs *retryst.RetryState, lastTry bool) bool {
 }
 
 func (this *DialPool) ActiveConn() int32 {
-	return atomic.LoadInt32(&this.count)
+	return atomic.LoadInt32(&this.active)
 }
 
 func (this *DialPool) GetInitSize() int {

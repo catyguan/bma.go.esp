@@ -1,66 +1,41 @@
 package main
 
+import (
+	"boot"
+	"esp/aclserv"
+	"esp/goluaserv"
+	"esp/servproxy"
+	"fileloader"
+	"golua"
+	"golua/vmmclass"
+	"golua/vmmjson"
+	"golua/vmmsql"
+	"httpserver"
+	"httpserver/aclmux"
+	"net/http"
+	"smmapi/httpmux4smmapi"
+)
 
 const (
-	tag = "glserver"
+	tag = "servproxyApp"
 )
 
 func main() {
-	cfile := "config/glserver-config.json"
+	cfile := "config/servproxy-config.json"
 
 	acls := aclserv.NewService("acl")
 	boot.AddService(acls)
 
-	acclog := acclog.NewService("acclog")
-	boot.AddService(acclog)
-
 	fl := fileloader.NewService("fileloader")
 	boot.AddService(fl)
 
-	mems := memserv.NewMemoryServ("memServ")
-	boot.AddService(mems)
-	mems.InitSMMAPI("go.memserv")
-
-	sess := memserv4httpsession.NewService("sessionServ", mems)
-	boot.AddService(sess)
-
-	memp := mempipeline.NewService()
-	boot.AddService(memp.CreateBootService("mempipeline"))
-
-	ssp := espnetss.NewService()
-	boot.AddService(ssp.CreateBootService("espnetss"))
-
-	scs := servicecall.NewService("serviceCall", nil)
-	scs.AddServiceCallerFactory("http", servicecall.HttpServiceCallerFactory(0))
-	if true {
-		fac := new(servicecall.ESNPMemPipelineServiceCallerFactory)
-		fac.S = memp
-		scs.AddServiceCallerFactory("memp", fac)
-	}
-	if true {
-		fac := new(servicecall.ESNPNetServiceCallerFactory)
-		fac.S = ssp
-		scs.AddServiceCallerFactory("esnp", fac)
-	}
-	boot.AddService(scs)
-
-	service := goluaserv.NewService("goluaServ", func(gl *golua.GoLua) {
-		myInitor(gl, acclog, mems, sess, scs)
+	goluaServ := goluaserv.NewService("goluaServ", func(gl *golua.GoLua) {
+		myInitor(gl)
 	})
+	boot.AddService(goluaServ)
+
+	service := servproxy.NewService("servproxy", goluaServ)
 	boot.AddService(service)
-
-	var wd, _ = os.Getwd()
-
-	mux4app := http.NewServeMux()
-	mux4app.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir(wd+"/public"))))
-
-	http4gl := http4goluaserv.NewService("goluaHttp", service)
-	http4gl.SetupAcclog(acclog, "httpserv")
-	http4gl.InitMux(mux4app, "/")
-	boot.AddService(http4gl)
-
-	httpService := httpserver.NewHttpServer("httpPoint", mux4app)
-	boot.AddService(httpService)
 
 	mux4smm := http.NewServeMux()
 	smmapis := httpmux4smmapi.NewService("smmapiServ")
@@ -76,20 +51,9 @@ func main() {
 
 func myInitor(
 	gl *golua.GoLua,
-	acclog *acclog.Service,
-	mems *memserv.MemoryServ,
-	sess *memserv4httpsession.Service,
-	scs *servicecall.Service,
 ) {
 	golua.InitCoreLibs(gl)
-	vmmhttp.InitGoLuaWithHttpServ(gl)
-	vmmhttp.InitGoLuaWithHttpClient(gl, acclog, "httpclient")
-	vmmacclog.InitGoLua(gl)
 	vmmjson.InitGoLua(gl)
 	vmmsql.InitGoLua(gl)
 	vmmclass.InitGoLua(gl)
-	vmmesnp.InitGoLua(gl)
-	vmmmemserv.InitGoLua(gl, mems)
-	vmmservicecall.InitGoLua(gl, scs)
-	http4goluaserv.InitGoLua(gl, sess)
 }
