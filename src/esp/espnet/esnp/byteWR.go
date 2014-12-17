@@ -1,9 +1,8 @@
 package esnp
 
-import
-
-// BytesDecodeReader
-"io"
+import (
+	"io"
+)
 
 type BytesDecodeReader struct {
 	data []byte
@@ -79,28 +78,28 @@ func (this *BytesEncodeWriter) WriteByte(b byte) error {
 	return nil
 }
 
-func (this *BytesEncodeWriter) WriteFrame(mt byte, data []byte) error {
+func (this *BytesEncodeWriter) WriteLine(mt byte, data []byte) error {
 	l := 0
 	if data != nil {
 		l = len(data)
 	}
-	headerWrite(this, mt, l)
+	MessageLineHeaderWrite(this, mt, l)
 	if l > 0 {
 		this.Write(data)
 	}
 	return nil
 }
-func (this *BytesEncodeWriter) NewFrame() (int, error) {
+func (this *BytesEncodeWriter) NewLine() (int, error) {
 	r := this.pos
 	this.grow(size_FHEADER)
 	this.pos = this.pos + size_FHEADER
 	return r, nil
 }
-func (this *BytesEncodeWriter) EndFrame(p int, mt byte) error {
+func (this *BytesEncodeWriter) EndLine(p int, mt byte) error {
 	old := this.pos
 	this.pos = p
 	sz := old - p - size_FHEADER
-	headerWrite(this, mt, sz)
+	MessageLineHeaderWrite(this, mt, sz)
 	this.pos = old
 	return nil
 }

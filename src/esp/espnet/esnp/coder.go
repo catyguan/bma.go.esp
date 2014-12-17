@@ -12,16 +12,20 @@ import (
 // lenBytes
 type LenBytesCoder int
 
-func (this LenBytesCoder) DoEncode(w EncodeWriter, bs []byte) {
-	Coders.Int32.DoEncode(w, int32(len(bs)))
-	if bs != nil {
-		w.Write(bs)
+func (this LenBytesCoder) DoEncode(w EncodeWriter, bs []byte) error {
+	l := len(bs)
+	Coders.Int32.DoEncode(w, int32(l))
+	if l > 0 {
+		_, err := w.Write(bs)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (this LenBytesCoder) Encode(w EncodeWriter, v interface{}) error {
-	this.DoEncode(w, v.([]byte))
-	return nil
+	return this.DoEncode(w, v.([]byte))
 }
 
 func (this LenBytesCoder) DoDecode(r DecodeReader, maxlen int) ([]byte, error) {
@@ -53,15 +57,21 @@ func (this LenBytesCoder) Decode(r DecodeReader) (interface{}, error) {
 // lenString
 type LenStringCoder int
 
-func (this LenStringCoder) DoEncode(w EncodeWriter, v string) {
+func (this LenStringCoder) DoEncode(w EncodeWriter, v string) error {
 	bs := []byte(v)
-	Coders.Int32.DoEncode(w, int32(len(bs)))
-	w.Write(bs)
+	err := Coders.Int32.DoEncode(w, int32(len(bs)))
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(bs)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (this LenStringCoder) Encode(w EncodeWriter, v interface{}) error {
-	this.DoEncode(w, v.(string))
-	return nil
+	return this.DoEncode(w, v.(string))
 }
 
 func (this LenStringCoder) DoDecode(r DecodeReader, maxlen int) (string, error) {
@@ -91,13 +101,13 @@ func (this LenStringCoder) Decode(r DecodeReader) (interface{}, error) {
 // string
 type stringCoder int
 
-func (this stringCoder) DoEncode(w EncodeWriter, v string) {
-	w.Write([]byte(v))
+func (this stringCoder) DoEncode(w EncodeWriter, v string) error {
+	_, err := w.Write([]byte(v))
+	return err
 }
 
 func (this stringCoder) Encode(w EncodeWriter, v interface{}) error {
-	this.DoEncode(w, v.(string))
-	return nil
+	return this.DoEncode(w, v.(string))
 }
 
 func (this stringCoder) DoDecode(r DecodeReader) string {
@@ -112,17 +122,16 @@ func (this stringCoder) Decode(r DecodeReader) (interface{}, error) {
 // bool
 type boolCoder bool
 
-func (this boolCoder) DoEncode(w EncodeWriter, v bool) {
+func (this boolCoder) DoEncode(w EncodeWriter, v bool) error {
 	b := byte(0)
 	if v {
 		b = 1
 	}
-	w.WriteByte(b)
+	return w.WriteByte(b)
 }
 
 func (this boolCoder) Encode(w EncodeWriter, v interface{}) error {
-	this.DoEncode(w, v.(bool))
-	return nil
+	return this.DoEncode(w, v.(bool))
 }
 
 func (this boolCoder) DoDecode(r DecodeReader) (bool, error) {
@@ -150,99 +159,97 @@ type uint16Coder int
 type uint32Coder int
 type uint64Coder int
 
-func (O intCoder) DoEncode(w EncodeWriter, v int) {
+func (O intCoder) DoEncode(w EncodeWriter, v int) error {
 	bs := [10]byte{}
 	b := bs[:]
 	l := binary.PutVarint(b, int64(int32(v)))
-	w.Write(b[:l])
+	_, err := w.Write(b[:l])
+	return err
 }
 func (O intCoder) Encode(w EncodeWriter, v interface{}) error {
-	O.DoEncode(w, v.(int))
-	return nil
+	return O.DoEncode(w, v.(int))
 }
-func (O int8Coder) DoEncode(w EncodeWriter, v int8) {
-	w.WriteByte(uint8(v))
+func (O int8Coder) DoEncode(w EncodeWriter, v int8) error {
+	return w.WriteByte(uint8(v))
 }
 func (O int8Coder) Encode(w EncodeWriter, v interface{}) error {
-	O.DoEncode(w, v.(int8))
-	return nil
+	return O.DoEncode(w, v.(int8))
 }
-func (O int16Coder) DoEncode(w EncodeWriter, v int16) {
+func (O int16Coder) DoEncode(w EncodeWriter, v int16) error {
 	bs := [10]byte{}
 	b := bs[:]
 	l := binary.PutVarint(b, int64(v))
-	w.Write(b[:l])
+	_, err := w.Write(b[:l])
+	return err
 }
 func (O int16Coder) Encode(w EncodeWriter, v interface{}) error {
-	O.DoEncode(w, v.(int16))
-	return nil
+	return O.DoEncode(w, v.(int16))
 }
-func (O int32Coder) DoEncode(w EncodeWriter, v int32) {
+func (O int32Coder) DoEncode(w EncodeWriter, v int32) error {
 	bs := [10]byte{}
 	b := bs[:]
 	l := binary.PutVarint(b, int64(v))
-	w.Write(b[:l])
+	_, err := w.Write(b[:l])
+	return err
 }
 func (O int32Coder) Encode(w EncodeWriter, v interface{}) error {
-	O.DoEncode(w, v.(int32))
-	return nil
+	return O.DoEncode(w, v.(int32))
 }
-func (O int64Coder) DoEncode(w EncodeWriter, v int64) {
+func (O int64Coder) DoEncode(w EncodeWriter, v int64) error {
 	bs := [10]byte{}
 	b := bs[:]
 	l := binary.PutVarint(b, int64(v))
-	w.Write(b[:l])
+	_, err := w.Write(b[:l])
+	return err
 }
 func (O int64Coder) Encode(w EncodeWriter, v interface{}) error {
-	O.DoEncode(w, v.(int64))
-	return nil
+	return O.DoEncode(w, v.(int64))
 }
-func (O uintCoder) DoEncode(w EncodeWriter, v uint) {
+func (O uintCoder) DoEncode(w EncodeWriter, v uint) error {
 	bs := [10]byte{}
 	b := bs[:]
 	l := binary.PutUvarint(b, uint64(v))
-	w.Write(b[:l])
+	_, err := w.Write(b[:l])
+	return err
 }
 func (O uintCoder) Encode(w EncodeWriter, v interface{}) error {
-	O.DoEncode(w, v.(uint))
-	return nil
+	return O.DoEncode(w, v.(uint))
 }
-func (O uint8Coder) DoEncode(w EncodeWriter, v uint8) {
-	w.WriteByte(v)
+func (O uint8Coder) DoEncode(w EncodeWriter, v uint8) error {
+	return w.WriteByte(v)
 }
 func (O uint8Coder) Encode(w EncodeWriter, v interface{}) error {
-	O.DoEncode(w, v.(uint8))
-	return nil
+	return O.DoEncode(w, v.(uint8))
 }
-func (O uint16Coder) DoEncode(w EncodeWriter, v uint16) {
+func (O uint16Coder) DoEncode(w EncodeWriter, v uint16) error {
 	bs := [10]byte{}
 	b := bs[:]
 	l := binary.PutUvarint(b, uint64(v))
-	w.Write(b[:l])
+	_, err := w.Write(b[:l])
+	return err
 }
 func (O uint16Coder) Encode(w EncodeWriter, v interface{}) error {
-	O.DoEncode(w, v.(uint16))
-	return nil
+	return O.DoEncode(w, v.(uint16))
 }
-func (O uint32Coder) DoEncode(w EncodeWriter, v uint32) {
+func (O uint32Coder) DoEncode(w EncodeWriter, v uint32) error {
 	bs := [10]byte{}
 	b := bs[:]
 	l := binary.PutUvarint(b, uint64(v))
-	w.Write(b[:l])
+	_, err := w.Write(b[:l])
+	return err
 }
 func (O uint32Coder) Encode(w EncodeWriter, v interface{}) error {
-	O.DoEncode(w, v.(uint32))
-	return nil
+	return O.DoEncode(w, v.(uint32))
 }
-func (O uint64Coder) DoEncode(w EncodeWriter, v uint64) {
+func (O uint64Coder) DoEncode(w EncodeWriter, v uint64) error {
 	bs := [10]byte{}
 	b := bs[:]
 	l := binary.PutUvarint(b, uint64(v))
-	w.Write(b[:l])
+	_, err := w.Write(b[:l])
+	return err
 }
 func (O uint64Coder) Encode(w EncodeWriter, v interface{}) error {
-	O.DoEncode(w, v.(uint64))
-	return nil
+	return O.DoEncode(w, v.(uint64))
 }
 
 func (O intCoder) DoDecode(r io.ByteReader) (int, error) {
@@ -323,31 +330,33 @@ type fixUint16Coder int
 type fixUint32Coder int
 type fixUint64Coder int
 
-func (O fixUint16Coder) DoEncode(w EncodeWriter, v uint16) {
+func (O fixUint16Coder) DoEncode(w EncodeWriter, v uint16) error {
 	bs := [2]byte{}
 	b := bs[:]
 	binary.BigEndian.PutUint16(b, uint16(v))
-	w.Write(b)
+	_, err := w.Write(b)
+	return err
 }
 func (O fixUint16Coder) Encode(w EncodeWriter, v interface{}) error {
-	O.DoEncode(w, v.(uint16))
-	return nil
+	return O.DoEncode(w, v.(uint16))
 }
-func (O fixUint32Coder) DoEncode(w EncodeWriter, v uint32) {
+func (O fixUint32Coder) DoEncode(w EncodeWriter, v uint32) error {
 	bs := [4]byte{}
 	b := bs[:]
 	binary.BigEndian.PutUint32(b, uint32(v))
-	w.Write(b)
+	_, err := w.Write(b)
+	return err
 }
 func (O fixUint32Coder) Encode(w EncodeWriter, v interface{}) error {
 	O.DoEncode(w, v.(uint32))
 	return nil
 }
-func (O fixUint64Coder) DoEncode(w EncodeWriter, v uint64) {
+func (O fixUint64Coder) DoEncode(w EncodeWriter, v uint64) error {
 	bs := [8]byte{}
 	b := bs[:]
 	binary.BigEndian.PutUint64(b, uint64(v))
-	w.Write(b)
+	_, err := w.Write(b)
+	return err
 }
 func (O fixUint64Coder) Encode(w EncodeWriter, v interface{}) error {
 	O.DoEncode(w, v.(uint64))
@@ -395,21 +404,19 @@ func (O fixUint64Coder) Decode(r DecodeReader) (interface{}, error) {
 type float32Coder int
 type float64Coder int
 
-func (O float32Coder) DoEncode(w EncodeWriter, v float32) {
+func (O float32Coder) DoEncode(w EncodeWriter, v float32) error {
 	iv := math.Float32bits(v)
-	Coders.FixUint32.DoEncode(w, iv)
+	return Coders.FixUint32.DoEncode(w, iv)
 }
 func (O float32Coder) Encode(w EncodeWriter, v interface{}) error {
-	O.DoEncode(w, v.(float32))
-	return nil
+	return O.DoEncode(w, v.(float32))
 }
-func (O float64Coder) DoEncode(w EncodeWriter, v float64) {
+func (O float64Coder) DoEncode(w EncodeWriter, v float64) error {
 	iv := math.Float64bits(v)
-	Coders.FixUint64.DoEncode(w, iv)
+	return Coders.FixUint64.DoEncode(w, iv)
 }
 func (O float64Coder) Encode(w EncodeWriter, v interface{}) error {
-	O.DoEncode(w, v.(float64))
-	return nil
+	return O.DoEncode(w, v.(float64))
 }
 
 func (O float32Coder) DoDecode(r io.Reader) (float32, error) {
@@ -447,12 +454,19 @@ func (this varCoder) Encode(w EncodeWriter, v interface{}) error {
 		w.WriteByte(byte(reflect.Invalid))
 		return nil
 	}
+	var err error
 	var b [binary.MaxVarintLen64]byte
 	bs := b[:]
 
 	if rb, ok := v.([]byte); ok {
-		w.WriteByte(byte(reflect.Array))
-		Coders.LenBytes.DoEncode(w, rb)
+		err = w.WriteByte(byte(reflect.Array))
+		if err != nil {
+			return err
+		}
+		err = Coders.LenBytes.DoEncode(w, rb)
+		if err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -476,47 +490,51 @@ func (this varCoder) Encode(w EncodeWriter, v interface{}) error {
 			tvk = byte(reflect.Uint64)
 		}
 	}
-	w.WriteByte(tvk)
+	err = w.WriteByte(tvk)
+	if err != nil {
+		return err
+	}
 	switch tv.Kind() {
 	case reflect.Bool:
 		rv := tv.Bool()
-		Coders.Bool.DoEncode(w, rv)
-		return nil
+		return Coders.Bool.DoEncode(w, rv)
 	case reflect.Int8, reflect.Uint8:
 		rv := byte(tv.Uint() & 0xFF)
-		w.WriteByte(rv)
-		return nil
+		return w.WriteByte(rv)
 	case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64:
 		rv := tv.Int()
 		l := binary.PutVarint(bs, rv)
-		w.Write(b[:l])
-		return nil
+		_, err = w.Write(b[:l])
+		return err
 	case reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		rv := tv.Uint()
 		l := binary.PutUvarint(bs, rv)
-		w.Write(b[:l])
-		return nil
+		_, err = w.Write(b[:l])
+		return err
 	case reflect.Float32:
-		Coders.Float32.DoEncode(w, float32(tv.Float()))
-		return nil
+		return Coders.Float32.DoEncode(w, float32(tv.Float()))
 	case reflect.Float64:
-		Coders.Float64.DoEncode(w, tv.Float())
-		return nil
+		return Coders.Float64.DoEncode(w, tv.Float())
 	case reflect.String:
-		Coders.LenString.DoEncode(w, tv.String())
-		return nil
+		return Coders.LenString.DoEncode(w, tv.String())
 	case reflect.Map:
 		if tv.Type().Key().Kind() != reflect.String {
 			return errors.New("onlye encode map[string]value")
 		}
 		sz := tv.Len()
 		l := binary.PutUvarint(bs, uint64(sz))
-		w.Write(bs[:l])
+		_, err = w.Write(bs[:l])
+		if err != nil {
+			return err
+		}
 		mkeys := tv.MapKeys()
 		for _, k := range mkeys {
 			sval := tv.MapIndex(k)
-			Coders.LenString.DoEncode(w, k.String())
-			err := this.Encode(w, sval.Interface())
+			err = Coders.LenString.DoEncode(w, k.String())
+			if err != nil {
+				return err
+			}
+			err = this.Encode(w, sval.Interface())
 			if err != nil {
 				return err
 			}
@@ -527,10 +545,13 @@ func (this varCoder) Encode(w EncodeWriter, v interface{}) error {
 	case reflect.Slice:
 		sz := tv.Len()
 		l := binary.PutUvarint(bs, uint64(sz))
-		w.Write(bs[:l])
+		_, err = w.Write(bs[:l])
+		if err != nil {
+			return err
+		}
 		for i := 0; i < sz; i++ {
 			sval := tv.Index(i)
-			err := this.Encode(w, sval.Interface())
+			err = this.Encode(w, sval.Interface())
 			if err != nil {
 				return err
 			}
@@ -540,12 +561,18 @@ func (this varCoder) Encode(w EncodeWriter, v interface{}) error {
 		vt := tv.Type()
 		sz := vt.NumField()
 		l := binary.PutUvarint(bs, uint64(sz))
-		w.Write(bs[:l])
+		_, err = w.Write(bs[:l])
+		if err != nil {
+			return err
+		}
 		for i := 0; i < sz; i++ {
 			tfield := vt.Field(i)
 			sval := tv.Field(i)
-			Coders.LenString.DoEncode(w, tfield.Name)
-			err := this.Encode(w, sval.Interface())
+			err = Coders.LenString.DoEncode(w, tfield.Name)
+			if err != nil {
+				return err
+			}
+			err = this.Encode(w, sval.Interface())
 			if err != nil {
 				return err
 			}

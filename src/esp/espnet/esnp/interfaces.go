@@ -6,9 +6,9 @@ type EncodeWriter interface {
 	io.Writer
 	io.ByteWriter
 
-	WriteFrame(mt byte, data []byte) error
-	NewFrame() (int, error)
-	EndFrame(p int, mt byte) error
+	WriteLine(mt byte, data []byte) error
+	NewLine() (int, error)
+	EndLine(p int, mt byte) error
 }
 
 type DecodeReader interface {

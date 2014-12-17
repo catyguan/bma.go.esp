@@ -6,16 +6,19 @@ import (
 	"io"
 )
 
-type mt_payload int
+type mlt_payload int
 
-func (O mt_payload) Encode(w EncodeWriter, v interface{}) error {
+func (O mlt_payload) Encode(w EncodeWriter, v interface{}) error {
 	if r, ok := v.([]byte); ok {
-		w.Write(r)
-		return nil
+		_, err := w.Write(r)
+		return err
 	}
 	if r, ok := v.(*byteutil.BytesBuffer); ok {
 		for _, p := range r.DataList {
-			w.Write(p)
+			_, err := w.Write(p)
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	}
@@ -29,13 +32,13 @@ func (O mt_payload) Encode(w EncodeWriter, v interface{}) error {
 	return errors.New("not []byte")
 }
 
-func (O mt_payload) Decode(r DecodeReader) (interface{}, error) {
+func (O mlt_payload) Decode(r DecodeReader) (interface{}, error) {
 	return r.ReadAll(), nil
 }
 
-func (O mt_payload) Get(p *Package) []byte {
+func (O mlt_payload) Get(p *Message) []byte {
 	for e := p.Front(); e != nil; e = e.Next() {
-		if e.MessageType() == MT_PAYLOAD {
+		if e.MessageType() == MLT_PAYLOAD {
 			v, err := e.Value(O)
 			if err == nil {
 				if rv, ok := v.([]byte); ok {
@@ -48,22 +51,22 @@ func (O mt_payload) Get(p *Package) []byte {
 	return nil
 }
 
-func (O mt_payload) Remove(p *Package) {
+func (O mlt_payload) Remove(p *Message) {
 	for e := p.Front(); e != nil; e = e.Next() {
-		if e.MessageType() == MT_PAYLOAD {
+		if e.MessageType() == MLT_PAYLOAD {
 			p.Remove(e)
 			break
 		}
 	}
 }
 
-func (O mt_payload) Set(p *Package, val interface{}) {
+func (O mlt_payload) Set(p *Message, val interface{}) {
 	for e := p.Front(); e != nil; e = e.Next() {
-		if e.MessageType() == MT_PAYLOAD {
+		if e.MessageType() == MLT_PAYLOAD {
 			p.Remove(e)
 			break
 		}
 	}
-	f := NewFrameV(MT_PAYLOAD, val, O)
+	f := NewMessageLineV(MLT_PAYLOAD, val, O)
 	p.PushFront(f)
 }

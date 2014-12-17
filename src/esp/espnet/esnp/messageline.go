@@ -10,7 +10,7 @@ const (
 	size_FHEADER = 4
 )
 
-func headerWrite(w EncodeWriter, mt byte, sz int) error {
+func MessageLineHeaderWrite(w EncodeWriter, mt byte, sz int) error {
 	err := w.WriteByte(mt)
 	if err != nil {
 		return err
@@ -22,34 +22,34 @@ func headerWrite(w EncodeWriter, mt byte, sz int) error {
 	return nil
 }
 
-func headerRead(b []byte, pos int) (byte, int) {
+func MessageLineHeaderRead(b []byte, pos int) (byte, int) {
 	mt := byte(b[pos+0])
 	sz := int(b[pos+3]) | int(b[pos+2])<<8 | int(b[pos+1])<<16
 	return mt, sz
 }
 
-// Frame
-type Frame struct {
-	mtype byte
-	data  []byte
-	value interface{}
-
-	pack *Package
-	next *Frame
-	prev *Frame
-
+// MessageLine
+type MessageLine struct {
+	mtype   byte
+	data    []byte
+	value   interface{}
 	encoder Encoder
+	mpos    int
+
+	message *Message
+	next    *MessageLine
+	prev    *MessageLine
 }
 
-func NewFrame(mt byte, data []byte) *Frame {
-	r := new(Frame)
+func NewMessageLine(mt byte, data []byte) *MessageLine {
+	r := new(MessageLine)
 	r.mtype = mt
 	r.data = data
 	return r
 }
 
-func NewFrameV(mt byte, v interface{}, enc Encoder) *Frame {
-	r := new(Frame)
+func NewMessageLineV(mt byte, v interface{}, enc Encoder) *MessageLine {
+	r := new(MessageLine)
 	r.mtype = mt
 	r.value = v
 	if enc != nil {
@@ -62,8 +62,8 @@ func NewFrameV(mt byte, v interface{}, enc Encoder) *Frame {
 	return r
 }
 
-func (this *Frame) Clone(mt byte) *Frame {
-	r := new(Frame)
+func (this *MessageLine) Clone(mt byte) *MessageLine {
+	r := new(MessageLine)
 	if mt != 0 {
 		r.mtype = mt
 	} else {
@@ -76,19 +76,39 @@ func (this *Frame) Clone(mt byte) *Frame {
 	return r
 }
 
-func (this *Frame) MessageType() byte {
+func (this *MessageLine) MessageType() byte {
 	return this.mtype
 }
 
-func (this *Frame) Next() *Frame {
+func (this *MessageLine) MessageSize() int {
+	if this.data != nil {
+		return len(this.data)
+	}
+	if this.mtype == MLT_END {
+		return 0
+	}
+	return -1
+}
+
+func (this *MessageLine) Next() *MessageLine {
 	return this.next
 }
 
-func (this *Frame) Prev() *Frame {
+func (this *MessageLine) Prev() *MessageLine {
 	return this.prev
 }
 
-func (this *Frame) Encode(w EncodeWriter) error {
+func (this *MessageLine) EncodeRawData() error {
+	w := new(BytesEncodeWriter)
+	err := this.Encode(w)
+	if err != nil {
+		return err
+	}
+	this.data = w.ToBytes()
+	return nil
+}
+
+func (this *MessageLine) Encode(w EncodeWriter) error {
 	if this.data == nil {
 		if this.value != nil {
 			var err error
@@ -96,7 +116,7 @@ func (this *Frame) Encode(w EncodeWriter) error {
 			if enc == nil {
 				return errors.New(fmt.Sprintf("unknow encoder %T", this.value))
 			}
-			p, err2 := w.NewFrame()
+			p, err2 := w.NewLine()
 			if err2 != nil {
 				return err2
 			}
@@ -104,19 +124,19 @@ func (this *Frame) Encode(w EncodeWriter) error {
 			if err != nil {
 				return err
 			}
-			return w.EndFrame(p, this.mtype)
+			return w.EndLine(p, this.mtype)
 		}
 		return nil
 	} else {
-		return w.WriteFrame(this.mtype, this.data)
+		return w.WriteLine(this.mtype, this.data)
 	}
 }
 
-func (this *Frame) RawData() []byte {
+func (this *MessageLine) RawData() []byte {
 	return this.data
 }
 
-func (this *Frame) Value(dec Decoder) (interface{}, error) {
+func (this *MessageLine) Value(dec Decoder) (interface{}, error) {
 	if this.value == nil {
 		if this.data != nil && len(this.data) > 0 {
 			var bdr BytesDecodeReader
@@ -131,13 +151,13 @@ func (this *Frame) Value(dec Decoder) (interface{}, error) {
 	return this.value, nil
 }
 
-func (this *Frame) RawValue() interface{} {
+func (this *MessageLine) RawValue() interface{} {
 	return this.value
 }
 
-func (this *Frame) String() string {
+func (this *MessageLine) String() string {
 	buf := bytes.NewBuffer(make([]byte, 0))
-	buf.WriteString(fmt.Sprintf("FRAME[%d", this.mtype))
+	buf.WriteString(fmt.Sprintf("MLINE[%d", this.mtype))
 	if this.value != nil {
 		buf.WriteString(fmt.Sprintf(",%v", this.value))
 	} else {

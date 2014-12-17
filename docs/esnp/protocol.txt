@@ -1,41 +1,45 @@
-��֡�ṹ��
-ͷ:4���ֽ�
-	[1:֡����][3:���С]
-	���ӣ�֡����Ϊ1������Ϊ1000
-	[1][0][3][232]
-��:�䳤���ݣ���ͷ�����С���ݾ���
+【消息结构】
+[行][行][行]...[结束行]
 
-����Ϣ�ṹ��
-[֡][֡][֡][֡][����֡]
+【行结构】
+[1:行类型][3:数据大小,BigEndian][X:数据,X由'数据大小'决定]
+例子：行类型为1，长度为1000
+[1][0][3][232][AB]...x1000
 
-����֡ = ֡����Ϊ0
+【行类别】
+头行
+体行
+结束行
+
+排列顺序：[头行](0-*)[体行](0-*)[结束行](1)
+头行必须在非头行之前，结束行必须是消息的最后一行，同一类别的行之间无顺序要求（业务有特别要求除外）
+
+结束行 = 行类型为0，数据大小为0的行
 	[0][0][0][0]
-  
-���˽���֡��������Ϣ���������֡��˳��Ҫ��ҵ�����ر�Ҫ����⣩
 
-���������ݱ���˵����
-Bool : ����ֵ��1�ֽ�
+【基础数据编码说明】
+Bool : 布尔值，1字节
 	0 false
-	��0 true
+	非0 true
 Int = Int32
-Int8 or Uint8 or Byte : һ���ֽڵĶ�������
-Int16,Int32,Int64 : �䳤���з����������ݣ������ۣ�
-	���룺
+Int8 or UInt8 or Byte : 一个字节的定长数据
+Int16,Int32,Int64 : 变长的有符号整型数据
+	编码：
 	uv := uint64(v) << 1
 	if v < 0 {
-		uv = ^uv // ȡ�� ~uv
+		uv = ^uv // 取反 ~uv
 	}
-	return UintXEncoder(uv)
-	���룺
-	ux, n := UintXDecoder(buf)
+	return UIntXEncoder(uv)
+	解码：
+	ux, n := UIntXDecoder(buf)
 	x := int64(ux >> 1)
 	if ux&1 != 0 {
-		x = ^x // ȡ�� ~x
+		x = ^x // 取反 ~x
 	}
 	return x, n
-Uint = Uint32
-Uint16,Uint32,Uint64 : �䳤���޷����������ݣ������ۣ�
-	���룺
+UInt = UInt32
+UInt16,UInt32,UInt64 : 变长的无符号整型数据
+	编码：
 	i := 0
 	for v >= 0x80 {
 		buf[i] = byte(v) | 0x80
@@ -44,7 +48,7 @@ Uint16,Uint32,Uint64 : �䳤���޷����������ݣ������ۣ�
 	}
 	buf[i] = byte(v)
 	return i + 1
-	���룺
+	解码：
 	var x uint64
 	var s uint
 	for i, b := range buf {
@@ -58,24 +62,24 @@ Uint16,Uint32,Uint64 : �䳤���޷����������ݣ������ۣ�
 		s += 7
 	}
 	return 0, 0
-FixInt16, FixInt32, FixInt64, FixUint16, FixUint32, FixUint64 : ����������
-	����˳�� BigEndian
-	16Ϊ2���ֽ�
-	32Ϊ4���ֽ�
-	64Ϊ8���ֽ�
-Float32 : ������4�ֽڸ�������
-	����IEEE 754��ʽת��Ϊuint32Ȼ��FixUint32����
-Float64 : ������8�ֽڸ�������
-	����IEEE 754��ʽת��Ϊuint64Ȼ��FixUint64����
-Bytes : ���������ݣ�������
-String : UTF8�����ַ�����������
-LenBytes : ���г��ȵĶ���������
-	[�ֽڳ���:Int][Bytes]
-LenString : ���г��ȵ��ַ���
-	[�ֽڳ���:Int][String]
-Var : ���ͳ��ȶ�����������
-	[��������:1���ֽ�][������]
-	�������ͱ��
+FixInt16, FixInt32, FixInt64, FixUInt16, FixUInt32, FixUInt64 : 定长的数据
+	编码顺序 BigEndian
+	16为2个字节
+	32为4个字节
+	64为8个字节
+Float32 : 定长的4字节浮点数据
+	根据IEEE 754格式转换为uint32然后FixUInt32编码
+Float64 : 定长的8字节浮点数据
+	根据IEEE 754格式转换为uint64然后FixUInt64编码
+Bytes : 二进制数据，不定长
+String : UTF8编码字符串，不定长
+LenBytes : 具有长度的二进制数据
+	[字节长度:Int][Bytes]
+LenString : 具有长度的字符串
+	[字节长度:Int][String]
+Var : 类型长度都不定的数据
+	[数据类型:1个字节][数据体]
+	数据类型编号
 	0 - Null
 	1 - Bool
 	2 - Int
@@ -83,134 +87,147 @@ Var : ���ͳ��ȶ�����������
 	4 - Int16
 	5 - Int32
 	6 - Int64
-	7 - Uint
-	8 - Uint8
-	9 - Uint16
-	10 - Uint32
-	11 - Uint64
+	7 - UInt
+	8 - UInt8
+	9 - UInt16
+	10 - UInt32
+	11 - UInt64
 	13 - Float32
 	14 - Float64
 	17 - LenBytes
 	21 - Map<String, Var>
-		[Map����:Int][[Key:LenString][Value:Var]] ...
+		[Map数量:Int][[Key:LenString][Value:Var]]...
 	23 - List<Var>
-		[List����:Int][Value:Var]...
+		[List数量:Int][Value:Var]...
 	24 - LenString
  
-��֡����˵����
+【行类型说明】
 MT_END : 0x00
-	����֡����֡���ݣ���Ϊ [0][0][0][0]
+	结束行，无数据，恒为 [0][0][0][0]
 	
-MT_RESERVERD �� 0x01 - 0x0F
-	������Χ
+MT_RESERVERD ： 0x01 - 0x0F
+	保留范围
 	
 MT_SESSION_INFO : 0x10
-	�Ự���ݣ�����Ӧ����Ϣ��ʱ����Ҫ���Ƹ�֡���ݵ���Ӧ��Ϣ��
-	���ж��
-	�����壺[����:LenString][ֵ:Var]
+	体行
+	会话数据，当响应该消息的时候，需要复制该行数据到响应消息里
+	可有多个
+	数据体：[名称:LenString][值:Var]
 	
 MT_MESSAGE_ID : 0x11
-	��Ϣ�ı�ţ�ͬһͨ��ͨ�����ñ����ҪΨһ
-	�����壺[FixUint64]
+	头行
+	消息的编号，同一通信通道，该编号需要唯一
+	数据体：[FixUInt64]
 
 MT_SOURCE_MESSAGE_ID : 0x12
-	Դ��Ϣ�ı�ţ�����ͨ����֡��ȡ��Ӧ��Ϣ��Ӧ��Դ��Ϣ
-	�����壺[FixUint64]	
+	头行
+	源消息的编号，可以通过该行获取响应消息对应的源消息
+	数据体：[FixUInt64]	
 
-// ȡ��������MT_FLAG����
+// 取消，采用MT_FLAG代替
 MT_MESSAGE_KIND : 0x13
-	��Ϣ������
-		MK_UNKNOW   = 0 ��
-		MK_REQUEST  = 1 ����
-		MK_RESPONSE = 2 ��Ӧ
-		MK_INFO     = 3 ��Ϣ
+	消息的类型
+		MK_UNKNOW   = 0 无
+		MK_REQUEST  = 1 请求
+		MK_RESPONSE = 2 响应
+		MK_INFO     = 3 消息
 		MK_INFO_RESPONSE = xxx
-		MK_EVENT    = 4 �¼�
-	�����壺[Uint8]
+		MK_EVENT    = 4 事件
+	数据体：[UInt8]
 	
 MT_HEADER : 0x14
-	ͨ����Ϣͷ��Key��Valueģ��
-	���ж��
-	�����壺[����:LenString][ֵ:Var]
+	体行
+	通用消息头，Key：Value模型
+	可有多个
+	数据体：[名称:LenString][值:Var]
 	
 MT_DATA : 0x15
-	ͨ����Ϣ���ݣ�Key��Valueģ��
-	���ж��
-	�����壺[����:LenString][ֵ:Var]
+	体行
+	通用消息数据，Key：Value模型
+	可有多个
+	数据体：[名称:LenString][值:Var]
 	
 MT_PAYLOAD : 0x16
-	��Ϣ��Ч���ݣ����ݸ�ʽ��ҵ�����
-	���ж��
-	�����壺[Bytes]
+	体行
+	消息有效数据，数据格式由业务解析
+	可有多个
+	数据体：[Bytes]
 	
 MT_ADDRESS : 0x17
-	��ϢĿ���ַ
-	���ж��
-	�����壺[��ַ����:Int][ֵ:LenString]	
-	��ַ����
-		ADDRESS_GROUP   = 50 ������
-		ADDRESS_HOST    = 40 ����(�ڵ�)
-		ADDRESS_SERVICE = 30 ����
-		ADDRESS_OP      = 20 ����
-		ADDRESS_OBJECT  = 10 ������������
-	��ַ��URL��ʾ��ʽ
+	头行
+	消息目标地址
+	可有多个
+	数据体：[地址类型:Int][值:LenString]	
+	地址类型
+		ADDRESS_GROUP   = 50 服务组
+		ADDRESS_HOST    = 40 主机(节点)
+		ADDRESS_SERVICE = 30 服务
+		ADDRESS_OP      = 20 操作
+		ADDRESS_OBJECT  = 10 操作关联对象
+	地址的URL表示方式
 		esnp://HOST/SERVICE/OP?o=OBJECT&g=GROUP&....
-		HOST,SERVICE,OP=unknow ��ʾ��Ӧ������Ϊ��Ч
-		������			
+		HOST,SERVICE,OP=_ 表示对应数据项为无效
+		范例：			
 			esnp://127.0.0.1:1080/test/add
-			esnp://127.0.0.1:1080/test/unknow
-		��֪����:
-			to=1234 ��ʱʱ�� MS
+			esnp://127.0.0.1:1080/test/_
+		已知参数:
+			to=1234 超时时间 MS
 	
 MT_SOURCE_ADDRESS : 0x18
-	��ϢԴ��ַ
-	��MT_ADDRESSһ��
+	头行
+	消息源地址
+	和MT_ADDRESS一样
 	
-// ȡ��������MT_FLAG����
+// 取消，采用MT_FLAG代替
 MT_TRACE : 0x19
-	TRACE��־����ʾ����Ϣ��Ҫ�м�������¼������ڵ�����;
-	�ñ�־������Ҫ�����Ƿ�ͨ��
-	�����壺��
+	TRACE标志，表示该消息需要中间件反馈事件，用于调试用途
+	该标志作用需要考虑是否通用
+	数据体：无
 
-// ȡ��������MT_FLAG����
+// 取消，采用MT_FLAG代替
 MT_TRACE_RESP : 0x1A
-	TRACE��Ӧ��־����ʾ����Ϣ��TRACE�Ķ�Ӧ��Ӧ��Ϣ
-	�����壺��
+	TRACE响应标志，表示该消息是TRACE的对应响应消息
+	数据体：无
 	
 MT_SEQ_NO : 0x1B
-	��Ϣ��ţ���һ��ҵ���߼���Ҫ�����Ϣ������ɵ�ʱ��ͨ����֡��־��Ϣ�����б��
-	�����壺[��ǰ���:Int][������:Int]
-		��Ŵ�1��ʼ
-		�����ſ���Ϊ0����ʾδ֪
-		��ǰ��� = ������ ��ʾ��ȫ�����ͣ���ҵ���߼������һ����Ϣ��
+	头行
+	消息序号，当一个业务逻辑需要多个消息才能完成的时候，通过该行标志消息的序列编号
+	数据体：[当前序号:Int][最大序号:Int]
+		编号从1开始
+		最大序号可以为0，表示未知
+		当前序号 = 最大序号 表示已全部发送（该业务逻辑的最后一个消息）
 	
 MT_XDATA : 0x1C
-	������Ϣ���ݣ�Id:Value
-	���ж��
-	�����壺[Id:Int][ֵ:ҵ�����]
+	体行
+	定制消息数据，Id:Value
+	可有多个
+	数据体：[Id:Int][值:业务解析]
 	
 MT_ERROR : 0x1D
-	������Ϣ���������Ӧ���и���Ϣ�����ʾ��������ִ�����
-	������: [string]
+	头行
+	错误信息，如果是响应且有该信息，则表示是请求出现错误了
+	数据体: [string]
 	
 MT_FLAG : 0x1E
-	��־λ
-	���ж��
-	������: [int32]
-	Flag����
-		FLAG_TRACE   	= 1 ��Ҫ�м�������¼������ڵ�����;
-		FLAG_TRACE_INFO = 2 ��TRACE�Ķ�Ӧ��Ӧ��Ϣ
-		FLAG_RESP		= 3 ��Ӧ
-		FLAG_REQUEST 	= 4 ����
-		FLAG_INFO		= 5 ��Ϣ
-		FLAG_EVENT 		= 6 �¼�
-		FLAG_APP_DEFINE = 128 Ӧ�ö���
+	头行
+	标志位
+	可有多个
+	数据体: [int32]
+	Flag类型
+		FLAG_TRACE   	= 1 需要中间件反馈事件，用于调试用途
+		FLAG_TRACE_INFO = 2 是TRACE的对应响应消息
+		FLAG_RESP		= 3 响应
+		FLAG_REQUEST 	= 4 请求
+		FLAG_INFO		= 5 消息
+		FLAG_EVENT 		= 6 事件
+		FLAG_APP_DEFINE = 128+ 应用定义
 	
 MT_VERSION : 0x1F
-	Э��汾��,4λ�ֽڱ�ʾ
-	[���汾][�ΰ汾][��֧���][������]
-	������: [byte][byte][byte][byte]
+	头行
+	协议版本号,4位字节表示
+	[主版本][次版本][分支编号][变体编号]
+	数据体: [byte][byte][byte][byte]
 
-MT_APP_DEFINE �� 0x80 - 0xFF
-	Ӧ�ÿ�ʹ�õĶ��Ʒ�Χ	
+MT_APP_DEFINE ： 0x80 - 0xFF
+	应用可使用的定制范围	
 

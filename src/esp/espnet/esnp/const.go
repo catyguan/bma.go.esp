@@ -5,32 +5,32 @@ const (
 )
 
 const (
-	MT_END               = byte(0x00)
-	MT_SESSION_INFO      = 0x10
-	MT_MESSAGE_ID        = 0x11
-	MT_SOURCE_MESSAGE_ID = 0x12
-	MT_HEADER            = 0x14
-	MT_DATA              = 0x15
-	MT_ADDRESS           = 0x17
-	MT_PAYLOAD           = 0x16
-	MT_SOURCE_ADDRESS    = 0x18
-	MT_TRACE             = 0x19
-	MT_TRACE_RESP        = 0x1A
-	MT_SEQ_NO            = 0x1B
-	MT_XDATA             = 0x1C
-	MT_ERROR             = 0x1D
-	MT_FLAG              = 0x1E
-	MT_VERSION           = 0x1F
+	MLT_END               = byte(0x00)
+	MLT_SESSION_INFO      = 0x10
+	MLT_MESSAGE_ID        = 0x11
+	MLT_SOURCE_MESSAGE_ID = 0x12
+	MLT_HEADER            = 0x14
+	MLT_DATA              = 0x15
+	MLT_ADDRESS           = 0x17
+	MLT_PAYLOAD           = 0x16
+	MLT_SOURCE_ADDRESS    = 0x18
+	MLT_TRACE             = 0x19
+	MLT_TRACE_RESP        = 0x1A
+	MLT_SEQ_NO            = 0x1B
+	MLT_XDATA             = 0x1C
+	MLT_ERROR             = 0x1D
+	MLT_FLAG              = 0x1E
+	MLT_VERSION           = 0x1F
 )
 
 const (
-	FLAG_TRACE      = MTFlag(1)
-	FLAG_TRACE_INFO = MTFlag(2)
-	FLAG_RESP       = MTFlag(3)
-	FLAG_REQUEST    = MTFlag(4)
-	FLAG_INFO       = MTFlag(5)
-	FLAG_EVENT      = MTFlag(6)
-	FLAG_APP_DEFINE = MTFlag(128)
+	FLAG_TRACE      = Flag(1)
+	FLAG_TRACE_INFO = Flag(2)
+	FLAG_RESP       = Flag(3)
+	FLAG_REQUEST    = Flag(4)
+	FLAG_INFO       = Flag(5)
+	FLAG_EVENT      = Flag(6)
+	FLAG_APP_DEFINE = Flag(128)
 )
 
 var (

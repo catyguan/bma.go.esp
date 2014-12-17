@@ -2,21 +2,20 @@ package esnp
 
 import "errors"
 
-type mt_message_id byte
+type mlt_message_id byte
 
-func (O mt_message_id) Encode(w EncodeWriter, v interface{}) error {
+func (O mlt_message_id) Encode(w EncodeWriter, v interface{}) error {
 	if o, ok := v.(uint64); ok {
-		Coders.FixUint64.DoEncode(w, o)
-		return nil
+		return Coders.FixUint64.DoEncode(w, o)
 	}
 	return errors.New("not messageId")
 }
 
-func (O mt_message_id) Decode(r DecodeReader) (interface{}, error) {
+func (O mlt_message_id) Decode(r DecodeReader) (interface{}, error) {
 	return Coders.FixUint64.DoDecode(r)
 }
 
-func (O mt_message_id) Get(p *Package) uint64 {
+func (O mlt_message_id) Get(p *Message) uint64 {
 	for e := p.Front(); e != nil; e = e.Next() {
 		if e.MessageType() == byte(O) {
 			v, err := e.Value(O)
@@ -31,7 +30,7 @@ func (O mt_message_id) Get(p *Package) uint64 {
 	return 0
 }
 
-func (O mt_message_id) Remove(p *Package) {
+func (O mlt_message_id) Remove(p *Message) {
 	for e := p.Front(); e != nil; e = e.Next() {
 		if e.MessageType() == byte(O) {
 			p.Remove(e)
@@ -40,18 +39,18 @@ func (O mt_message_id) Remove(p *Package) {
 	}
 }
 
-func (O mt_message_id) Set(p *Package, val uint64) {
+func (O mlt_message_id) Set(p *Message, val uint64) {
 	for e := p.Front(); e != nil; e = e.Next() {
 		if e.MessageType() == byte(O) {
 			p.Remove(e)
 			break
 		}
 	}
-	f := NewFrameV(byte(O), val, O)
+	f := NewMessageLineV(byte(O), val, O)
 	p.PushFront(f)
 }
 
-func (O mt_message_id) Sure(p *Package) uint64 {
+func (O mlt_message_id) Sure(p *Message) uint64 {
 	mid := O.Get(p)
 	if mid == 0 {
 		mid = NextMessageId()

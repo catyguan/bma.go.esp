@@ -2,9 +2,9 @@ package esnp
 
 import "errors"
 
-type mt_error int
+type mlt_error int
 
-func (O mt_error) Encode(w EncodeWriter, v interface{}) error {
+func (O mlt_error) Encode(w EncodeWriter, v interface{}) error {
 	if r, ok := v.(string); ok {
 		_, err := w.Write([]byte(r))
 		return err
@@ -12,14 +12,14 @@ func (O mt_error) Encode(w EncodeWriter, v interface{}) error {
 	return errors.New("not string")
 }
 
-func (O mt_error) Decode(r DecodeReader) (interface{}, error) {
+func (O mlt_error) Decode(r DecodeReader) (interface{}, error) {
 	b := r.ReadAll()
 	return string(b), nil
 }
 
-func (O mt_error) Get(p *Package) (bool, string) {
+func (O mlt_error) Get(p *Message) (bool, string) {
 	for e := p.Front(); e != nil; e = e.Next() {
-		if e.MessageType() == MT_ERROR {
+		if e.MessageType() == MLT_ERROR {
 			v, err := e.Value(O)
 			if err == nil {
 				return true, v.(string)
@@ -30,22 +30,22 @@ func (O mt_error) Get(p *Package) (bool, string) {
 	return false, ""
 }
 
-func (O mt_error) Remove(p *Package) {
+func (O mlt_error) Remove(p *Message) {
 	for e := p.Front(); e != nil; e = e.Next() {
-		if e.MessageType() == MT_ERROR {
+		if e.MessageType() == MLT_ERROR {
 			p.Remove(e)
 			break
 		}
 	}
 }
 
-func (O mt_error) Set(p *Package, val string) {
+func (O mlt_error) Set(p *Message, val string) {
 	for e := p.Front(); e != nil; e = e.Next() {
-		if e.MessageType() == MT_ERROR {
+		if e.MessageType() == MLT_ERROR {
 			p.Remove(e)
 			break
 		}
 	}
-	f := NewFrameV(MT_ERROR, val, O)
+	f := NewMessageLineV(MLT_ERROR, val, O)
 	p.PushFront(f)
 }

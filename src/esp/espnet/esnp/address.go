@@ -16,8 +16,8 @@ const (
 )
 
 type Address struct {
-	pack       *Package
-	coder      addrCoder
+	message    *Message
+	coder      mlt_address
 	annotation map[int]string
 }
 
@@ -26,16 +26,16 @@ func NewAddress() *Address {
 	return this
 }
 
-func NewAddressP(pack *Package, mt byte) *Address {
+func NewAddressP(message *Message, mt byte) *Address {
 	this := new(Address)
-	this.pack = pack
-	this.coder = addrCoder(mt)
+	this.message = message
+	this.coder = mlt_address(mt)
 	return this
 }
 
 func (this *Address) Annotations() []int {
-	if this.pack != nil {
-		return this.coder.List(this.pack)
+	if this.message != nil {
+		return this.coder.List(this.message)
 	}
 	r := make([]int, 0, len(this.annotation))
 	if this.annotation != nil {
@@ -47,8 +47,8 @@ func (this *Address) Annotations() []int {
 }
 
 func (this *Address) Get(ann int) string {
-	if this.pack != nil {
-		v, err := this.coder.Get(this.pack, ann)
+	if this.message != nil {
+		v, err := this.coder.Get(this.message, ann)
 		if err == nil {
 			return v
 		}
@@ -64,8 +64,8 @@ func (this *Address) Get(ann int) string {
 }
 
 func (this *Address) Set(ann int, val string) {
-	if this.pack != nil {
-		this.coder.Set(this.pack, ann, val)
+	if this.message != nil {
+		this.coder.Set(this.message, ann, val)
 	} else {
 		if this.annotation == nil {
 			this.annotation = make(map[int]string)
@@ -137,8 +137,8 @@ func (this *Address) SetCall(s string, op string) {
 }
 
 func (this *Address) Remove(ann int) {
-	if this.pack != nil {
-		this.coder.Remove(this.pack, ann)
+	if this.message != nil {
+		this.coder.Remove(this.message, ann)
 	} else {
 		if this.annotation != nil {
 			delete(this.annotation, ann)
@@ -146,11 +146,11 @@ func (this *Address) Remove(ann int) {
 	}
 }
 
-func (this *Address) Bind(pack *Package, mt byte) {
-	coder := addrCoder(mt)
-	coder.Clear(this.pack)
+func (this *Address) Bind(message *Message, mt byte) {
+	coder := mlt_address(mt)
+	coder.Clear(this.message)
 	for ann, v := range this.annotation {
-		coder.Set(this.pack, ann, v)
+		coder.Set(this.message, ann, v)
 	}
 }
 

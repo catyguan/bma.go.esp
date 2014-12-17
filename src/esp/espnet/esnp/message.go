@@ -1,170 +1,35 @@
 package esnp
 
 import (
-	"bmautil/valutil"
 	"bytes"
 	"errors"
 	"fmt"
 )
 
-// MessageValuesObj
-var (
-	notValueErr error = errors.New("not correct value")
-)
-
-type MessageValues struct {
-	m     *Message
-	coder mvCoder
-}
-
-func (this *MessageValues) Set(key string, value interface{}) {
-	this.coder.Set(this.m.pack, key, value, nil)
-}
-
-func (this *MessageValues) Get(key string) (interface{}, error) {
-	return this.coder.Get(this.m.pack, key, nil)
-}
-
-func (this *MessageValues) GetString(key string, defv string) (string, error) {
-	v, err := this.Get(key)
-	if err != nil {
-		return "", err
-	}
-	return valutil.ToString(v, defv), nil
-}
-
-func (this *MessageValues) GetInt(key string, defv int64) (int64, error) {
-	v, err := this.Get(key)
-	if err != nil {
-		return defv, err
-	}
-	return valutil.ToInt64(v, defv), nil
-}
-
-func (this *MessageValues) GetUint(key string, defv uint64) (uint64, error) {
-	v, err := this.Get(key)
-	if err != nil {
-		return defv, err
-	}
-	return valutil.ToUint64(v, defv), nil
-}
-
-func (this *MessageValues) GetBool(key string) (bool, error) {
-	v, err := this.Get(key)
-	if err != nil {
-		return false, err
-	}
-	r, ok := valutil.ToBoolNil(v)
-	if ok {
-		return r, nil
-	}
-	return false, errors.New("not bool")
-}
-
-func (this *MessageValues) Del(key string) {
-	this.coder.Remove(this.m.pack, key)
-}
-
-func (this *MessageValues) List() []string {
-	return this.coder.List(this.m.pack)
-}
-
-func (this *MessageValues) CopyFrom(m map[string]interface{}) {
-	for k, v := range m {
-		this.Set(k, v)
-	}
-}
-
-func (this *MessageValues) ToMap() (map[string]interface{}, error) {
-	return this.coder.Map(this.m.pack)
-}
-
-func (this *MessageValues) ToBean(beanPtr interface{}) (bool, error) {
-	m, err := this.ToMap()
-	if err != nil {
-		return false, err
-	}
-	return valutil.ToBean(m, beanPtr), nil
-}
-
-// Message
-func NewMessage() *Message {
-	r := new(Message)
-	r.pack = NewPackage()
-	return r
-}
-
-func NewRequestMessage() *Message {
-	r := NewMessage()
-	FrameCoders.Flag.Set(r.pack, FLAG_REQUEST)
-	return r
-}
-
-func NewReplyMessage(msg *Message) *Message {
-	r := NewMessage()
-	p1 := msg.pack
-	p2 := r.pack
-
-	p2.PushFront(NewFrameV(MT_FLAG, FLAG_RESP, FrameCoders.Flag))
-	for e := p1.Front(); e != nil; e = e.Next() {
-		switch e.MessageType() {
-		case MT_SESSION_INFO:
-			p2.PushBack(e.Clone(0))
-		case MT_HEADER, MT_DATA, MT_PAYLOAD, MT_TRACE, MT_TRACE_RESP:
-			continue
-		case MT_FLAG:
-			o, err := e.Value(FrameCoders.Flag)
-			if err == nil {
-				if fo, ok := o.(MTFlag); ok {
-					switch fo {
-					case FLAG_REQUEST, FLAG_INFO:
-						p2.PushBack(e.Clone(0))
-					}
-				}
-			}
-			continue
-		case MT_SOURCE_ADDRESS:
-			p2.PushBack(e.Clone(MT_ADDRESS))
-			continue
-		case MT_MESSAGE_ID:
-			p2.PushBack(e.Clone(MT_SOURCE_MESSAGE_ID))
-			continue
-		}
-	}
-
-	return r
-}
-
-func NewPackageMessage(pack *Package) *Message {
-	r := new(Message)
-	r.pack = pack
-	return r
-}
-
 func NewBytesMessage(bs []byte) (*Message, error) {
-	pr := NewPackageReader()
+	pr := NewMessageReader()
 	pr.Append(bs)
-	p, err := pr.ReadPackage(len(bs) + 1)
+	p := NewMessage()
+	ok, err := pr.ReadMessage(len(bs)+1, p)
 	if err != nil {
 		return nil, err
 	}
-	return NewPackageMessage(p), nil
-}
-
-type Message struct {
-	pack *Package
+	if !ok {
+		return nil, fmt.Errorf("unknow message format")
+	}
+	return p, nil
 }
 
 func (this *Message) Id() uint64 {
-	return FrameCoders.MessageId.Get(this.pack)
+	return MessageLineCoders.MessageId.Get(this)
 }
 
 func (this *Message) SureId() uint64 {
-	return FrameCoders.MessageId.Sure(this.pack)
+	return MessageLineCoders.MessageId.Sure(this)
 }
 
 func (this *Message) SetId(v uint64) {
-	FrameCoders.MessageId.Set(this.pack, v)
+	MessageLineCoders.MessageId.Set(this, v)
 }
 
 func (this *Message) dumpValues(buf *bytes.Buffer, vs *MessageValues) {
@@ -198,90 +63,86 @@ func (this *Message) dumpXData(buf *bytes.Buffer, it *XDataIterator) {
 }
 
 func (this *Message) Dump() string {
-	return this.pack.String()
+	return this.String()
 }
 
 func (this *Message) GetAddress() *Address {
-	return NewAddressP(this.pack, byte(FrameCoders.Address))
+	return NewAddressP(this, byte(MessageLineCoders.Address))
 }
 
 func (this *Message) SetAddress(addr *Address) {
-	if addr.pack != nil && addr.pack == this.pack {
+	if addr.message != nil && addr.message == this {
 		return
 	}
-	addr.Bind(this.pack, byte(FrameCoders.Address))
+	addr.Bind(this, byte(MessageLineCoders.Address))
 }
 
 func (this *Message) GetSourceAddress() *Address {
-	return NewAddressP(this.pack, byte(FrameCoders.SourceAddress))
+	return NewAddressP(this, byte(MessageLineCoders.SourceAddress))
 }
 
 func (this *Message) SetSourceAddress(addr *Address) {
-	if addr.pack != nil && addr.pack == this.pack {
+	if addr.message != nil && addr.message == this {
 		return
 	}
-	addr.Bind(this.pack, byte(FrameCoders.SourceAddress))
+	addr.Bind(this, byte(MessageLineCoders.SourceAddress))
 }
 
-func (this *Message) GetVersion() *MTVersion {
-	return FrameCoders.Version.Get(this.pack)
+func (this *Message) GetVersion() *Version {
+	return MessageLineCoders.Version.Get(this)
 }
 
-func (this *Message) SetVersion(val *MTVersion) {
-	FrameCoders.Version.Set(this.pack, val)
+func (this *Message) SetVersion(val *Version) {
+	MessageLineCoders.Version.Set(this, val)
 }
 
 func (this *Message) IsRequest() bool {
-	if FrameCoders.Flag.Has(this.pack, FLAG_REQUEST) {
-		return !FrameCoders.Flag.Has(this.pack, FLAG_RESP)
+	if MessageLineCoders.Flag.Has(this, FLAG_REQUEST) {
+		return !MessageLineCoders.Flag.Has(this, FLAG_RESP)
 	}
 	return false
 }
 
 func (this *Message) SureRequest() {
-	FrameCoders.Flag.Set(this.pack, FLAG_REQUEST)
+	MessageLineCoders.Flag.Set(this, FLAG_REQUEST)
 }
 
 func (this *Message) Headers() *MessageValues {
-	return &MessageValues{this, FrameCoders.Header}
+	return &MessageValues{this, MessageLineCoders.Header}
 }
 func (this *Message) Datas() *MessageValues {
-	return &MessageValues{this, FrameCoders.Data}
+	return &MessageValues{this, MessageLineCoders.Data}
 }
 func (this *Message) XDatas() *MessageXData {
-	return &MessageXData{this, FrameCoders.XData}
+	return &MessageXData{this, MessageLineCoders.XData}
 }
 func (this *Message) XDataIterator() *XDataIterator {
-	it := FrameCoders.XData.Iterator(this.ToPackage())
+	it := MessageLineCoders.XData.Iterator(this)
 	it.moveFirst()
 	return it
 }
 func (this *Message) GetPayload() []byte {
-	r := FrameCoders.Payload.Get(this.pack)
+	r := MessageLineCoders.Payload.Get(this)
 	return r
 }
 func (this *Message) SetPayload(data []byte) {
-	FrameCoders.Payload.Remove(this.pack)
-	this.pack.PushBack(NewFrameV(MT_PAYLOAD, data, FrameCoders.Payload))
+	MessageLineCoders.Payload.Remove(this)
+	this.PushBack(NewMessageLineV(MLT_PAYLOAD, data, MessageLineCoders.Payload))
 }
 
 func (this *Message) Clone() *Message {
 	r := NewMessage()
-	p1 := this.pack
-	p2 := r.pack
+	p1 := this
+	p2 := r
 	for e := p1.Front(); e != nil; e = e.Next() {
 		p2.PushBack(e.Clone(0))
 	}
 	return r
 }
 
-func (this *Message) ToPackage() *Package {
-	return this.pack
-}
-
 // helper
 func (this *Message) ToError() error {
-	ok, v := FrameCoders.Error.Get(this.pack)
+	ok, v := MessageLineCoders.Error.Get(this)
 	if !ok {
 		return nil
 	}
@@ -289,13 +150,55 @@ func (this *Message) ToError() error {
 }
 
 func (this *Message) BeError(err error) {
-	FrameCoders.Error.Set(this.pack, err.Error())
+	MessageLineCoders.Error.Set(this, err.Error())
 }
 
 func (this *Message) BeErrorS(err string) {
-	FrameCoders.Error.Set(this.pack, err)
+	MessageLineCoders.Error.Set(this, err)
 }
 
 func (this *Message) ReplyMessage() *Message {
 	return NewReplyMessage(this)
+}
+
+// Message
+func NewRequestMessage() *Message {
+	r := NewMessage()
+	MessageLineCoders.Flag.Set(r, FLAG_REQUEST)
+	return r
+}
+
+func NewReplyMessage(msg *Message) *Message {
+	r := NewMessage()
+	p1 := msg
+	p2 := r
+
+	p2.PushFront(NewMessageLineV(MLT_FLAG, FLAG_RESP, MessageLineCoders.Flag))
+	for e := p1.Front(); e != nil; e = e.Next() {
+		switch e.MessageType() {
+		case MLT_SESSION_INFO:
+			p2.PushBack(e.Clone(0))
+		case MLT_HEADER, MLT_DATA, MLT_PAYLOAD, MLT_TRACE, MLT_TRACE_RESP:
+			continue
+		case MLT_FLAG:
+			o, err := e.Value(MessageLineCoders.Flag)
+			if err == nil {
+				if fo, ok := o.(Flag); ok {
+					switch fo {
+					case FLAG_REQUEST, FLAG_INFO:
+						p2.PushBack(e.Clone(0))
+					}
+				}
+			}
+			continue
+		case MLT_SOURCE_ADDRESS:
+			p2.PushBack(e.Clone(MLT_ADDRESS))
+			continue
+		case MLT_MESSAGE_ID:
+			p2.PushBack(e.Clone(MLT_SOURCE_MESSAGE_ID))
+			continue
+		}
+	}
+
+	return r
 }

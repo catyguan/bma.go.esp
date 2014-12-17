@@ -5,9 +5,6 @@ import (
 	"fmt"
 )
 
-// Address
-type addrCoder byte
-
 type struct_address_value struct {
 	annotation int
 	value      string
@@ -17,16 +14,25 @@ func (this *struct_address_value) String() string {
 	return fmt.Sprintf("%d:%s", this.annotation, this.value)
 }
 
-func (O addrCoder) Encode(w EncodeWriter, v interface{}) error {
+// Address
+type mlt_address byte
+
+func (O mlt_address) Encode(w EncodeWriter, v interface{}) error {
 	if mv, ok := v.(*struct_address_value); ok {
-		Coders.Int.DoEncode(w, mv.annotation)
-		Coders.LenString.DoEncode(w, mv.value)
+		err0 := Coders.Int.DoEncode(w, mv.annotation)
+		if err0 != nil {
+			return err0
+		}
+		err1 := Coders.LenString.DoEncode(w, mv.value)
+		if err1 != nil {
+			return err1
+		}
 		return nil
 	}
 	return errors.New("not struct_address_value")
 }
 
-func (O addrCoder) Decode(r DecodeReader) (interface{}, error) {
+func (O mlt_address) Decode(r DecodeReader) (interface{}, error) {
 	v1, err := Coders.Int.DoDecode(r)
 	if err != nil {
 		return nil, err
@@ -38,11 +44,11 @@ func (O addrCoder) Decode(r DecodeReader) (interface{}, error) {
 	return &struct_address_value{v1, v2}, nil
 }
 
-func (O addrCoder) MT() byte {
+func (O mlt_address) MT() byte {
 	return byte(O)
 }
 
-func (O addrCoder) is(e *Frame, ann int) (*struct_address_value, error) {
+func (O mlt_address) is(e *MessageLine, ann int) (*struct_address_value, error) {
 	if e.MessageType() == O.MT() {
 		v, err := e.Value(O)
 		if err != nil {
@@ -59,18 +65,18 @@ func (O addrCoder) is(e *Frame, ann int) (*struct_address_value, error) {
 	return nil, nil
 }
 
-func (O addrCoder) Set(p *Package, ann int, value string) {
-	p.RemoveFrame(func(e *Frame) (bool, bool) {
+func (O mlt_address) Set(p *Message, ann int, value string) {
+	p.RemoveMessageLine(func(e *MessageLine) (bool, bool) {
 		if mv, _ := O.is(e, ann); mv != nil {
 			return true, false
 		}
 		return false, false
 	})
-	f := NewFrameV(O.MT(), &struct_address_value{ann, value}, O)
+	f := NewMessageLineV(O.MT(), &struct_address_value{ann, value}, O)
 	p.PushFront(f)
 }
 
-func (O addrCoder) Get(p *Package, ann int) (string, error) {
+func (O mlt_address) Get(p *Message, ann int) (string, error) {
 	for e := p.Front(); e != nil; e = e.Next() {
 		mv, err := O.is(e, ann)
 		if err != nil {
@@ -83,8 +89,8 @@ func (O addrCoder) Get(p *Package, ann int) (string, error) {
 	return "", nil
 }
 
-func (O addrCoder) Remove(p *Package, ann int) {
-	p.RemoveFrame(func(e *Frame) (bool, bool) {
+func (O mlt_address) Remove(p *Message, ann int) {
+	p.RemoveMessageLine(func(e *MessageLine) (bool, bool) {
 		if mv, _ := O.is(e, ann); mv != nil {
 			return true, false
 		}
@@ -92,8 +98,8 @@ func (O addrCoder) Remove(p *Package, ann int) {
 	})
 }
 
-func (O addrCoder) Clear(p *Package) {
-	p.RemoveFrame(func(e *Frame) (bool, bool) {
+func (O mlt_address) Clear(p *Message) {
+	p.RemoveMessageLine(func(e *MessageLine) (bool, bool) {
 		if e.MessageType() == O.MT() {
 			return true, false
 		}
@@ -101,7 +107,7 @@ func (O addrCoder) Clear(p *Package) {
 	})
 }
 
-func (O addrCoder) List(p *Package) []int {
+func (O mlt_address) List(p *Message) []int {
 	r := make([]int, 0)
 	mt := O.MT()
 	for e := p.Front(); e != nil; e = e.Next() {

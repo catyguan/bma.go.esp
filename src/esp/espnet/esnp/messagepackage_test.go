@@ -12,15 +12,15 @@ func TestPackageBase(t *testing.T) {
 	binary.BigEndian.PutUint32(bs, 1000)
 	fmt.Println(bs)
 
-	p := NewPackage()
-	p.PushBack(NewFrame(0x01, []byte{1, 2, 3, 4, 5, 6, 7}))
+	p := NewMessage()
+	p.PushBack(NewMessageLine(0x01, []byte{1, 2, 3, 4, 5, 6, 7}))
 	// p.SetId(2013)
 
 	fmt.Println(p.String())
 	b, _ := p.ToBytes()
 	fmt.Println(b)
 
-	mt, sz := headerRead(b, 0)
+	mt, sz := MessageLineHeaderRead(b, 0)
 	fmt.Println(mt, sz)
 
 }
