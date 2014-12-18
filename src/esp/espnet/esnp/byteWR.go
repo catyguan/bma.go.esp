@@ -9,13 +9,19 @@ type BytesDecodeReader struct {
 	pos  int
 }
 
-func (this *BytesDecodeReader) ReadAll() []byte {
+func NewBytesDecodeReader(b []byte) *BytesDecodeReader {
+	r := new(BytesDecodeReader)
+	r.data = b
+	return r
+}
+
+func (this *BytesDecodeReader) ReadAll() ([]byte, error) {
 	if this.pos < len(this.data) {
 		r := this.data[this.pos:]
 		this.pos = len(this.data)
-		return r
+		return r, nil
 	}
-	return []byte{}
+	return []byte{}, nil
 }
 
 func (this *BytesDecodeReader) Read(p []byte) (n int, err error) {
@@ -37,19 +43,21 @@ func (this *BytesDecodeReader) ReadByte() (byte, error) {
 	return 0, io.EOF
 }
 
-func (this *BytesDecodeReader) Remain() []byte {
-	if this.pos < len(this.data) {
-		r := this.data[this.pos:]
-		this.pos = len(this.data)
-		return r
-	}
-	return nil
+func (this *BytesDecodeReader) Remain() int {
+	return len(this.data) - this.pos
 }
 
 // BytesEncodeWriter
 type BytesEncodeWriter struct {
-	data []byte
-	pos  int
+	data    []byte
+	pos     int
+	linepos int
+}
+
+func NewBytesEncodeWriter(b []byte) *BytesEncodeWriter {
+	r := new(BytesEncodeWriter)
+	r.data = b
+	return r
 }
 
 func (this *BytesEncodeWriter) grow(sz int) {
@@ -87,15 +95,17 @@ func (this *BytesEncodeWriter) WriteLine(mt byte, data []byte) error {
 	if l > 0 {
 		this.Write(data)
 	}
+	this.linepos = 0
 	return nil
 }
-func (this *BytesEncodeWriter) NewLine() (int, error) {
-	r := this.pos
+func (this *BytesEncodeWriter) NewLine() error {
+	this.linepos = this.pos
 	this.grow(size_FHEADER)
 	this.pos = this.pos + size_FHEADER
-	return r, nil
+	return nil
 }
-func (this *BytesEncodeWriter) EndLine(p int, mt byte) error {
+func (this *BytesEncodeWriter) EndLine(mt byte) error {
+	p := this.linepos
 	old := this.pos
 	this.pos = p
 	sz := old - p - size_FHEADER

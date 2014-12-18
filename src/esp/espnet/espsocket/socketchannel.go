@@ -229,8 +229,8 @@ func (this *SocketChannel) PostEvent(ev interface{}, cb SendCallback) error {
 	}
 
 	if msg, ok := ev.(*esnp.Message); ok {
-		p := msg.ToPackage()
-		ctrl := esnp.FrameCoders.Trace
+		p := msg
+		ctrl := esnp.MessageLineCoders.Trace
 		if ctrl.Has(p) {
 			info := fmt.Sprintf("%s -> %s", s.Conn.LocalAddr(), s.Conn.RemoteAddr())
 			rmsg := ctrl.CreateReply(msg, info)

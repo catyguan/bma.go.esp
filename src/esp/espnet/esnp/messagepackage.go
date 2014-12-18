@@ -274,19 +274,19 @@ func (this *MessageReader) Append(b []byte) {
 	this.wpos = this.wpos + l
 }
 
-func (this *MessageReader) ReadMessage(mp int, r *Message) (bool, error) {
+func (this *MessageReader) ReadMessage(mp int) (*Message, error) {
 	for {
 		if this.rpos+size_FHEADER > this.wpos {
 			// invalid header size
-			return false, nil
+			return nil, nil
 		}
 		mt, sz := MessageLineHeaderRead(this.buffer, this.rpos)
 		if mp > 0 && this.rpos+size_FHEADER+sz > mp {
-			return false, fmt.Errorf("maxMessageSize %d/%d", this.rpos+size_FHEADER+sz, mp)
+			return nil, fmt.Errorf("maxMessageSize %d/%d", this.rpos+size_FHEADER+sz, mp)
 		}
 		rp := this.rpos + size_FHEADER
 		if rp+sz > this.wpos {
-			return false, nil
+			return nil, nil
 		}
 		if mt != 0 {
 			this.rpos = rp + sz
@@ -295,7 +295,8 @@ func (this *MessageReader) ReadMessage(mp int, r *Message) (bool, error) {
 		break
 	}
 
-	// read frame body
+	// read body
+	r := NewMessage()
 	l := this.rpos
 	data := make([]byte, l)
 	copy(data, this.buffer[:l])
@@ -316,5 +317,5 @@ func (this *MessageReader) ReadMessage(mp int, r *Message) (bool, error) {
 	this.rpos = 0
 	copy(this.buffer, this.buffer[rp:this.wpos])
 	this.wpos = this.wpos - rp
-	return true, nil
+	return r, nil
 }

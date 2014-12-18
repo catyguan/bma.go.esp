@@ -67,7 +67,16 @@ func (O mlt_key_values) Decode(r DecodeReader) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &struct_key_value{s1, nil, r.Remain(), nil}, nil
+	sz := r.Remain()
+	if sz == -1 {
+		return nil, fmt.Errorf("unknow stream form xdata")
+	}
+	b := make([]byte, sz)
+	_, err = r.Read(b)
+	if err != nil {
+		return nil, err
+	}
+	return &struct_key_value{s1, nil, b, nil}, nil
 }
 
 func (O mlt_key_values) MT() byte {

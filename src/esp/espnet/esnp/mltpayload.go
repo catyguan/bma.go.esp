@@ -3,6 +3,7 @@ package esnp
 import (
 	"bmautil/byteutil"
 	"errors"
+	"fmt"
 	"io"
 )
 
@@ -33,7 +34,16 @@ func (O mlt_payload) Encode(w EncodeWriter, v interface{}) error {
 }
 
 func (O mlt_payload) Decode(r DecodeReader) (interface{}, error) {
-	return r.ReadAll(), nil
+	sz := r.Remain()
+	if sz == -1 {
+		return nil, fmt.Errorf("unknow stream form xdata")
+	}
+	b := make([]byte, sz)
+	_, err := r.Read(b)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
 }
 
 func (O mlt_payload) Get(p *Message) []byte {

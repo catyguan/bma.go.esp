@@ -13,8 +13,7 @@ func (O mlt_error) Encode(w EncodeWriter, v interface{}) error {
 }
 
 func (O mlt_error) Decode(r DecodeReader) (interface{}, error) {
-	b := r.ReadAll()
-	return string(b), nil
+	return Coders.String.Decode(r)
 }
 
 func (O mlt_error) Get(p *Message) (bool, string) {

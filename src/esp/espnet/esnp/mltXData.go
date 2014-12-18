@@ -68,7 +68,16 @@ func (O mlt_xdata) Decode(r DecodeReader) (interface{}, error) {
 	if !ok {
 		return nil, errors.New("not messageValue.xid:int")
 	}
-	return &struct_xdata{xid, nil, r.Remain(), nil}, nil
+	sz := r.Remain()
+	if sz == -1 {
+		return nil, fmt.Errorf("unknow stream form xdata")
+	}
+	b := make([]byte, sz)
+	_, err = r.Read(b)
+	if err != nil {
+		return nil, err
+	}
+	return &struct_xdata{xid, nil, b, nil}, nil
 }
 
 func (O mlt_xdata) MT() byte {

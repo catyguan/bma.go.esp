@@ -7,16 +7,14 @@ type EncodeWriter interface {
 	io.ByteWriter
 
 	WriteLine(mt byte, data []byte) error
-	NewLine() (int, error)
-	EndLine(p int, mt byte) error
+	NewLine() error
+	EndLine(mt byte) error
 }
 
 type DecodeReader interface {
 	io.ByteReader
 	io.Reader
-
-	ReadAll() []byte
-	Remain() []byte
+	Remain() int
 }
 
 type Encoder interface {

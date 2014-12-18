@@ -248,9 +248,9 @@ func (this *Socket) Cancel(mid uint64) esnp.ResponseListener {
 }
 
 func (this *Socket) OnMessageIn(msg *esnp.Message) error {
-	p := msg.ToPackage()
-	if esnp.FrameCoders.Flag.Has(p, esnp.FLAG_RESP) {
-		mid := esnp.FrameCoders.SourceMessageId.Get(msg.ToPackage())
+	p := msg
+	if esnp.MessageLineCoders.Flag.Has(p, esnp.FLAG_RESP) {
+		mid := esnp.MessageLineCoders.SourceMessageId.Get(p)
 		if mid > 0 {
 			rlis := this.Cancel(mid)
 			if rlis != nil {

@@ -116,7 +116,7 @@ func (this *MessageLine) Encode(w EncodeWriter) error {
 			if enc == nil {
 				return errors.New(fmt.Sprintf("unknow encoder %T", this.value))
 			}
-			p, err2 := w.NewLine()
+			err2 := w.NewLine()
 			if err2 != nil {
 				return err2
 			}
@@ -124,7 +124,7 @@ func (this *MessageLine) Encode(w EncodeWriter) error {
 			if err != nil {
 				return err
 			}
-			return w.EndLine(p, this.mtype)
+			return w.EndLine(this.mtype)
 		}
 		return nil
 	} else {

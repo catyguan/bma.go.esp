@@ -10,11 +10,11 @@ func NewBytesMessage(bs []byte) (*Message, error) {
 	pr := NewMessageReader()
 	pr.Append(bs)
 	p := NewMessage()
-	ok, err := pr.ReadMessage(len(bs)+1, p)
+	p, err := pr.ReadMessage(len(bs) + 1)
 	if err != nil {
 		return nil, err
 	}
-	if !ok {
+	if p == nil {
 		return nil, fmt.Errorf("unknow message format")
 	}
 	return p, nil

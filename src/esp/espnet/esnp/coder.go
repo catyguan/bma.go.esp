@@ -110,13 +110,22 @@ func (this stringCoder) Encode(w EncodeWriter, v interface{}) error {
 	return this.DoEncode(w, v.(string))
 }
 
-func (this stringCoder) DoDecode(r DecodeReader) string {
-	return string(r.ReadAll())
+func (this stringCoder) DoDecode(r DecodeReader, sz int) (string, error) {
+	p := make([]byte, sz)
+	_, err := r.Read(p)
+	if err != nil {
+		return "", err
+	}
+	return string(p), nil
 }
 
 func (this stringCoder) Decode(r DecodeReader) (interface{}, error) {
-	s := this.DoDecode(r)
-	return s, nil
+	sz := r.Remain()
+	if sz == -1 {
+		return nil, fmt.Errorf("invalid stream for string")
+	}
+	s, err := this.DoDecode(r, sz)
+	return s, err
 }
 
 // bool

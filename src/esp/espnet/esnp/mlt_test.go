@@ -32,9 +32,8 @@ func TestMTXData(t *testing.T) {
 	pr.Append([]byte{1, 2, 3})
 	for {
 		fmt.Println(pr.buffer[:pr.wpos], pr.rpos, pr.wpos)
-		p2 := NewMessage()
-		ok, _ := pr.ReadMessage(1024, p2)
-		if ok {
+		p2, _ := pr.ReadMessage(1024)
+		if p2 != nil {
 			it := MessageLineCoders.XData.Iterator(p2)
 			for ; !it.IsEnd(); it.Next() {
 				v, _ := it.Value(nil)

@@ -8,21 +8,19 @@ import (
 
 type ChannelCoder4Espnet struct {
 	maxpackage int
-	reader     *esnp.PackageReader
+	reader     *esnp.MessageReader
 }
 
 func (this *ChannelCoder4Espnet) Init() {
 	this.maxpackage = 0xFFFFFF
-	this.reader = esnp.NewPackageReader()
+	this.reader = esnp.NewMessageReader()
 }
 
 func (this *ChannelCoder4Espnet) EncodeMessage(ch *SocketChannel, ev interface{}, next func(ev interface{}) error) error {
 	if ev != nil {
-		var p *esnp.Package
+		var p *esnp.Message
 		if m, ok := ev.(*esnp.Message); ok {
-			p = m.ToPackage()
-		} else {
-			p, _ = ev.(*esnp.Package)
+			p = m
 		}
 		if p != nil {
 			if logger.EnableDebug(tag) {
@@ -39,19 +37,19 @@ func (this *ChannelCoder4Espnet) EncodeMessage(ch *SocketChannel, ev interface{}
 }
 
 func (this *ChannelCoder4Espnet) Decode(ch *SocketChannel, b []byte, next func(ev interface{}) error) error {
-	return this.doDecode(ch, b, false, next)
+	return this.doDecode(ch, b, next)
 }
 
 func (this *ChannelCoder4Espnet) DecodeMessage(ch *SocketChannel, b []byte, next func(ev interface{}) error) error {
-	return this.doDecode(ch, b, true, next)
+	return this.doDecode(ch, b, next)
 }
 
-func (this *ChannelCoder4Espnet) doDecode(who interface{}, b []byte, msg bool, next func(ev interface{}) error) error {
+func (this *ChannelCoder4Espnet) doDecode(who interface{}, b []byte, next func(ev interface{}) error) error {
 	pr := this.reader
 	pr.Append(b)
 	for {
 		mp := this.maxpackage
-		p, err := pr.ReadPackage(mp)
+		p, err := pr.ReadMessage(mp)
 		if err != nil {
 			logger.Error(tag, "rpackage -> fail, %s, %s", who, err)
 			return err
@@ -64,11 +62,7 @@ func (this *ChannelCoder4Espnet) doDecode(who interface{}, b []byte, msg bool, n
 				logger.Debug(tag, "rpackage -> %s", p)
 			}
 		}
-		if msg {
-			next(esnp.NewPackageMessage(p))
-		} else {
-			next(p)
-		}
+		next(p)
 	}
 }
 
