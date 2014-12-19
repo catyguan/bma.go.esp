@@ -3,6 +3,7 @@ package esnp
 import (
 	"bytes"
 	"fmt"
+	"io"
 )
 
 // Message
@@ -169,15 +170,9 @@ func (this *Message) ReadLineHeader(r DecodeReader) (mt byte, sz int, err error)
 
 func (this *Message) ReadLine(r DecodeReader, mt byte, sz int) (*MessageLine, error) {
 	b := make([]byte, sz, 0)
-	pos := 0
-	for {
-		n, err := r.Read(b[pos:])
-		if err != nil {
-			return nil, err
-		}
-		if n+pos < sz {
-			pos += n
-		}
+	_, err := io.ReadFull(r, b)
+	if err != nil {
+		return nil, err
 	}
 	this.size += sz
 	if mt == 0 {

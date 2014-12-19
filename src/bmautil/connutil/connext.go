@@ -12,6 +12,7 @@ type ConnExt struct {
 	Debuger ConnDebuger
 	conn    net.Conn
 	buf     []byte
+	prop    map[string]interface{}
 }
 
 func NewConnExt(conn net.Conn, debuger ConnDebuger) *ConnExt {
@@ -112,4 +113,29 @@ func (this *ConnExt) String() string {
 		return ra.String()
 	}
 	return fmt.Sprintf("%v", this.conn)
+}
+
+func (this *ConnExt) BaseConn() net.Conn {
+	return this.conn
+}
+
+func (this *ConnExt) GetProperty(name string) (interface{}, bool) {
+	if this.prop != nil {
+		r, ok := this.prop[name]
+		return r, ok
+	}
+	return nil, false
+}
+
+func (this *ConnExt) SetProperty(name string, val interface{}) {
+	if val == nil {
+		if this.prop != nil {
+			delete(this.prop, name)
+		}
+	} else {
+		if this.prop == nil {
+			this.prop = make(map[string]interface{})
+		}
+		this.prop[name] = val
+	}
 }

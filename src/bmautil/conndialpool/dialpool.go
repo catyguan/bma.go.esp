@@ -23,6 +23,7 @@ type DialPoolConfig struct {
 	TimeoutMS       int
 	MaxSize         int
 	InitSize        int
+	IdleMS          int
 	CheckMS         int
 	Retry           *retryst.RetryConfig
 	RetryFailInfoMS int
@@ -47,6 +48,9 @@ func (this *DialPoolConfig) Valid() error {
 	if this.CheckMS <= 0 {
 		this.CheckMS = 100
 	}
+	// if this.IdleMS <= 0 {
+	// 	this.IdleMS = 60 * 1000
+	// }
 	return nil
 }
 
@@ -59,7 +63,8 @@ func DefaultRetryConfig() *retryst.RetryConfig {
 }
 
 type dialPoolItem struct {
-	conn net.Conn
+	conn        *connutil.ConnExt
+	idleOutTime time.Time
 }
 
 // DialPool
@@ -72,7 +77,7 @@ type DialPool struct {
 	markTime time.Time
 	count    int32
 	active   int32
-	wait     chan *connutil.ConnExt
+	wait     chan *dialPoolItem
 }
 
 func NewDialPool(name string, cfg *DialPoolConfig) *DialPool {
@@ -87,7 +92,7 @@ func NewDialPool(name string, cfg *DialPoolConfig) *DialPool {
 	this.config = cfg
 	this.closeState.InitCloseState()
 
-	this.wait = make(chan *connutil.ConnExt, this.config.MaxSize)
+	this.wait = make(chan *dialPoolItem, this.config.MaxSize)
 
 	return this
 }
@@ -104,13 +109,13 @@ func (this *DialPool) GetConn(timeout time.Duration, log bool) (*connutil.ConnEx
 	if this.IsClosing() {
 		return nil, errors.New("closed")
 	}
-	var s *connutil.ConnExt
+	var item *dialPoolItem
 	select {
-	case s = <-this.wait:
-		if s == nil {
+	case item = <-this.wait:
+		if item == nil {
 			return nil, nil
 		}
-		return s, nil
+		return item.conn, nil
 	default:
 	}
 	if this.IsClosing() {
@@ -120,13 +125,13 @@ func (this *DialPool) GetConn(timeout time.Duration, log bool) (*connutil.ConnEx
 	if c < int32(this.config.MaxSize) {
 		// create it
 		atomic.AddInt32(&this.count, 1)
-		s, err := this.doDial(timeout, log)
+		conn, err := this.doDial(timeout, log)
 		if err != nil {
 			atomic.AddInt32(&this.count, -1)
 			return nil, err
 		}
 		atomic.AddInt32(&this.active, 1)
-		return connutil.NewConnExt(s, nil), nil
+		return connutil.NewConnExt(conn, nil), nil
 	}
 	// wait it
 	if log {
@@ -135,9 +140,12 @@ func (this *DialPool) GetConn(timeout time.Duration, log bool) (*connutil.ConnEx
 	if timeout > 0 {
 		timer := time.NewTimer(timeout)
 		select {
-		case s := <-this.wait:
+		case item := <-this.wait:
 			timer.Stop()
-			return s, nil
+			if item == nil {
+				return nil, nil
+			}
+			return item.conn, nil
 		case <-timer.C:
 		}
 	}
@@ -181,7 +189,10 @@ func (this *DialPool) ReturnConn(conn *connutil.ConnExt) {
 			conn.Close()
 		}
 	}()
-	this.wait <- conn
+	item := new(dialPoolItem)
+	item.idleOutTime = time.Now().Add(time.Duration(this.config.IdleMS) * time.Millisecond)
+	item.conn = conn
+	this.wait <- item
 }
 
 func (this *DialPool) Start() bool {
@@ -278,7 +289,7 @@ func (this *DialPool) Run() bool {
 			this.ReturnConn(conn)
 		}()
 	}
-	if this.config.InitSize > 0 {
+	if this.config.InitSize > 0 || this.config.IdleMS > 0 {
 		this.timer = time.NewTicker(time.Duration(this.config.CheckMS) * time.Millisecond)
 		go func() {
 			for {
@@ -293,13 +304,21 @@ func (this *DialPool) Run() bool {
 				// fmt.Println("checking", l)
 				for i := 0; i < l; i++ {
 					select {
-					case s := <-this.wait:
-						if !s.CheckBreak() {
+					case item := <-this.wait:
+						if item != nil {
+							if item.conn.CheckBreak() {
+								// fmt.Println("checking", "fail")
+								this.CloseConn(item.conn)
+								continue
+							}
+							// fmt.Println("checking idle", len(this.wait)+1, this.config.InitSize, time.Now().After(item.idleOutTime))
+							if len(this.wait)+1 > this.config.InitSize && time.Now().After(item.idleOutTime) {
+								logger.Debug(tag, "%s idle close", item.conn)
+								this.CloseConn(item.conn)
+								continue
+							}
 							// fmt.Println("checking", "ok")
-							this.wait <- s
-						} else {
-							// fmt.Println("checking", "fail")
-							this.CloseConn(s)
+							this.wait <- item
 						}
 					default:
 						break
@@ -334,8 +353,10 @@ func (this *DialPool) AskClose() {
 				break
 			}
 			select {
-			case s := <-this.wait:
-				this.doCloseConn(s)
+			case item := <-this.wait:
+				if item != nil {
+					this.doCloseConn(item.conn)
+				}
 			default:
 				done = true
 			}

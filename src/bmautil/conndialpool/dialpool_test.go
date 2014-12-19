@@ -54,7 +54,7 @@ func T2estDialPool(t *testing.T) {
 	logger.Info("TEST", "after  close - %s", pool)
 }
 
-func TestDialRetry(t *testing.T) {
+func T2estDialRetry(t *testing.T) {
 	safeCall()
 
 	cfg := new(DialPoolConfig)
@@ -66,6 +66,38 @@ func TestDialRetry(t *testing.T) {
 	pool.StartAndRun()
 
 	time.Sleep(time.Duration(5) * time.Second)
+
+	logger.Info("TEST", "before close - %s", pool)
+	pool.Close()
+	time.Sleep(time.Duration(1) * time.Millisecond)
+	logger.Info("TEST", "after  close - %s", pool)
+	time.Sleep(time.Duration(1) * time.Millisecond)
+}
+
+func TestPoolIdle(t *testing.T) {
+	safeCall()
+
+	logger.Info("TEST", "TestPoolIdle")
+
+	cfg := new(DialPoolConfig)
+	cfg.Address = "127.0.0.1:1080"
+	cfg.MaxSize = 3
+	cfg.InitSize = 0
+	cfg.IdleMS = 1 * 1000
+
+	pool := NewDialPool("Pool", cfg)
+	pool.StartAndRun()
+
+	time.Sleep(time.Duration(200) * time.Millisecond)
+
+	s, err := pool.GetConn(2*time.Second, true)
+	if err != nil {
+		logger.Warn("TEST", "GetConn fail - %s", err)
+		return
+	}
+	pool.ReturnConn(s)
+
+	time.Sleep(time.Duration(2100) * time.Millisecond)
 
 	logger.Info("TEST", "before close - %s", pool)
 	pool.Close()

@@ -1,6 +1,7 @@
 package esnp
 
 import (
+	"bufio"
 	"bytes"
 	"io"
 )
@@ -54,6 +55,22 @@ func NewIOEncodeWriter(o io.Writer, bo io.ByteWriter) *IOEncodeWriter {
 	r.o = o
 	r.bo = bo
 	return r
+}
+
+func NewBufIOEncoderWriter(o io.Writer) (*IOEncodeWriter, *bufio.Writer) {
+	buf := bufio.NewWriter(o)
+	r := new(IOEncodeWriter)
+	r.o = buf
+	r.bo = buf
+	return r, buf
+}
+
+func NewBufIOEncoderWriterSize(o io.Writer, sz int) (*IOEncodeWriter, *bufio.Writer) {
+	buf := bufio.NewWriterSize(o, sz)
+	r := new(IOEncodeWriter)
+	r.o = buf
+	r.bo = buf
+	return r, buf
 }
 
 func (this *IOEncodeWriter) Write(b []byte) (int, error) {
