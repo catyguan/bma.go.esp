@@ -131,7 +131,7 @@ func (this *DialPool) GetConn(timeout time.Duration, log bool) (*connutil.ConnEx
 			return nil, err
 		}
 		atomic.AddInt32(&this.active, 1)
-		return connutil.NewConnExt(conn, nil), nil
+		return connutil.NewConnExt(conn), nil
 	}
 	// wait it
 	if log {

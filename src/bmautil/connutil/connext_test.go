@@ -26,7 +26,8 @@ func T2estConnUtil(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	ce := NewConnExt(conn, testDebuger)
+	ce := NewConnExt(conn)
+	ce.Debuger = testDebuger
 	fmt.Println("connected", ce)
 	defer ce.Close()
 
@@ -54,7 +55,8 @@ func TestConnCheckBreak(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	ce := NewConnExt(conn, testDebuger)
+	ce := NewConnExt(conn)
+	ce.Debuger = testDebuger
 	fmt.Println("connected", ce)
 	defer ce.Close()
 

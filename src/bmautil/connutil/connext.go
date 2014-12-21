@@ -15,44 +15,14 @@ type ConnExt struct {
 	prop    map[string]interface{}
 }
 
-func NewConnExt(conn net.Conn, debuger ConnDebuger) *ConnExt {
+func NewConnExt(conn net.Conn) *ConnExt {
 	if o, ok := conn.(*ConnExt); ok {
-		if debuger != nil {
-			o.Debuger = debuger
-		}
 		return o
 	}
 
 	r := new(ConnExt)
 	r.conn = conn
-	r.Debuger = debuger
 	return r
-}
-
-func (this *ConnExt) CheckBreak() bool {
-	this.conn.SetReadDeadline(time.Now().Add(1))
-	one := make([]byte, 1)
-	n, err := this.conn.Read(one)
-	if n > 0 {
-		if this.buf == nil {
-			this.buf = one
-		} else {
-			this.buf = append(this.buf, one[0])
-		}
-	}
-	this.conn.SetReadDeadline(time.Time{})
-	if err == nil {
-		return false
-	}
-	// fmt.Println("error", err)
-	if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
-		return false
-	}
-	return true
-}
-
-func (this *ConnExt) WriteString(s string) (int, error) {
-	return this.Write([]byte(s))
 }
 
 func (this *ConnExt) Read(b []byte) (n int, err error) {
@@ -138,4 +108,76 @@ func (this *ConnExt) SetProperty(name string, val interface{}) {
 		}
 		this.prop[name] = val
 	}
+}
+
+func (this *ConnExt) ClearProperty() {
+	if this.prop != nil {
+		this.prop = nil
+	}
+}
+
+func (this *ConnExt) ListProperty() []string {
+	r := make([]string, 0, len(this.prop))
+	for k, _ := range this.prop {
+		r = append(r, k)
+	}
+	return r
+}
+
+func (this *ConnExt) CheckBreak() bool {
+	this.conn.SetReadDeadline(time.Now().Add(1))
+	one := make([]byte, 1)
+	n, err := this.conn.Read(one)
+	if n > 0 {
+		if this.buf == nil {
+			this.buf = one
+		} else {
+			this.buf = append(this.buf, one[0])
+		}
+	}
+	this.conn.SetReadDeadline(time.Time{})
+	if err == nil {
+		return false
+	}
+	// fmt.Println("error", err)
+	if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
+		return false
+	}
+	return true
+}
+
+func (this *ConnExt) ReadCheckTimeout(b []byte) (n int, timeout bool, err error) {
+	n, err = this.conn.Read(b)
+	if err != nil {
+		if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
+			timeout = true
+		}
+	}
+	return
+}
+
+func (this *ConnExt) WriteCheckTimeout(b []byte) (n int, timeout bool, err error) {
+	n, err = this.conn.Write(b)
+	if err != nil {
+		if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
+			timeout = true
+		}
+	}
+	return
+}
+
+func (this *ConnExt) ClearReadDeadline() {
+	this.conn.SetReadDeadline(time.Time{})
+}
+
+func (this *ConnExt) ClearWriteDeadline() {
+	this.conn.SetWriteDeadline(time.Time{})
+}
+
+func (this *ConnExt) ClearDeadline() {
+	this.conn.SetDeadline(time.Time{})
+}
+
+func (this *ConnExt) WriteString(s string) (int, error) {
+	return this.Write([]byte(s))
 }
