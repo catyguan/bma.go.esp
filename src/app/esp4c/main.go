@@ -19,7 +19,7 @@ func main() {
 	flag.Parse()
 	if flag.NArg() < 2 {
 		fmt.Println("esp4c.exe remoteAddress mode")
-		fmt.Println("\tadd,madd")
+		fmt.Println("\tadd,sadd")
 		fmt.Println("\treload")
 		fmt.Println("sample: esp4c.exe 127.0.0.1:1080 add")
 		return
@@ -30,8 +30,8 @@ func main() {
 	switch mode {
 	case "add":
 		doAdd(raddr)
-	case "madd":
-		doMAdd(raddr)
+	case "sadd":
+		doSAdd(raddr)
 	case "reload":
 		doReload(raddr)
 	default:

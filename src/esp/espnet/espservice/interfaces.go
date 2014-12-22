@@ -11,6 +11,7 @@ const (
 )
 
 type ServiceHandler func(sock espsocket.Socket, msg *esnp.Message) error
+type ServiceEntry func(sock espsocket.Socket)
 
 type ServiceRequestContext struct {
 	Sock    espsocket.Socket

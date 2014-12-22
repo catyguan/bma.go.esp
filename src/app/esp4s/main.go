@@ -6,9 +6,11 @@ import (
 	"esp/espnet/esnp"
 	"esp/espnet/espservice"
 	"esp/espnet/espsocket"
+	"esp/espnet/secure/secures"
 	"logger"
 	"net"
 	"netserver"
+	"time"
 )
 
 const (
@@ -25,11 +27,20 @@ func main() {
 
 	goservice := espservice.NewGoService("service", mux.Serve)
 
+	var se espservice.ServiceEntry
+	secure := true
+	if secure {
+		ba := secures.NewBaseAuth("123456")
+		se = secures.NewAuthEntry(5*time.Second, 4*1024, 1024*1024, ba, goservice.Serve)
+	} else {
+		se = goservice.Serve
+	}
+
 	lisPoint := netserver.NewService("servicePoint", func(conn net.Conn) {
 		ct := connutil.NewConnExt(conn)
 		ct.Debuger = connutil.SimpleDebuger(tag)
 		sock := espsocket.NewConnSocket(ct, 1024*1024)
-		goservice.Serve(sock)
+		se(sock)
 	})
 	boot.Add(lisPoint, "", true)
 

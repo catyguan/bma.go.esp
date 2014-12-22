@@ -61,6 +61,14 @@ func Call(sock Socket, msg *esnp.Message, timeout time.Duration) (*esnp.Message,
 	return rmsg, nil
 }
 
+func SetDeadline(sock Socket, tm time.Time) bool {
+	return SetProperty(sock, PROP_SOCKET_DEAD_LINE, tm)
+}
+
+func ClearDeadline(sock Socket) bool {
+	return SetProperty(sock, PROP_SOCKET_DEAD_LINE, time.Time{})
+}
+
 func SetProperty(sock Socket, name string, val interface{}) bool {
 	conn := sock.BaseConn()
 	if conn != nil {
