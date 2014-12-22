@@ -1,11 +1,11 @@
 package main
 
 import (
-	"bmautil/socket"
 	"esp/espnet/espsocket"
 	"flag"
 	"fmt"
 	"logger"
+	"net"
 	"strings"
 	"time"
 )
@@ -40,13 +40,11 @@ func main() {
 	time.Sleep(1 * time.Second)
 }
 
-func createSocket(address string) *espsocket.Socket {
-	cfg := new(socket.DialConfig)
-	cfg.Address = address
-	sock, err := espsocket.Dial(tag, cfg, "")
+func createSocket(address string) espsocket.Socket {
+	conn, err := net.DialTimeout("tcp", address, 1*time.Second)
 	if err != nil {
 		logger.Error(tag, "connect %s fail - %s", address, err)
 		return nil
 	}
-	return sock
+	return espsocket.NewConnSocketN(conn, 0)
 }

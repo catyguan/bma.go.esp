@@ -131,7 +131,9 @@ func (this *DialPool) GetConn(timeout time.Duration, log bool) (*connutil.ConnEx
 			return nil, err
 		}
 		atomic.AddInt32(&this.active, 1)
-		return connutil.NewConnExt(conn), nil
+		rconn := connutil.NewConnExt(conn)
+		rconn.Manager = this
+		return rconn, nil
 	}
 	// wait it
 	if log {
@@ -152,6 +154,11 @@ func (this *DialPool) GetConn(timeout time.Duration, log bool) (*connutil.ConnEx
 	return nil, errors.New("timeout")
 }
 
+func (this *DialPool) ReleaseConn(conn *connutil.ConnExt) {
+	atomic.AddInt32(&this.count, -1)
+	atomic.AddInt32(&this.active, -1)
+}
+
 func (this *DialPool) doCloseConn(conn net.Conn) int32 {
 	conn.Close()
 	c := atomic.AddInt32(&this.count, -1)
@@ -159,7 +166,7 @@ func (this *DialPool) doCloseConn(conn net.Conn) int32 {
 	return c
 }
 
-func (this *DialPool) CloseConn(conn net.Conn) {
+func (this *DialPool) CloseConn(conn *connutil.ConnExt) {
 	c := this.doCloseConn(conn)
 	if c < int32(this.config.InitSize) && !this.IsClosing() {
 		// reconnect
@@ -168,6 +175,10 @@ func (this *DialPool) CloseConn(conn net.Conn) {
 		}
 		go this.startRetry()
 	}
+}
+
+func (this *DialPool) FinishConn(conn *connutil.ConnExt) {
+	this.ReturnConn(conn)
 }
 
 func (this *DialPool) ReturnConn(conn *connutil.ConnExt) {

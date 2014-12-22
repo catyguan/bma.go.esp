@@ -1,41 +1,25 @@
 package espsocket
 
-import "esp/espnet/esnp"
+import (
+	"esp/espnet/esnp"
+	"net"
+)
 
-type SupportProp interface {
-	GetProperty(name string) (interface{}, bool)
-	SetProperty(name string, val interface{}) bool
-}
-
-type SendCallback func(err error)
-
-type Channel interface {
+type Socket interface {
 	String() string
 
+	BaseConn() net.Conn
+
 	// 关闭
-	IsClosing() bool
+	IsBreak() bool
+	AskFinish()
 	AskClose()
-	Shutdown()
 
 	// 获取属性/设置属性
 	GetProperty(name string) (interface{}, bool)
 	SetProperty(name string, val interface{}) bool
 
-	// 绑定
-	Bind(rec esnp.MessageListener, closeLis func())
-	SendMessage(ev *esnp.Message, cb SendCallback) error
-}
-
-type BreakSupport interface {
-	IsBreak() bool
-}
-
-// SocketFactory
-type SocketFactory interface {
-	NewSocket() (*Socket, error)
-}
-
-type SocketAcceptor func(sock *Socket) error
-type SocketServer interface {
-	SetAcceptor(acceptor SocketAcceptor)
+	// 读写消息
+	WriteMessage(ev *esnp.Message) error
+	ReadMessage() (*esnp.Message, error)
 }

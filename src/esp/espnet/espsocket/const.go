@@ -1,8 +1,11 @@
 package espsocket
 
 import (
+	"bmautil/connutil"
+	"bmautil/valutil"
 	"esp/espnet/esnp"
-	"sync/atomic"
+	"net"
+	"time"
 )
 
 const (
@@ -10,10 +13,7 @@ const (
 )
 
 const (
-	PROP_QEXEC_QUEUE_SIZE = "qexec.QueueSize"
-	PROP_QEXEC_DEBUG      = "qexec.Debug"
-
-	PROP_ESPNET_MAXPACKAGE = "espnet.maxpackage"
+	PROP_MESSAGE_MAXSIZE = "socket.maxsize"
 
 	PROP_SOCKET_REMOTE_ADDR       = "socket.RemoteAddr"
 	PROP_SOCKET_LOCAL_ADDR        = "socket.LocalAddr"
@@ -28,36 +28,118 @@ const (
 	PROP_SOCKET_NO_DELAY          = "socket.NoDelay"
 	PROP_SOCKET_READ_BUFFER       = "socket.ReadBuffer"
 	PROP_SOCKET_WRITE_BUFFER      = "socket.WriteBuffer"
-	PROP_SOCKET_WRITE_CHAN_SIZE   = "socket.WriteChanSize"
 )
 
-const (
-	SOCKET_CHANNEL_CODER_ESPNET = "espnet"
-)
-
-var (
-	globalSocketIdSeq uint32
-)
-
-func NextSocketId() uint32 {
-	for {
-		v := atomic.AddUint32(&globalSocketIdSeq, 1)
-		if v != 0 {
-			return v
-		}
-	}
-}
-
-func TryRelyError(sock *Socket, msg *esnp.Message, err error) {
+func TryRelyError(sock Socket, msg *esnp.Message, err error) {
 	if msg.IsRequest() {
 		rmsg := msg.ReplyMessage()
 		rmsg.BeError(err)
-		sock.PostMessage(rmsg)
+		sock.WriteMessage(rmsg)
 	}
 }
 
-func CloseAfterSend(sock *Socket, msg *esnp.Message) {
-	sock.SendMessage(msg, func(err error) {
-		sock.AskClose()
-	})
+func CloseAfterSend(sock Socket, msg *esnp.Message) {
+	sock.WriteMessage(msg)
+	sock.AskClose()
+}
+
+// Call & Handler
+func Call(sock Socket, msg *esnp.Message, timeout time.Duration) (*esnp.Message, error) {
+	conn := sock.BaseConn()
+	if conn != nil {
+		conn.SetDeadline(time.Now().Add(timeout))
+		defer conn.SetDeadline(time.Time{})
+	}
+	err0 := sock.WriteMessage(msg)
+	if err0 != nil {
+		return nil, err0
+	}
+	rmsg, err1 := sock.ReadMessage()
+	if err1 != nil {
+		return nil, err1
+	}
+	return rmsg, nil
+}
+
+func SetProperty(sock Socket, name string, val interface{}) bool {
+	conn := sock.BaseConn()
+	if conn != nil {
+		switch name {
+		case PROP_SOCKET_DEAD_LINE:
+			if tm, ok := val.(time.Time); ok {
+				conn.SetDeadline(tm)
+				return true
+			}
+			return false
+		case PROP_SOCKET_READ_DEAD_LINE:
+			if tm, ok := val.(time.Time); ok {
+				conn.SetReadDeadline(tm)
+				return true
+			}
+			return false
+		case PROP_SOCKET_WRITE_DEAD_LINE:
+			if tm, ok := val.(time.Time); ok {
+				conn.SetWriteDeadline(tm)
+				return true
+			}
+			return false
+		case PROP_SOCKET_LINGER:
+			if ce, ok := conn.(*connutil.ConnExt); ok {
+				cb := ce.BaseConn()
+				if cn, ok := cb.(*net.TCPConn); ok {
+					cn.SetLinger(valutil.ToInt(val, -1))
+				}
+			}
+			return false
+		case PROP_SOCKET_NO_DELAY:
+			if ce, ok := conn.(*connutil.ConnExt); ok {
+				cb := ce.BaseConn()
+				if cn, ok := cb.(*net.TCPConn); ok {
+					cn.SetNoDelay(valutil.ToBool(val, true))
+				}
+			}
+			return false
+		case PROP_SOCKET_READ_BUFFER:
+			if ce, ok := conn.(*connutil.ConnExt); ok {
+				cb := ce.BaseConn()
+				if cn, ok := cb.(*net.TCPConn); ok {
+					v := valutil.ToInt(val, 0)
+					if v > 0 {
+						cn.SetReadBuffer(v)
+					}
+				}
+			}
+			return false
+		case PROP_SOCKET_WRITE_BUFFER:
+			if ce, ok := conn.(*connutil.ConnExt); ok {
+				cb := ce.BaseConn()
+				if cn, ok := cb.(*net.TCPConn); ok {
+					v := valutil.ToInt(val, 0)
+					if v > 0 {
+						cn.SetWriteBuffer(v)
+					}
+				}
+			}
+			return false
+		}
+	}
+	return sock.SetProperty(name, val)
+}
+
+func GetProperty(sock Socket, name string) (interface{}, bool) {
+	v, ok := sock.GetProperty(name)
+	if ok {
+		return v, true
+	}
+	conn := sock.BaseConn()
+	if conn != nil {
+		switch name {
+		case PROP_SOCKET_REMOTE_ADDR:
+			return conn.RemoteAddr().String(), true
+		case PROP_SOCKET_LOCAL_ADDR:
+			return conn.LocalAddr().String(), true
+		}
+		return conn.RemoteAddr().String(), true
+	}
+	return "", false
 }

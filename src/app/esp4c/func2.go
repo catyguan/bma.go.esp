@@ -14,7 +14,7 @@ func doReload(address string) {
 
 	msg := esnp.NewMessage()
 	msg.GetAddress().SetCall("sys", "reload")
-	err := sock.SendMessage(msg, nil)
+	err := sock.WriteMessage(msg)
 	if err != nil {
 		logger.Warn(tag, "call 'reload' fail - %s", err)
 		return

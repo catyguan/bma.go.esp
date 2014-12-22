@@ -2,15 +2,27 @@ package connutil
 
 import (
 	"fmt"
+	"logger"
 	"net"
 	"time"
 )
 
 type ConnDebuger func(conn net.Conn, b []byte, read bool)
 
+func SimpleDebuger(tag string) ConnDebuger {
+	return func(conn net.Conn, b []byte, read bool) {
+		if read {
+			logger.Debug(tag, "%s >> %X", conn.RemoteAddr(), b)
+		} else {
+			logger.Debug(tag, "%s << %X", conn.RemoteAddr(), b)
+		}
+	}
+}
+
 type ConnExt struct {
-	Debuger ConnDebuger
 	conn    net.Conn
+	Debuger ConnDebuger
+	Manager ConnExtManager
 	buf     []byte
 	prop    map[string]interface{}
 }
@@ -180,4 +192,32 @@ func (this *ConnExt) ClearDeadline() {
 
 func (this *ConnExt) WriteString(s string) (int, error) {
 	return this.Write([]byte(s))
+}
+
+type ConnExtManager interface {
+	CloseConn(conn *ConnExt)
+	FinishConn(conn *ConnExt)
+	ReleaseConn(conn *ConnExt)
+}
+
+func (this *ConnExt) AskClose() {
+	if this.Manager != nil {
+		this.Manager.CloseConn(this)
+	} else {
+		this.Close()
+	}
+}
+
+func (this *ConnExt) AskFinish() {
+	if this.Manager != nil {
+		this.Manager.FinishConn(this)
+	} else {
+		this.Close()
+	}
+}
+
+func (this *ConnExt) AskRelease() {
+	if this.Manager != nil {
+		this.Manager.ReleaseConn(this)
+	}
 }

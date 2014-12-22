@@ -6,14 +6,18 @@ import (
 	"fmt"
 )
 
-type ServiceHandler func(sock *espsocket.Socket, msg *esnp.Message) error
+const (
+	tag = "espservice"
+)
+
+type ServiceHandler func(sock espsocket.Socket, msg *esnp.Message) error
 
 type ServiceRequestContext struct {
-	Sock    *espsocket.Socket
+	Sock    espsocket.Socket
 	Message *esnp.Message
 }
 
-func DoServiceHandle(h ServiceHandler, sock *espsocket.Socket, msg *esnp.Message) error {
+func DoServiceHandle(h ServiceHandler, sock espsocket.Socket, msg *esnp.Message) {
 	err := func() (r error) {
 		defer func() {
 			r2 := recover()
@@ -30,7 +34,6 @@ func DoServiceHandle(h ServiceHandler, sock *espsocket.Socket, msg *esnp.Message
 	if err != nil {
 		rmsg := msg.ReplyMessage()
 		rmsg.BeError(err)
-		sock.SendMessage(rmsg, nil)
+		sock.WriteMessage(rmsg)
 	}
-	return nil
 }

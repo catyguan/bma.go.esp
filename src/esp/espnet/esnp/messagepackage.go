@@ -27,7 +27,7 @@ func (this *Message) Init() *Message {
 	return this
 }
 
-func (this *Message) PackageSize() int {
+func (this *Message) LineCount() int {
 	return this.size
 }
 
@@ -153,39 +153,36 @@ func (this *Message) ReadLineHeader(r DecodeReader) (mt byte, sz int, err error)
 	if this.hbuf == nil {
 		this.hbuf = make([]byte, 4)
 	}
-	pos := 0
-	for {
-		n, err := r.Read(this.hbuf[pos:])
-		if err != nil {
-			return 0, 0, err
-		}
-		if n+pos < 4 {
-			pos += n
-		}
+	_, err = io.ReadFull(r, this.hbuf)
+	if err != nil {
+		return 0, 0, err
 	}
-	this.size += 4
 	mt, sz = MessageLineHeaderRead(this.hbuf, 0)
 	return
 }
 
 func (this *Message) ReadLine(r DecodeReader, mt byte, sz int) (*MessageLine, error) {
-	b := make([]byte, sz, 0)
+	b := make([]byte, sz)
 	_, err := io.ReadFull(r, b)
 	if err != nil {
 		return nil, err
 	}
-	this.size += sz
 	if mt == 0 {
 		return nil, nil
 	}
 	return NewMessageLine(mt, b), nil
 }
 
-func (this *Message) ReadAll(r DecodeReader) error {
+func (this *Message) ReadAll(r DecodeReader, maxsize int) error {
+	tsz := 0
 	for {
 		mt, sz, err0 := this.ReadLineHeader(r)
 		if err0 != nil {
 			return err0
+		}
+		tsz += sz
+		if maxsize > 0 && tsz > maxsize {
+			return fmt.Errorf("maxMessageSize %d/%d", tsz, maxsize)
 		}
 		ml, err1 := this.ReadLine(r, mt, sz)
 		if err1 != nil {

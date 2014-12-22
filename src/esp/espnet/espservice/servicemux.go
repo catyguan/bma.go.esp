@@ -88,9 +88,9 @@ func (this *ServiceMux) Match(msg *esnp.Message) ServiceHandler {
 		}
 	}
 	a := msg.GetAddress()
-	if a != nil {
-		s := a.Get(esnp.ADDRESS_SERVICE)
-		op := a.Get(esnp.ADDRESS_OP)
+	if a != nil {		
+		s := a.GetService()
+		op := a.GetOp()
 		if s != "" && op != "" {
 			if sh, ok := this.handlers[s]; ok {
 				if sh.handler != nil {
@@ -109,16 +109,12 @@ func (this *ServiceMux) Match(msg *esnp.Message) ServiceHandler {
 	return nil
 }
 
-func (this *ServiceMux) DoServe(sock *espsocket.Socket, msg *esnp.Message) error {
+func (this *ServiceMux) Serve(sock espsocket.Socket, msg *esnp.Message) error {
 	h := this.Match(msg)
 	if h != nil {
 		return h(sock, msg)
 	}
 	return Miss(msg)
-}
-
-func (this *ServiceMux) Serve(sock *espsocket.Socket, msg *esnp.Message) error {
-	return DoServiceHandle(this.DoServe, sock, msg)
 }
 
 func Miss(msg *esnp.Message) error {

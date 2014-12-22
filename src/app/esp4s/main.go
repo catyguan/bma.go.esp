@@ -1,12 +1,14 @@
 package main
 
 import (
-	"bmautil/socket"
+	"bmautil/connutil"
 	"boot"
 	"esp/espnet/esnp"
 	"esp/espnet/espservice"
 	"esp/espnet/espsocket"
 	"logger"
+	"net"
+	"netserver"
 )
 
 const (
@@ -23,13 +25,18 @@ func main() {
 
 	goservice := espservice.NewGoService("service", mux.Serve)
 
-	lisPoint := socket.NewListenPoint("servicePoint", nil, goservice.AcceptESP)
+	lisPoint := netserver.NewService("servicePoint", func(conn net.Conn) {
+		ct := connutil.NewConnExt(conn)
+		ct.Debuger = connutil.SimpleDebuger(tag)
+		sock := espsocket.NewConnSocket(ct, 1024*1024)
+		goservice.Serve(sock)
+	})
 	boot.Add(lisPoint, "", true)
 
 	boot.Go(cfile)
 }
 
-func H4Add(sock *espsocket.Socket, msg *esnp.Message) error {
+func H4Add(sock espsocket.Socket, msg *esnp.Message) error {
 	ds := msg.Datas()
 	if true {
 		a, err1 := ds.GetInt("a", 0)
@@ -44,12 +51,12 @@ func H4Add(sock *espsocket.Socket, msg *esnp.Message) error {
 		logger.Info(tag, "%d + %d = %d", a, b, c)
 		rmsg := msg.ReplyMessage()
 		rmsg.Datas().Set("c", c)
-		return sock.SendMessage(rmsg, nil)
+		return sock.WriteMessage(rmsg)
 	}
 	return nil
 }
 
-func H4SC(sock *espsocket.Socket, msg *esnp.Message) error {
+func H4SC(sock espsocket.Socket, msg *esnp.Message) error {
 	ds := msg.Datas()
 	if true {
 		params, err1 := ds.Get("p")
@@ -66,12 +73,12 @@ func H4SC(sock *espsocket.Socket, msg *esnp.Message) error {
 		dt := rmsg.Datas()
 		dt.Set("s", 200)
 		dt.Set("r", true)
-		return sock.SendMessage(rmsg, nil)
+		return sock.WriteMessage(rmsg)
 	}
 	return nil
 }
 
-func H4Reload(sock *espsocket.Socket, msg *esnp.Message) error {
+func H4Reload(sock espsocket.Socket, msg *esnp.Message) error {
 	go func() {
 		boot.Restart()
 	}()

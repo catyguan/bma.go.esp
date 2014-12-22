@@ -8,7 +8,7 @@ import (
 	"net"
 )
 
-func GetUser(sock *espsocket.Socket) *acl.User {
+func GetUser(sock espsocket.Socket) *acl.User {
 	v, ok := sock.GetProperty("acl.user")
 	if ok {
 		if r, ok2 := v.(*acl.User); ok2 {
@@ -18,7 +18,7 @@ func GetUser(sock *espsocket.Socket) *acl.User {
 	return nil
 }
 
-func SetUser(sock *espsocket.Socket, user *acl.User) bool {
+func SetUser(sock espsocket.Socket, user *acl.User) bool {
 	return sock.SetProperty("acl.user", user)
 }
 
@@ -34,16 +34,18 @@ func NewAclServerMux(n string, h espservice.ServiceHandler) *AclServerMux {
 	return r
 }
 
-func (this *AclServerMux) DoServe(sock *espsocket.Socket, msg *esnp.Message) error {
+func (this *AclServerMux) DoServe(sock espsocket.Socket, msg *esnp.Message) error {
 	var user *acl.User
 	if tmp, ok := sock.GetProperty("acl.user"); ok {
 		user, ok = tmp.(*acl.User)
 	}
 	if user == nil {
-		if str, ok := sock.GetRemoteAddr(); ok {
-			ip, _, _ := net.SplitHostPort(str)
-			user = acl.NewUser("anonymous", ip, nil)
-			sock.SetProperty("acl.user", user)
+		if v, ok := espsocket.GetProperty(sock, espsocket.PROP_SOCKET_REMOTE_ADDR); ok {
+			if str, ok := v.(string); ok {
+				ip, _, _ := net.SplitHostPort(str)
+				user = acl.NewUser("anonymous", ip, nil)
+				sock.SetProperty("acl.user", user)
+			}
 		}
 	}
 
@@ -68,9 +70,9 @@ func (this *AclServerMux) DoServe(sock *espsocket.Socket, msg *esnp.Message) err
 		if err != nil {
 			rmsg := msg.ReplyMessage()
 			rmsg.BeError(err)
-			sock.SendMessage(rmsg, nil)
+			sock.WriteMessage(rmsg)
 			return err
 		}
 	}
-	return espservice.DoServiceHandle(this.h, sock, msg)
+	return this.h(sock, msg)
 }
