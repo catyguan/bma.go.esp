@@ -180,6 +180,7 @@ func (this *Message) ReadAll(r DecodeReader, maxsize int) error {
 		if err0 != nil {
 			return err0
 		}
+		tsz += size_FHEADER
 		tsz += sz
 		if maxsize > 0 && tsz > maxsize {
 			return fmt.Errorf("maxMessageSize %d/%d", tsz, maxsize)
@@ -243,6 +244,12 @@ type MessageReader struct {
 func NewMessageReader() *MessageReader {
 	this := new(MessageReader)
 	this.buffer = make([]byte, 1024)
+	return this
+}
+
+func NewMessageReaderB(b []byte) *MessageReader {
+	this := new(MessageReader)
+	this.buffer = b
 	return this
 }
 

@@ -3,7 +3,7 @@ package main
 import (
 	"esp/espnet/esnp"
 	"esp/espnet/espsocket"
-	"esp/espnet/secure/securec"
+	"esp/espnet/secure"
 	"logger"
 	"time"
 )
@@ -20,7 +20,7 @@ func doAdd(address string) {
 	ds := msg.Datas()
 	ds.Set("a", 1)
 	ds.Set("b", 2)
-	rmsg, err := espsocket.Call(sock, msg, 3*time.Second)
+	rmsg, err := espsocket.CallTimeout(sock, msg, 3*time.Second)
 	if err != nil {
 		logger.Warn(tag, "call 'add' fail - %s", err)
 		return
@@ -41,7 +41,7 @@ func doSAdd(address string) {
 	}
 	defer sock.AskClose()
 
-	err0 := securec.DoBaseAuth(sock, "123456", 5*time.Second)
+	err0 := secure.DoBaseAuth(sock, "test", "123456", 5*time.Second)
 	if err0 != nil {
 		logger.Warn(tag, "BaseAuth fail - %s", err0)
 		return
@@ -52,7 +52,7 @@ func doSAdd(address string) {
 	ds := msg.Datas()
 	ds.Set("a", 1)
 	ds.Set("b", 2)
-	rmsg, err := espsocket.Call(sock, msg, 3*time.Second)
+	rmsg, err := espsocket.CallTimeout(sock, msg, 3*time.Second)
 	if err != nil {
 		logger.Warn(tag, "call 'add' fail - %s", err)
 		return

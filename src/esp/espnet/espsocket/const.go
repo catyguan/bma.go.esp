@@ -44,11 +44,16 @@ func CloseAfterSend(sock Socket, msg *esnp.Message) {
 }
 
 // Call & Handler
-func Call(sock Socket, msg *esnp.Message, timeout time.Duration) (*esnp.Message, error) {
+func Call(sock Socket, msg *esnp.Message) (*esnp.Message, error) {
+	return CallTimeout(sock, msg, 0)
+}
+func CallTimeout(sock Socket, msg *esnp.Message, timeout time.Duration) (*esnp.Message, error) {
 	conn := sock.BaseConn()
 	if conn != nil {
-		conn.SetDeadline(time.Now().Add(timeout))
-		defer conn.SetDeadline(time.Time{})
+		if timeout > 0 {
+			conn.SetDeadline(time.Now().Add(timeout))
+			defer conn.SetDeadline(time.Time{})
+		}
 	}
 	err0 := sock.WriteMessage(msg)
 	if err0 != nil {
@@ -58,7 +63,8 @@ func Call(sock Socket, msg *esnp.Message, timeout time.Duration) (*esnp.Message,
 	if err1 != nil {
 		return nil, err1
 	}
-	return rmsg, nil
+	err1 = rmsg.ToError()
+	return rmsg, err1
 }
 
 func SetDeadline(sock Socket, tm time.Time) bool {

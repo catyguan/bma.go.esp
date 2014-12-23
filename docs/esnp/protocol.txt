@@ -220,6 +220,7 @@ MT_FLAG : 0x1E
 		FLAG_REQUEST 	= 4 请求
 		FLAG_INFO		= 5 消息
 		FLAG_EVENT 		= 6 事件
+		FLAG_ASYNC		= 7 异步处理
 		FLAG_APP_DEFINE = 128+ 应用定义
 	
 MT_VERSION : 0x1F

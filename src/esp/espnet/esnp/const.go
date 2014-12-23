@@ -30,6 +30,7 @@ const (
 	FLAG_REQUEST    = Flag(4)
 	FLAG_INFO       = Flag(5)
 	FLAG_EVENT      = Flag(6)
+	FLAG_ASYNC      = Flag(7)
 	FLAG_APP_DEFINE = Flag(128)
 )
 

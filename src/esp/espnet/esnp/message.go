@@ -2,15 +2,13 @@ package esnp
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 )
 
 func NewBytesMessage(bs []byte) (*Message, error) {
-	pr := NewMessageReader()
-	pr.Append(bs)
+	pr := NewMessageReaderB(bs)
 	p := NewMessage()
-	p, err := pr.ReadMessage(len(bs) + 1)
+	p, err := pr.ReadMessage(0)
 	if err != nil {
 		return nil, err
 	}
@@ -141,12 +139,36 @@ func (this *Message) Clone() *Message {
 }
 
 // helper
+type remoteErr struct {
+	err string
+}
+
+func (this *remoteErr) Error() string {
+	return this.err
+}
+
+func (this *remoteErr) String() string {
+	return this.Error()
+}
+
+func NewRemoteErr(s string) error {
+	return &remoteErr{s}
+}
+
+func IsRemoteErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	_, ok := err.(*remoteErr)
+	return ok
+}
+
 func (this *Message) ToError() error {
 	ok, v := MessageLineCoders.Error.Get(this)
 	if !ok {
 		return nil
 	}
-	return errors.New(v)
+	return NewRemoteErr(v)
 }
 
 func (this *Message) BeError(err error) {
@@ -165,6 +187,12 @@ func (this *Message) ReplyMessage() *Message {
 func NewRequestMessage() *Message {
 	r := NewMessage()
 	MessageLineCoders.Flag.Set(r, FLAG_REQUEST)
+	return r
+}
+
+func NewRequestMessageWithId() *Message {
+	r := NewRequestMessage()
+	r.SureId()
 	return r
 }
 

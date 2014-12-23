@@ -6,11 +6,10 @@ import (
 	"esp/espnet/esnp"
 	"esp/espnet/espservice"
 	"esp/espnet/espsocket"
-	"esp/espnet/secure/secures"
+	"esp/espnet/secure"
 	"logger"
 	"net"
 	"netserver"
-	"time"
 )
 
 const (
@@ -28,10 +27,10 @@ func main() {
 	goservice := espservice.NewGoService("service", mux.Serve)
 
 	var se espservice.ServiceEntry
-	secure := true
-	if secure {
-		ba := secures.NewBaseAuth("123456")
-		se = secures.NewAuthEntry(5*time.Second, 4*1024, 1024*1024, ba, goservice.Serve)
+	useSecure := true
+	if useSecure {
+		ba := secure.NewBaseAuthEntry(secure.SimpleAppKeyProvider("123456"), goservice.DoServe)
+		se = ba.AuthEntry
 	} else {
 		se = goservice.Serve
 	}

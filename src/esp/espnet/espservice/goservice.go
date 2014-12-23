@@ -34,6 +34,11 @@ func (this *GoService) String() string {
 }
 
 func (this *GoService) Serve(sock espsocket.Socket) {
+	defer sock.AskFinish()
+	this.DoServe(sock)
+}
+
+func (this *GoService) DoServe(sock espsocket.Socket) {
 	for {
 		msg, err := sock.ReadMessage()
 		if err != nil {

@@ -1,15 +1,18 @@
-package aclesnpmux
+package espservice
 
 import (
 	"acl"
 	"esp/espnet/esnp"
-	"esp/espnet/espservice"
 	"esp/espnet/espsocket"
 	"net"
 )
 
+const (
+	PROP_ACL_USER = "acl.user"
+)
+
 func GetUser(sock espsocket.Socket) *acl.User {
-	v, ok := sock.GetProperty("acl.user")
+	v, ok := sock.GetProperty(PROP_ACL_USER)
 	if ok {
 		if r, ok2 := v.(*acl.User); ok2 {
 			return r
@@ -19,24 +22,24 @@ func GetUser(sock espsocket.Socket) *acl.User {
 }
 
 func SetUser(sock espsocket.Socket, user *acl.User) bool {
-	return sock.SetProperty("acl.user", user)
+	return sock.SetProperty(PROP_ACL_USER, user)
 }
 
-type AclServerMux struct {
+type AclServiceHandler struct {
 	name string
-	h    espservice.ServiceHandler
+	h    ServiceHandler
 }
 
-func NewAclServerMux(n string, h espservice.ServiceHandler) *AclServerMux {
-	r := new(AclServerMux)
+func NewAclServiceHandler(n string, h ServiceHandler) *AclServiceHandler {
+	r := new(AclServiceHandler)
 	r.name = n
 	r.h = h
 	return r
 }
 
-func (this *AclServerMux) DoServe(sock espsocket.Socket, msg *esnp.Message) error {
+func (this *AclServiceHandler) Serve(sock espsocket.Socket, msg *esnp.Message) error {
 	var user *acl.User
-	if tmp, ok := sock.GetProperty("acl.user"); ok {
+	if tmp, ok := sock.GetProperty(PROP_ACL_USER); ok {
 		user, ok = tmp.(*acl.User)
 	}
 	if user == nil {
@@ -44,7 +47,7 @@ func (this *AclServerMux) DoServe(sock espsocket.Socket, msg *esnp.Message) erro
 			if str, ok := v.(string); ok {
 				ip, _, _ := net.SplitHostPort(str)
 				user = acl.NewUser("anonymous", ip, nil)
-				sock.SetProperty("acl.user", user)
+				sock.SetProperty(PROP_ACL_USER, user)
 			}
 		}
 	}
@@ -68,9 +71,6 @@ func (this *AclServerMux) DoServe(sock espsocket.Socket, msg *esnp.Message) erro
 		}
 		err := acl.Assert(user, ps, nil)
 		if err != nil {
-			rmsg := msg.ReplyMessage()
-			rmsg.BeError(err)
-			sock.WriteMessage(rmsg)
 			return err
 		}
 	}

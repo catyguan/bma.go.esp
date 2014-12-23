@@ -62,6 +62,32 @@ func DefaultRetryConfig() *retryst.RetryConfig {
 	return rcfg
 }
 
+type connManager struct {
+	pool *DialPool
+	done bool
+}
+
+func (this *connManager) CloseConn(conn *connutil.ConnExt) {
+	if !this.done {
+		this.done = true
+		this.pool.CloseConn(conn)
+	}
+}
+
+func (this *connManager) FinishConn(conn *connutil.ConnExt) {
+	if !this.done {
+		this.done = true
+		this.pool.FinishConn(conn)
+	}
+}
+
+func (this *connManager) ReleaseConn(conn *connutil.ConnExt) {
+	if !this.done {
+		this.done = true
+		this.pool.ReleaseConn(conn)
+	}
+}
+
 type dialPoolItem struct {
 	conn        *connutil.ConnExt
 	idleOutTime time.Time
@@ -132,7 +158,7 @@ func (this *DialPool) GetConn(timeout time.Duration, log bool) (*connutil.ConnEx
 		}
 		atomic.AddInt32(&this.active, 1)
 		rconn := connutil.NewConnExt(conn)
-		rconn.Manager = this
+		rconn.Manager = &connManager{pool: this}
 		return rconn, nil
 	}
 	// wait it
