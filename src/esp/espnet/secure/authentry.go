@@ -15,7 +15,7 @@ type BaseSecureConfig struct {
 
 func (this *BaseSecureConfig) InitDefault() {
 	this.NotAuthMaxSize = 4 * 1024
-	this.AuthMaxSize = 10 * 1024 * 1024
+	this.AuthMaxSize = espsocket.DEFAULT_MESSAGE_MAXSIZE
 	this.MaxAuthTime = 5 * time.Second
 }
 

@@ -5,5 +5,13 @@
 	},
 	"servicePoint" : {
 		"Port" : "1080"
+	},
+	"servboxClient" : {
+		"NodeName" : "esp4s",
+		"Net" : "tcp",
+		"Address" : "127.0.0.1:0",
+		"BoxNet" : "tcp",
+		"BoxAddress" : "127.0.0.1:1082",
+		"Disable" : false
 	}
 }

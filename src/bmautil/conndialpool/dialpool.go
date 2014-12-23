@@ -226,6 +226,7 @@ func (this *DialPool) ReturnConn(conn *connutil.ConnExt) {
 			conn.Close()
 		}
 	}()
+	conn.Manager = nil
 	item := new(dialPoolItem)
 	item.idleOutTime = time.Now().Add(time.Duration(this.config.IdleMS) * time.Millisecond)
 	item.conn = conn
@@ -349,7 +350,7 @@ func (this *DialPool) Run() bool {
 								continue
 							}
 							// fmt.Println("checking idle", len(this.wait)+1, this.config.InitSize, time.Now().After(item.idleOutTime))
-							if len(this.wait)+1 > this.config.InitSize && time.Now().After(item.idleOutTime) {
+							if len(this.wait)+1 > this.config.InitSize && this.config.IdleMS > 0 && time.Now().After(item.idleOutTime) {
 								logger.Debug(tag, "%s idle close", item.conn)
 								this.CloseConn(item.conn)
 								continue

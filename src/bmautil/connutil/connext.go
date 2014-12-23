@@ -137,7 +137,11 @@ func (this *ConnExt) ListProperty() []string {
 }
 
 func (this *ConnExt) CheckBreak() bool {
-	this.conn.SetReadDeadline(time.Now().Add(1))
+	return this.CheckBreakDeadline(time.Now().Add(1))
+}
+
+func (this *ConnExt) CheckBreakDeadline(tm time.Time) bool {
+	this.conn.SetReadDeadline(tm)
 	one := make([]byte, 1)
 	n, err := this.conn.Read(one)
 	if n > 0 {
@@ -200,24 +204,24 @@ type ConnExtManager interface {
 	ReleaseConn(conn *ConnExt)
 }
 
-func (this *ConnExt) AskClose() {
-	if this.Manager != nil {
-		this.Manager.CloseConn(this)
+func AskClose(m ConnExtManager, conn *ConnExt) {
+	if m != nil {
+		m.CloseConn(conn)
 	} else {
-		this.Close()
+		conn.Close()
 	}
 }
 
-func (this *ConnExt) AskFinish() {
-	if this.Manager != nil {
-		this.Manager.FinishConn(this)
+func AskFinish(m ConnExtManager, conn *ConnExt) {
+	if m != nil {
+		m.FinishConn(conn)
 	} else {
-		this.Close()
+		conn.Close()
 	}
 }
 
-func (this *ConnExt) AskRelease() {
-	if this.Manager != nil {
-		this.Manager.ReleaseConn(this)
+func AskRelease(m ConnExtManager, conn *ConnExt) {
+	if m != nil {
+		m.ReleaseConn(conn)
 	}
 }

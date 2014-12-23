@@ -10,12 +10,14 @@ import (
 // ConnSocket
 type ConnSocket struct {
 	conn    *connutil.ConnExt
+	m       connutil.ConnExtManager
 	maxsize int
 }
 
 func NewConnSocket(conn *connutil.ConnExt, maxsize int) *ConnSocket {
 	this := new(ConnSocket)
 	this.conn = conn
+	this.m = conn.Manager
 	this.maxsize = maxsize
 	return this
 }
@@ -49,11 +51,11 @@ func (this *ConnSocket) SetProperty(name string, val interface{}) bool {
 }
 
 func (this *ConnSocket) AskFinish() {
-	this.conn.AskFinish()
+	connutil.AskFinish(this.m, this.conn)
 }
 
 func (this *ConnSocket) AskClose() {
-	this.conn.AskClose()
+	connutil.AskClose(this.m, this.conn)
 }
 
 func (this *ConnSocket) WriteMessage(msg *esnp.Message) error {
@@ -72,7 +74,8 @@ func (this *ConnSocket) ReadMessage() (*esnp.Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	return msg, nil
+	err = msg.ToError()
+	return msg, err
 }
 
 func (this *ConnSocket) IsBreak() bool {

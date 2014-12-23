@@ -154,7 +154,7 @@ func doAction(phase Phase, o BootObject, ctx *BootContext) (r bool) {
 		nrChecker.stop()
 		err := recover()
 		if err != nil {
-			fmt.Println("ERROR: doAction fail%\n%s\n", err, string(debug.Stack()))
+			fmt.Printf("ERROR: doAction fail - %v\n%s\n", err, string(debug.Stack()))
 			r = false
 		}
 	}()

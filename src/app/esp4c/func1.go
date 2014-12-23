@@ -15,7 +15,7 @@ func doAdd(address string) {
 	}
 	defer sock.AskClose()
 
-	msg := esnp.NewMessage()
+	msg := esnp.NewRequestMessageWithId()
 	msg.GetAddress().SetCall("test", "add")
 	ds := msg.Datas()
 	ds.Set("a", 1)
@@ -47,7 +47,7 @@ func doSAdd(address string) {
 		return
 	}
 
-	msg := esnp.NewMessage()
+	msg := esnp.NewRequestMessageWithId()
 	msg.GetAddress().SetCall("test", "add")
 	ds := msg.Datas()
 	ds.Set("a", 1)

@@ -7,6 +7,7 @@ import (
 	"esp/espnet/espservice"
 	"esp/espnet/espsocket"
 	"esp/espnet/secure"
+	"esp/servbox"
 	"logger"
 	"net"
 	"netserver"
@@ -41,7 +42,11 @@ func main() {
 		sock := espsocket.NewConnSocket(ct, 1024*1024)
 		se(sock)
 	})
-	boot.Add(lisPoint, "", true)
+	boot.AddService(lisPoint)
+
+	boxc := servbox.NewClient("servboxClient", goservice.Serve)
+	boxc.Add("test")
+	boot.AddService(boxc)
 
 	boot.Go(cfile)
 }

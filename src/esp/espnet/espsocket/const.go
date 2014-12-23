@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	tag = "espsocket"
+	tag                     = "espsocket"
+	DEFAULT_MESSAGE_MAXSIZE = 10 * 1024 * 1024
 )
 
 const (
