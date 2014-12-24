@@ -4,6 +4,7 @@ import (
 	"bmautil/conndialpool"
 	"esp/espnet/esnp"
 	"esp/espnet/espsocket"
+	"esp/services/servboot"
 	"fmt"
 	"logger"
 	"time"
@@ -38,12 +39,14 @@ func (this *Service) doJoin(sock espsocket.Socket, msg *esnp.Message) error {
 	if err0 != nil {
 		return err0
 	}
-	logger.Debug(tag, "join request(%s)", q)
+	logger.Debug(tag, "join request(%v)", q)
 	node := new(nodeInfo)
 	node.name = q.NodeName
 	node.net = q.Net
 	node.address = q.Address
 	node.services = q.SerivceNames
+	node.info = q.Info
+	node.skipKill = q.SkipKill
 	// check services
 	_, err0 = this.checkNode(node)
 	if err0 != nil {
@@ -92,6 +95,45 @@ func (this *Service) doReplace(node *nodeInfo, old *nodeInfo) (bool, error) {
 	return true, nil
 }
 
+func (this *Service) doKill(old *nodeInfo) error {
+	conn, err := old.pool.GetConn(1*time.Second, true)
+	if err != nil {
+		return err
+	}
+	defer old.pool.CloseConn(conn)
+	sock := espsocket.NewConnSocket(conn, 0)
+	msg := esnp.NewRequestMessage()
+	msg.GetAddress().SetCall(servboot.NAME_SERVICE, servboot.NAME_OP_SHUTDOWN)
+	err1 := sock.WriteMessage(msg)
+	if err1 != nil {
+		return err1
+	}
+	_, err2 := sock.ReadMessage()
+	return err2
+}
+
+func (this *Service) onReplace(old *nodeInfo) {
+	if old == nil {
+		return
+	}
+	if old.skipKill {
+		return
+	}
+	if old.pool == nil {
+		return
+	}
+	logger.Debug(tag, "kill replaced(%s) after %d sec", old.name, this.config.KillDelaySec)
+	time.AfterFunc(time.Duration(this.config.KillDelaySec)*time.Second, func() {
+		defer old.pool.Close()
+		err := this.doKill(old)
+		if err != nil {
+			logger.Info(tag, "kill replaced(%s) fail - %s", old, err)
+			return
+		}
+		logger.Info(tag, "kill replaced(%s) done", old)
+	})
+}
+
 func (this *Service) doActive(sock espsocket.Socket, node *nodeInfo, msg *esnp.Message) error {
 	cfg := new(conndialpool.DialPoolConfig)
 	cfg.Net = node.net
@@ -121,6 +163,7 @@ func (this *Service) doActive(sock espsocket.Socket, node *nodeInfo, msg *esnp.M
 			return err1
 		}
 		if ok {
+			this.onReplace(old)
 			break
 		}
 	}
@@ -132,12 +175,5 @@ func (this *Service) doActive(sock espsocket.Socket, node *nodeInfo, msg *esnp.M
 		}
 	}
 	logger.Info(tag, "active(%s, %s, %s, %v)", node.name, node.net, node.address, node.services)
-	// keep it
-	for {
-		if sock.IsBreak() {
-			break
-		}
-		time.Sleep(1 * time.Second)
-	}
 	return nil
 }

@@ -8,6 +8,7 @@ import (
 	"esp/espnet/espsocket"
 	"esp/espnet/secure"
 	"esp/servbox"
+	"esp/services/servboot"
 	"logger"
 	"net"
 	"netserver"
@@ -24,6 +25,7 @@ func main() {
 	mux.AddHandler("test", "add", H4Add)
 	mux.AddHandler("sys", "reload", H4Reload)
 	mux.AddHandler("serviceCall", "hello", H4SC)
+	servboot.InitMux(mux)
 
 	goservice := espservice.NewGoService("service", mux.Serve)
 
@@ -42,7 +44,9 @@ func main() {
 		sock := espsocket.NewConnSocket(ct, 1024*1024)
 		se(sock)
 	})
-	boot.AddService(lisPoint)
+	if lisPoint != nil {
+		// boot.AddService(lisPoint)
+	}
 
 	boxc := servbox.NewClient("servboxClient", goservice.Serve)
 	boxc.Add("test")

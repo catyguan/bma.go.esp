@@ -6,9 +6,10 @@ import (
 )
 
 type configInfo struct {
-	TimeoutMS   int
-	MaxConnSize int
-	MaxPackage  int
+	TimeoutMS    int
+	MaxConnSize  int
+	MaxPackage   int
+	KillDelaySec int
 }
 
 func (this *configInfo) Valid() error {
@@ -17,6 +18,9 @@ func (this *configInfo) Valid() error {
 	}
 	if this.MaxConnSize <= 0 {
 		this.MaxConnSize = 1024
+	}
+	if this.KillDelaySec <= 0 {
+		this.KillDelaySec = 10
 	}
 	return nil
 }

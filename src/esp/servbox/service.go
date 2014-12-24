@@ -8,6 +8,7 @@ import (
 	"esp/espnet/espsocket"
 	"fmt"
 	"logger"
+	"net"
 	"sync"
 	"time"
 )
@@ -17,6 +18,8 @@ type nodeInfo struct {
 	net      string
 	address  string
 	services []string
+	info     string
+	skipKill bool
 	pool     *conndialpool.DialPool
 }
 
@@ -24,6 +27,10 @@ func (this *nodeInfo) Close() {
 	if this.pool != nil {
 		this.pool.Close()
 	}
+}
+
+func (this *nodeInfo) String() string {
+	return fmt.Sprintf("%s,%s", this.name, this.info)
 }
 
 type servItem struct {
@@ -111,4 +118,9 @@ func (this *Service) ManageHandler(sock espsocket.Socket, msg *esnp.Message) err
 		return this.doJoin(sock, msg)
 	}
 	return espservice.Miss(msg)
+}
+
+func (this *Service) AcceptManageConn(debug string) func(conn net.Conn) {
+	goservice := espservice.NewGoService(this.name+"_manageService", this.ManageHandler)
+	return goservice.AcceptConn(debug)
 }

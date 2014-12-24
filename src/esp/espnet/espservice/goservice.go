@@ -1,12 +1,14 @@
 package espservice
 
 import (
+	"bmautil/connutil"
 	"bytes"
 	"esp/espnet/esnp"
 	"esp/espnet/espsocket"
 	"fmt"
 	"io"
 	"logger"
+	"net"
 	"runtime/debug"
 )
 
@@ -31,6 +33,17 @@ func (this *GoService) String() string {
 	buf.WriteString(this.name)
 	buf.WriteString("(gos)")
 	return buf.String()
+}
+
+func (this *GoService) AcceptConn(debug string) func(conn net.Conn) {
+	return func(conn net.Conn) {
+		ct := connutil.NewConnExt(conn)
+		if debug != "" {
+			ct.Debuger = connutil.SimpleDebuger(debug)
+		}
+		sock := espsocket.NewConnSocket(ct, 0)
+		this.Serve(sock)
+	}
 }
 
 func (this *GoService) Serve(sock espsocket.Socket) {

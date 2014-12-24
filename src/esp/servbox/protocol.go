@@ -16,10 +16,19 @@ type objJoinQ struct {
 	Net          string
 	Address      string
 	SerivceNames []string
+	Info         string
+	SkipKill     bool
 }
 
 func (this *objJoinQ) String() string {
-	return fmt.Sprintf("%s,%s,%s,%v", this.NodeName, this.Net, this.Address, this.SerivceNames)
+	return fmt.Sprintf("123 %v,%v,%v,%v,%v,%v",
+		this.NodeName,
+		this.Net,
+		this.Address,
+		this.SerivceNames,
+		this.Info,
+		this.SkipKill,
+	)
 }
 
 func (this *objJoinQ) Valid() error {
@@ -45,6 +54,12 @@ func (this *objJoinQ) Encode(msg *esnp.Message) error {
 			data[i] = n
 		}
 		esnp.MessageLineCoders.XData.Add(msg, 4, data, nil)
+	}
+	if this.Info != "" {
+		esnp.MessageLineCoders.XData.Add(msg, 5, this.Info, esnp.Coders.String)
+	}
+	if this.SkipKill {
+		esnp.MessageLineCoders.XData.Add(msg, 6, this.SkipKill, esnp.Coders.Bool)
 	}
 	return nil
 }
@@ -83,6 +98,18 @@ func (this *objJoinQ) Decode(msg *esnp.Message) error {
 				}
 				this.SerivceNames = snlist
 			}
+		case 5:
+			v, err := it.Value(esnp.Coders.String)
+			if err != nil {
+				return err
+			}
+			this.Info = valutil.ToString(v, "")
+		case 6:
+			v, err := it.Value(esnp.Coders.Bool)
+			if err != nil {
+				return err
+			}
+			this.SkipKill = valutil.ToBool(v, false)
 		}
 	}
 	return nil

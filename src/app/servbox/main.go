@@ -18,11 +18,6 @@ const (
 func main() {
 	cfile := "config/servbox-config.json"
 
-	// mux := espservice.NewServiceMux(nil, nil)
-	// mux.AddHandler("test", "add", H4Add)
-	// mux.AddHandler("sys", "reload", H4Reload)
-	// mux.AddHandler("serviceCall", "hello", H4SC)
-
 	boxs := servbox.NewService("servbox")
 	boot.AddService(boxs)
 
@@ -39,7 +34,7 @@ func main() {
 
 		lisPoint := netserver.NewService("servicePoint", func(conn net.Conn) {
 			ct := connutil.NewConnExt(conn)
-			ct.Debuger = connutil.SimpleDebuger(tag)
+			// ct.Debuger = connutil.SimpleDebuger(tag)
 			sock := espsocket.NewConnSocket(ct, 10*1024*1024)
 			se(sock)
 		})
@@ -47,14 +42,7 @@ func main() {
 	}
 
 	if true {
-		goservice := espservice.NewGoService("manageService", boxs.ManageHandler)
-		se := goservice.Serve
-		lisPoint := netserver.NewService("managePoint", func(conn net.Conn) {
-			ct := connutil.NewConnExt(conn)
-			ct.Debuger = connutil.SimpleDebuger(tag)
-			sock := espsocket.NewConnSocket(ct, 0)
-			se(sock)
-		})
+		lisPoint := netserver.NewService("managePoint", boxs.AcceptManageConn(""))
 		boot.AddService(lisPoint)
 	}
 
