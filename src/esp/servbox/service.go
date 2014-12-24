@@ -24,6 +24,31 @@ type nodeInfo struct {
 	pool     *conndialpool.DialPool
 }
 
+func (this *nodeInfo) isSame(old *nodeInfo) bool {
+	if old == nil {
+		return false
+	}
+	if this.name != old.name {
+		return false
+	}
+	if this.net != old.net {
+		return false
+	}
+	if this.address != old.address {
+		return false
+	}
+	m := make(map[string]bool)
+	for _, s := range old.services {
+		m[s] = true
+	}
+	for _, s := range this.services {
+		if !m[s] {
+			return false
+		}
+	}
+	return true
+}
+
 func (this *nodeInfo) Close() {
 	if this.pool != nil {
 		this.pool.Close()

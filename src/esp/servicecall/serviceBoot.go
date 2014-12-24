@@ -121,7 +121,7 @@ func (this *Service) GraceStop(ctx *boot.BootContext) bool {
 				}
 			}
 		}
-		this.RemoveServiceCall(k)
+		this.RemoveServiceCall(k, false)
 	}
 	return true
 }

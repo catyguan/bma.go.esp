@@ -16,6 +16,22 @@ import (
 type HttpServiceCaller struct {
 	name string
 	httpConfig
+	runtime bool
+}
+
+func NewHttpServiceCall(n string, cfg map[string]interface{}, rt bool) (*HttpServiceCaller, error) {
+	fac := HttpServiceCallerFactory(0)
+	err := fac.Valid(cfg)
+	if err != nil {
+		return nil, err
+	}
+	sc, err1 := fac.Create(n, cfg)
+	if err1 != nil {
+		return nil, err1
+	}
+	r := sc.(*HttpServiceCaller)
+	r.runtime = rt
+	return r, nil
 }
 
 func (this *HttpServiceCaller) Ping() bool {
@@ -29,7 +45,7 @@ func (this *HttpServiceCaller) Start() error {
 func (this *HttpServiceCaller) Stop() {
 }
 
-func (this *HttpServiceCaller) Call(method string, params []interface{}, timeout time.Duration) (interface{}, error) {
+func (this *HttpServiceCaller) Call(method string, params map[string]interface{}, timeout time.Duration) (interface{}, error) {
 	bs, err0 := json.Marshal(params)
 	if err0 != nil {
 		return nil, err0
@@ -82,6 +98,10 @@ func (this *HttpServiceCaller) Call(method string, params []interface{}, timeout
 		return nil, err5
 	}
 	return r, nil
+}
+
+func (this *HttpServiceCaller) IsRuntime() bool {
+	return this.runtime
 }
 
 type httpConfig struct {

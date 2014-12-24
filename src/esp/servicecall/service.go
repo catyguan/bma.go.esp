@@ -120,11 +120,14 @@ func (this *Service) SetServiceCall(k string, sc ServiceCaller, overwrite bool) 
 	return true
 }
 
-func (this *Service) RemoveServiceCall(k string) {
+func (this *Service) RemoveServiceCall(k string, removeRuntime bool) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	ss, ok := this.services[k]
 	if !ok {
+		return
+	}
+	if ss.IsRuntime() && !removeRuntime {
 		return
 	}
 	delete(this.services, k)
@@ -166,17 +169,19 @@ func (this *Service) Get(serviceName string, timeout time.Duration) (ServiceCall
 		}
 		p = p.Parent()
 	}
-	if serviceName == LOOKUP_SERVICE_NAME {
+	if serviceName == NAME_LOOKUP_SERVICE {
 		return nil, nil
 	}
-	sc, err := this.Get(LOOKUP_SERVICE_NAME, timeout)
+	sc, err := this.Get(NAME_LOOKUP_SERVICE, timeout)
 	if err != nil {
 		return nil, err
 	}
 	if sc == nil {
 		return nil, nil
 	}
-	rv, err1 := sc.Call("do", []interface{}{serviceName}, timeout)
+	ps := make(map[string]interface{})
+	ps["name"] = serviceName
+	rv, err1 := sc.Call("do", ps, timeout)
 	if err1 != nil {
 		return nil, err1
 	}

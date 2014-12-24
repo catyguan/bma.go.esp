@@ -1,20 +1,18 @@
 package servicecall
 
-import (
-	"esp/espnet/espsocket"
-	"time"
-)
+import "time"
 
 const (
 	tag                 = "servicecall"
-	LOOKUP_SERVICE_NAME = "lookup"
+	NAME_LOOKUP_SERVICE = "lookup"
 )
 
 type ServiceCaller interface {
 	Start() error
 	Ping() bool
 	Stop()
-	Call(method string, params []interface{}, timeout time.Duration) (interface{}, error)
+	IsRuntime() bool
+	Call(method string, params map[string]interface{}, timeout time.Duration) (interface{}, error)
 }
 
 type ServiceCallerFactory interface {
@@ -28,9 +26,4 @@ type ServiceCallHub interface {
 	Get(serviceName string, timeout time.Duration) (ServiceCaller, error)
 	LocalQuery(serviceName string) ServiceCaller
 	GetServiceCallerFactory(typ string) ServiceCallerFactory
-}
-
-type SocketProvider interface {
-	GetSocket() (*espsocket.Socket, error)
-	Finish(sock *espsocket.Socket)
 }

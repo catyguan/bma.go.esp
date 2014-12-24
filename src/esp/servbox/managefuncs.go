@@ -74,12 +74,16 @@ func (this *Service) doJoin(sock espsocket.Socket, msg *esnp.Message) error {
 	return this.doActive(sock, node, msg1)
 }
 
-func (this *Service) doReplace(node *nodeInfo, old *nodeInfo) (bool, error) {
+func (this *Service) doReplace(node *nodeInfo, old *nodeInfo) (bool, bool, error) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	old2 := this.nodes[node.name]
 	if old2 != old {
-		return false, nil
+		return false, false, nil
+	}
+	if node.isSame(old) {
+		logger.Debug(tag, "same nodeInfo(%s, %s), skip", node.name, node.info)
+		return true, false, nil
 	}
 	this.nodes[node.name] = node
 	if old != nil {
@@ -92,15 +96,22 @@ func (this *Service) doReplace(node *nodeInfo, old *nodeInfo) (bool, error) {
 		si.node = node
 		this.servs[sn] = si
 	}
-	return true, nil
+	return true, true, nil
 }
 
 func (this *Service) doKill(old *nodeInfo) error {
-	conn, err := old.pool.GetConn(1*time.Second, true)
+	pool := old.pool
+	if pool == nil {
+		return nil
+	}
+	if pool.ActiveConn() == 0 {
+		return nil
+	}
+	conn, err := pool.GetConn(1*time.Second, true)
 	if err != nil {
 		return err
 	}
-	defer old.pool.CloseConn(conn)
+	defer pool.CloseConn(conn)
 	sock := espsocket.NewConnSocket(conn, 0)
 	msg := esnp.NewRequestMessage()
 	msg.GetAddress().SetCall(servboot.NAME_SERVICE, servboot.NAME_OP_SHUTDOWN)
@@ -120,6 +131,11 @@ func (this *Service) onReplace(old *nodeInfo) {
 		return
 	}
 	if old.pool == nil {
+		return
+	}
+	if old.pool.ActiveConn() == 0 {
+		old.pool.Close()
+		logger.Info(tag, "kill replaced(%s) skip", old)
 		return
 	}
 	logger.Debug(tag, "kill replaced(%s) after %d sec", old.name, this.config.KillDelaySec)
@@ -158,12 +174,16 @@ func (this *Service) doActive(sock espsocket.Socket, node *nodeInfo, msg *esnp.M
 		if err0 != nil {
 			return err0
 		}
-		ok, err1 := this.doReplace(node, old)
+		ok, done, err1 := this.doReplace(node, old)
 		if err1 != nil {
 			return err1
 		}
 		if ok {
-			this.onReplace(old)
+			if done {
+				this.onReplace(old)
+			} else {
+				node = old
+			}
 			break
 		}
 	}

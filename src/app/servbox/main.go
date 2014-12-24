@@ -7,6 +7,7 @@ import (
 	"esp/espnet/espsocket"
 	"esp/espnet/secure"
 	"esp/servbox"
+	"esp/services/servboot"
 	"net"
 	"netserver"
 )
@@ -22,7 +23,11 @@ func main() {
 	boot.AddService(boxs)
 
 	if true {
-		goservice := espservice.NewGoService("mainService", boxs.Handler)
+		mux := espservice.NewServiceMux(nil, nil)
+		servboot.InitMux(mux)
+		mux.DefaultHandler = boxs.Handler
+
+		goservice := espservice.NewGoService("mainService", mux.Serve)
 		var se espservice.ServiceEntry
 		useSecure := false
 		if useSecure {

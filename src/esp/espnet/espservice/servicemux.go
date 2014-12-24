@@ -17,10 +17,11 @@ type sHandler struct {
 
 // ServiceMux
 type ServiceMux struct {
-	wlock    sync.Locker
-	rlock    sync.Locker
-	matchers []muxMatcher
-	handlers map[string]*sHandler
+	wlock          sync.Locker
+	rlock          sync.Locker
+	matchers       []muxMatcher
+	handlers       map[string]*sHandler
+	DefaultHandler ServiceHandler
 }
 
 type muxMatcher struct {
@@ -88,7 +89,7 @@ func (this *ServiceMux) Match(msg *esnp.Message) ServiceHandler {
 		}
 	}
 	a := msg.GetAddress()
-	if a != nil {		
+	if a != nil {
 		s := a.GetService()
 		op := a.GetOp()
 		if s != "" && op != "" {
@@ -106,7 +107,7 @@ func (this *ServiceMux) Match(msg *esnp.Message) ServiceHandler {
 			}
 		}
 	}
-	return nil
+	return this.DefaultHandler
 }
 
 func (this *ServiceMux) Serve(sock espsocket.Socket, msg *esnp.Message) error {

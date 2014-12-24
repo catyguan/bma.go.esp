@@ -158,3 +158,7 @@ func GetProperty(sock Socket, name string) (interface{}, bool) {
 	}
 	return "", false
 }
+
+func ReadResponse(sock Socket, msg *esnp.Message) (*esnp.Message, error) {
+	return sock.ReadMessage(true)
+}

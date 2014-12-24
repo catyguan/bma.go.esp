@@ -15,12 +15,11 @@ const (
 )
 
 func main() {
-
 	flag.Parse()
 	if flag.NArg() < 2 {
 		fmt.Println("esp4c.exe remoteAddress mode")
 		fmt.Println("\tadd,sadd")
-		fmt.Println("\treload")
+		fmt.Println("\treload,shutdown")
 		fmt.Println("sample: esp4c.exe 127.0.0.1:1080 add")
 		return
 	}
@@ -34,6 +33,8 @@ func main() {
 		doSAdd(raddr)
 	case "reload":
 		doReload(raddr)
+	case "shutdown":
+		doShutdow(raddr)
 	default:
 		logger.Error(tag, "unknow mode '%s'", mode)
 	}
