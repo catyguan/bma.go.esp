@@ -60,7 +60,7 @@ func (this *Service) doJoin(sock espsocket.Socket, msg *esnp.Message) error {
 		}
 	}
 
-	msg1, err1 := sock.ReadMessage()
+	msg1, err1 := sock.ReadMessage(true)
 	if err1 != nil {
 		return err1
 	}
@@ -108,7 +108,7 @@ func (this *Service) doKill(old *nodeInfo) error {
 	if err1 != nil {
 		return err1
 	}
-	_, err2 := sock.ReadMessage()
+	_, err2 := sock.ReadMessage(true)
 	return err2
 }
 
@@ -174,6 +174,6 @@ func (this *Service) doActive(sock espsocket.Socket, node *nodeInfo, msg *esnp.M
 			return errR
 		}
 	}
-	logger.Info(tag, "active(%s, %s, %s, %v)", node.name, node.net, node.address, node.services)
+	logger.Info(tag, "active(%s,%s)(%s, %s) - %v", node.name, node.info, node.net, node.address, node.services)
 	return nil
 }

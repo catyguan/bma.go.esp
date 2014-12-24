@@ -60,7 +60,7 @@ func CallTimeout(sock Socket, msg *esnp.Message, timeout time.Duration) (*esnp.M
 	if err0 != nil {
 		return nil, err0
 	}
-	rmsg, err1 := sock.ReadMessage()
+	rmsg, err1 := sock.ReadMessage(false)
 	if err1 != nil {
 		return nil, err1
 	}

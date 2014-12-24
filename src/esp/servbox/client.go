@@ -12,16 +12,20 @@ import (
 
 type Client struct {
 	name     string
+	info     string
 	entry    espservice.ServiceEntry
 	config   *clientInfo
 	listener net.Listener
 	services []string
 	boxc     chan interface{}
+
+	SkipKill bool
 }
 
-func NewClient(n string, entry espservice.ServiceEntry) *Client {
+func NewClient(n string, info string, entry espservice.ServiceEntry) *Client {
 	r := new(Client)
 	r.name = n
+	r.info = info
 	r.entry = entry
 	return r
 }
@@ -90,6 +94,8 @@ func (this *Client) doJoinBox(ch chan interface{}, cfg *clientInfo, addr string)
 		q.Address = addr
 		q.NodeName = cfg.NodeName
 		q.SerivceNames = this.services
+		q.Info = this.info
+		q.SkipKill = this.SkipKill
 		msg := esnp.NewRequestMessage()
 		esnp.MessageLineCoders.Address.Set(msg, esnp.ADDRESS_OP, op_Join)
 		q.Encode(msg)
@@ -97,7 +103,7 @@ func (this *Client) doJoinBox(ch chan interface{}, cfg *clientInfo, addr string)
 		if err1 != nil {
 			return err1
 		}
-		_, err2 := sock.ReadMessage()
+		_, err2 := sock.ReadMessage(true)
 		if err2 != nil {
 			return err2
 		}
@@ -109,7 +115,7 @@ func (this *Client) doJoinBox(ch chan interface{}, cfg *clientInfo, addr string)
 		if err1 != nil {
 			return err1
 		}
-		_, err2 := sock.ReadMessage()
+		_, err2 := sock.ReadMessage(true)
 		if err2 != nil {
 			return err2
 		}

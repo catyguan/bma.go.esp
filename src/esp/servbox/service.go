@@ -6,6 +6,7 @@ import (
 	"esp/espnet/esnp"
 	"esp/espnet/espservice"
 	"esp/espnet/espsocket"
+	"esp/espnet/proxy"
 	"fmt"
 	"logger"
 	"net"
@@ -81,30 +82,16 @@ func (this *Service) Handler(sin espsocket.Socket, msg *esnp.Message) error {
 		}
 		break
 	}
-	logger.Debug(tag, "service[%s] --> %s", sname, conn)
+	logger.Debug(tag, "service[%s] --> %s, %s", sname, node, conn)
 	sout := espsocket.NewConnSocket(conn, this.config.MaxPackage)
 	defer sout.AskFinish()
-	err2 := sout.WriteMessage(msg)
+	var fs proxy.ForwardSetting
+	err2, _ := proxy.Forward(sin, sout, msg, &fs)
 	if err2 != nil {
-		sout.AskClose()
+		// no failOver
 		return err2
 	}
-	if !msg.IsRequest() {
-		logger.Debug(tag, "not request, skip response")
-		return nil
-	}
-	rmsg, err3 := sout.ReadMessage()
-	if rmsg != nil {
-		err4 := sin.WriteMessage(rmsg)
-		if err4 != nil {
-			sout.AskClose()
-			return err4
-		}
-	} else {
-		sout.AskClose()
-		return err3
-	}
-	logger.Debug(tag, "service[%s] --> %s done", sname, conn)
+	logger.Debug(tag, "service[%s] --> %s, %s done", sname, node, conn)
 	return nil
 }
 

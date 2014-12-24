@@ -53,7 +53,7 @@ func (this *GoService) Serve(sock espsocket.Socket) {
 
 func (this *GoService) DoServe(sock espsocket.Socket) {
 	for {
-		msg, err := sock.ReadMessage()
+		msg, err := sock.ReadMessage(false)
 		if err != nil {
 			if err == io.EOF {
 				logger.Debug(tag, "%s closed", sock)

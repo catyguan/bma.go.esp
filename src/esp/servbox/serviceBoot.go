@@ -50,10 +50,7 @@ func (this *Service) Prepare() {
 func (this *Service) CheckConfig(ctx *boot.BootContext) bool {
 	co := ctx.Config
 	cfg := new(configInfo)
-	if !co.GetBeanConfig(this.name, cfg) {
-		logger.Error(tag, "'%s' miss config", this.name)
-		return false
-	}
+	co.GetBeanConfig(this.name, cfg)
 	if err := cfg.Valid(); err != nil {
 		logger.Error(tag, "'%s' config error - %s", this.name, err)
 		return false

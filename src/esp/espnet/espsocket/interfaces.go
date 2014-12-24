@@ -21,5 +21,5 @@ type Socket interface {
 
 	// 读写消息
 	WriteMessage(ev *esnp.Message) error
-	ReadMessage() (*esnp.Message, error)
+	ReadMessage(decodeErr bool) (*esnp.Message, error)
 }

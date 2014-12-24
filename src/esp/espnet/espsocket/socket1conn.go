@@ -67,14 +67,16 @@ func (this *ConnSocket) WriteMessage(msg *esnp.Message) error {
 	return err
 }
 
-func (this *ConnSocket) ReadMessage() (*esnp.Message, error) {
+func (this *ConnSocket) ReadMessage(decodeErr bool) (*esnp.Message, error) {
 	reader := esnp.NewIODecodeReader(this.conn, nil)
 	msg := esnp.NewMessage()
 	err := msg.ReadAll(reader, this.maxsize)
 	if err != nil {
 		return nil, err
 	}
-	err = msg.ToError()
+	if decodeErr {
+		err = msg.ToError()
+	}
 	return msg, err
 }
 

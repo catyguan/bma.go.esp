@@ -9,9 +9,11 @@ import (
 	"esp/espnet/secure"
 	"esp/servbox"
 	"esp/services/servboot"
+	"fmt"
 	"logger"
 	"net"
 	"netserver"
+	"time"
 )
 
 const (
@@ -23,7 +25,6 @@ func main() {
 
 	mux := espservice.NewServiceMux(nil, nil)
 	mux.AddHandler("test", "add", H4Add)
-	mux.AddHandler("sys", "reload", H4Reload)
 	mux.AddHandler("serviceCall", "hello", H4SC)
 	servboot.InitMux(mux)
 
@@ -48,8 +49,9 @@ func main() {
 		// boot.AddService(lisPoint)
 	}
 
-	boxc := servbox.NewClient("servboxClient", goservice.Serve)
+	boxc := servbox.NewClient("servboxClient", fmt.Sprintf("%d", time.Now().Unix()), goservice.Serve)
 	boxc.Add("test")
+	boxc.Add("serviceCall")
 	boot.AddService(boxc)
 
 	boot.Go(cfile)
@@ -94,12 +96,5 @@ func H4SC(sock espsocket.Socket, msg *esnp.Message) error {
 		dt.Set("r", true)
 		return sock.WriteMessage(rmsg)
 	}
-	return nil
-}
-
-func H4Reload(sock espsocket.Socket, msg *esnp.Message) error {
-	go func() {
-		boot.Restart()
-	}()
 	return nil
 }

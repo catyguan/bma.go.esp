@@ -152,10 +152,10 @@ func DoBaseAuth(sock espsocket.Socket, app, key string, timeout time.Duration) e
 }
 
 // BaseAuthEntry
-type AppKeyProvider func(app string) (string, error)
+type AppKeyProvider func(app string, addr string) (string, error)
 
 func SimpleAppKeyProvider(key string) AppKeyProvider {
-	return func(app string) (string, error) {
+	return func(app string, addr string) (string, error) {
 		return key, nil
 	}
 }
@@ -186,7 +186,7 @@ func (this *BaseAuthEntry) DoAuth(sock espsocket.Socket) bool {
 	var req BaseAuthRequest
 	var rep BaseAuthResponse
 
-	msg1, err1 := sock.ReadMessage()
+	msg1, err1 := sock.ReadMessage(true)
 	if err1 != nil {
 		logger.Debug(tag, "BaseAuth read request 1 fail - %s", err1)
 		return false
@@ -196,7 +196,8 @@ func (this *BaseAuthEntry) DoAuth(sock espsocket.Socket) bool {
 		logger.Debug(tag, "BaseAuth decode request 1 fail - %s", err1)
 		return false
 	}
-	key, errK := this.akp(req.App)
+	addr, _ := espsocket.GetProperty(sock, espsocket.PROP_SOCKET_REMOTE_ADDR)
+	key, errK := this.akp(req.App, valutil.ToString(addr, ""))
 	if errK != nil {
 		logger.Debug(tag, "BaseAuth app(%s) key fail - %s", req.App, errK)
 		return false
@@ -216,7 +217,7 @@ func (this *BaseAuthEntry) DoAuth(sock espsocket.Socket) bool {
 		return false
 	}
 
-	msg2, err2 := sock.ReadMessage()
+	msg2, err2 := sock.ReadMessage(true)
 	if err2 != nil {
 		logger.Debug(tag, "BaseAuth read request 2 fail - %s", err2)
 		return false

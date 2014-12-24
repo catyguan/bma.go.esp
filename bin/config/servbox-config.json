@@ -4,7 +4,7 @@
 		"GOMAXPROCS" : 5
 	},
 	"servicePoint" : {
-		"Port" : "1081"
+		"Port" : "1080"
 	},
 	"managePoint" : {
 		"Port" : "1082"
