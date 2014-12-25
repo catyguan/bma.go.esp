@@ -16,7 +16,7 @@ func T2estLoggerBase(t *testing.T) {
 	cfg.InitLogger()
 
 	Debug("test", "hello %s", "world")
-	cfg.SetLevel("test", LEVEL_INFO)
+	// cfg.SetLevel("test", LEVEL_INFO)
 	Debug("test", "i can't see DEBUG")
 	Warn("test", "i can see WARN")
 

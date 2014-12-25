@@ -10,4 +10,5 @@ var (
 	StartConfigFile string
 	StartTime       time.Time
 	LoadTime        time.Time
+	Args            []string
 )

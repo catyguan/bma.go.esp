@@ -1,0 +1,43 @@
+ServiceCall调用协议说明
+
+[ServiceCall调用原型]
+	Call(service string, method string, params map[string]interface{}, timeout time.Duration) (interface{}, error)
+		service -- 调用的服务
+		method -- 调用的方法
+		params -- 调用的参数
+		timeout -- 超时时间
+
+[Http ServiceCall]
+[[服务源定义]]
+	Type:string = "http"
+	URL:string
+	Host:string
+	TimeoutMS:int
+
+[[通信协议]]
+* 请求方式不限制，建议Post
+* 请求参数
+	m -- string,对应原型的method
+	p -- json,对应原型的params
+* Content-Type = application/x-www-form-urlencoded
+* 响应内容
+	json格式的数据
+
+[ESNP ServiceCall]
+[[服务源定义]]
+	Type:string = "esnp"
+	Net:string -- default tcp
+	Address:string
+	MaxPackage:int -- default 10M
+	TimeoutMS:int -- default 5000
+	InitSize:int -- connection pool init size, default 0
+	MaxSize:int -- connection pool max size, default 128
+	IdleTimeMS:int -- connection pool idle close time, default 0, no idle close
+
+[[通信协议]]
+* 请求地址 service=service,op=method
+* 请求参数
+	DATA:p=params
+* 响应格式
+	DATA:s=int -- 请求状态码，200为成功
+	DATA:r=interface{} -- 请求结果

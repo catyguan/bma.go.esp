@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -327,6 +328,28 @@ func doRestart() bool {
 func loadConfig(cfg string) (bool, config.ConfigObject) {
 	if !flag.Parsed() {
 		flag.Parse()
+		mvar := make(map[string]string)
+		args := make([]string, 0)
+		for _, s := range os.Args[1:] {
+			if strings.HasPrefix(s, "-") {
+				continue
+			}
+			if strings.HasPrefix(s, "c:") {
+				nlist := strings.SplitN(s[2:], "=", 2)
+				if len(nlist) > 1 {
+					mvar[nlist[0]] = nlist[1]
+				} else {
+					mvar[nlist[0]] = "true"
+				}
+				continue
+			}
+			args = append(args, s)
+		}
+		Args = args
+		config.AppConfigVar = func(name string) (string, bool) {
+			s, ok := mvar[name]
+			return s, ok
+		}
 	}
 	if configFile != "" {
 		cfg = configFile

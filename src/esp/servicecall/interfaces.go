@@ -27,3 +27,8 @@ type ServiceCallHub interface {
 	LocalQuery(serviceName string) ServiceCaller
 	GetServiceCallerFactory(typ string) ServiceCallerFactory
 }
+
+func InitBaseFactory(s *Service) {
+	s.AddServiceCallerFactory("http", HttpServiceCallerFactory(0))
+	s.AddServiceCallerFactory("esnp", ESNPServiceCallerFactory(0))
+}

@@ -1,0 +1,14 @@
+{
+	"global" : {
+		"Debug" : true,
+		"GOMAXPROCS" : 5
+	},
+	"serviceCall" : {
+		"Services" : {
+			"serviceCall" : {
+				"Type" : "esnp",
+				"Address" : "127.0.0.1:1080"
+			}
+		}
+	}
+}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bmautil/valutil"
 	"esp/espnet/espsocket"
 	"flag"
 	"fmt"
@@ -18,7 +19,7 @@ func main() {
 	flag.Parse()
 	if flag.NArg() < 2 {
 		fmt.Println("esp4c.exe remoteAddress mode")
-		fmt.Println("\tadd,sadd")
+		fmt.Println("\tadd,sadd,ladd")
 		fmt.Println("\treload,shutdown")
 		fmt.Println("sample: esp4c.exe 127.0.0.1:1080 add")
 		return
@@ -29,6 +30,12 @@ func main() {
 	switch mode {
 	case "add":
 		doAdd(raddr)
+	case "ladd":
+		sec := 5
+		if flag.NArg() > 2 {
+			sec = valutil.ToInt(flag.Arg(2), sec)
+		}
+		doLAdd(raddr, sec)
 	case "sadd":
 		doSAdd(raddr)
 	case "reload":

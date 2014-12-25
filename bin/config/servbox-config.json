@@ -10,6 +10,6 @@
 		"Port" : "1082"
 	},
 	"servbox" : {
-		
+		"MaxConnSize" : 5
 	}
 }

@@ -93,13 +93,12 @@ type LogWriter interface {
 /****** Logger ******/
 // LoggerConfig
 type LoggerConfig struct {
-	root    level
-	writer  LogWriter
-	filters map[string]level
+	root   level
+	writer LogWriter
 }
 
 var (
-	logConfig LoggerConfig = LoggerConfig{LEVEL_ALL, nil, nil}
+	logConfig LoggerConfig = LoggerConfig{LEVEL_ALL, nil}
 )
 
 // Create a new logger.
@@ -109,44 +108,8 @@ func Config() *LoggerConfig {
 	return &logConfig
 }
 
-func (cfg *LoggerConfig) GetLevel(tag string) level {
-	if tag != "" {
-		fs := logConfig.filters
-		if fs != nil {
-			if l, ok := fs[tag]; ok {
-				return l
-			}
-		}
-		return NOUSE
-	}
-	return logConfig.root
-}
-
-func newFilter(tag string, l level) {
-	obj := make(map[string]level)
-	for k, v := range logConfig.filters {
-		obj[k] = v
-	}
-	obj[tag] = l
-	logConfig.filters = obj
-}
-
-func (cfg *LoggerConfig) SetLevel(tag string, l level) level {
-	if tag != "" {
-		old := NOUSE
-		fs := logConfig.filters
-		if fs != nil {
-			if l, ok := fs[tag]; ok {
-				old = l
-			}
-		}
-		newFilter(tag, l)
-		return old
-	} else {
-		old := logConfig.root
-		logConfig.root = l
-		return old
-	}
+func (cfg *LoggerConfig) SetLevel(l level) {
+	cfg.root = l
 }
 
 func (cfg *LoggerConfig) SetWriter(w LogWriter) bool {
@@ -205,20 +168,6 @@ func createWriter(wobj *beanWriter) LogWriter {
 	return nil
 }
 
-func createFilter(fobj beanFilter) level {
-	enable := !fobj.Disable
-	if !enable {
-		fmt.Printf("logger filter '%s' disable\n", fobj.Name)
-		return NOUSE
-	}
-
-	lstr := fobj.Level
-	lvl := level(StringToLevel(lstr))
-
-	fmt.Printf("logger filter '%s' => %s\n", fobj.Name, lvl.String())
-	return lvl
-}
-
 type beanWriter struct {
 	Type       string
 	BufferSize int
@@ -231,16 +180,9 @@ type beanWriter struct {
 	NoDaily  bool
 }
 
-type beanFilter struct {
-	Name    string
-	Level   string
-	Disable bool
-}
-
 type beanLogger struct {
 	RootLevel string
 	Writer    *beanWriter
-	Filter    []beanFilter
 }
 
 func (lc *LoggerConfig) InitLogger() {
@@ -259,28 +201,6 @@ func (lc *LoggerConfig) InitLogger() {
 				logConfig.writer = w
 			}
 		}
-		flist := beanLogger.Filter
-		if flist != nil {
-			for _, fobj := range flist {
-				if fobj.Name == "" {
-					fmt.Println("filter no Name")
-					continue
-				}
-				l := createFilter(fobj)
-				// fmt.Println("filter =>", fobj.Name, l)
-				if l != NOUSE {
-					// fmt.Println("new filter =>", fobj.Name, l)
-					if fobj.Name == "root" {
-						logConfig.root = l
-					} else {
-						if logConfig.filters == nil {
-							logConfig.filters = make(map[string]level)
-						}
-						logConfig.filters[fobj.Name] = l
-					}
-				}
-			}
-		}
 	}
 	// default init
 	if logConfig.writer == nil {
@@ -297,7 +217,6 @@ func Close() {
 	time.Sleep(1 * time.Millisecond)
 
 	// Close all open loggers
-	logConfig.filters = nil
 	w := logConfig.writer
 	logConfig.writer = nil
 
@@ -313,36 +232,17 @@ func initDefaultLogger() {
 }
 
 /******* Logging *******/
-func getFilter(tag string, lvl level) (LogWriter, bool) {
-	l := logConfig.root
-	fs := logConfig.filters
-	if fs != nil {
-		if l2, ok := fs[tag]; ok {
-			l = l2
-		}
-	}
-	// fmt.Println("getFilter", tag, lvl, l, lvl < l)
-	if lvl < l {
-		return nil, false
-	}
-	w := logConfig.writer
-	if w == nil && !closed {
-		initDefaultLogger()
-		w = logConfig.writer
-	}
-	return w, true
-}
-
 // Send a formatted log message internally
 func intLogf(tag string, lvl level, format string, args ...interface{}) {
-
-	w, ok := getFilter(tag, lvl)
+	ok := lvl >= logConfig.root
+	w := logConfig.writer
 
 	if !ok {
 		return
 	}
 	if w == nil {
-		return
+		initDefaultLogger()
+		w = logConfig.writer
 	}
 
 	msg := format
@@ -364,11 +264,15 @@ func intLogf(tag string, lvl level, format string, args ...interface{}) {
 
 // Send a closure log message internally
 func intLogc(tag string, lvl level, closure func() string) {
-
-	w, ok := getFilter(tag, lvl)
+	ok := lvl >= logConfig.root
+	w := logConfig.writer
 
 	if !ok {
 		return
+	}
+	if w == nil {
+		initDefaultLogger()
+		w = logConfig.writer
 	}
 
 	// Make the log record
@@ -385,11 +289,15 @@ func intLogc(tag string, lvl level, closure func() string) {
 
 // Send a log message with manual level, source, and message.
 func Log(tag string, lvl level, message string) {
-
-	w, ok := getFilter(tag, lvl)
+	ok := lvl >= logConfig.root
+	w := logConfig.writer
 
 	if !ok {
 		return
+	}
+	if w == nil {
+		initDefaultLogger()
+		w = logConfig.writer
 	}
 
 	// Make the log record
@@ -421,7 +329,7 @@ func Logc(tag string, lvl level, closure func() string) {
 }
 
 func Enable(tag string, lvl level) bool {
-	_, ok := getFilter(tag, lvl)
+	ok := lvl >= logConfig.root
 	return ok
 }
 
@@ -607,8 +515,4 @@ func FormatLogRecord(format string, rec *LogRecord) string {
 	out.WriteByte('\n')
 
 	return out.String()
-}
-
-func Sprintf(format string, args ...interface{}) string {
-	return fmt.Sprintf(format, args...)
 }

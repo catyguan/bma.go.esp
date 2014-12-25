@@ -49,6 +49,11 @@ func (this *nodeInfo) isSame(old *nodeInfo) bool {
 	return true
 }
 
+func (this *nodeInfo) ReplaceProp(other *nodeInfo) {
+	this.skipKill = other.skipKill
+	this.info = other.info
+}
+
 func (this *nodeInfo) Close() {
 	if this.pool != nil {
 		this.pool.Close()
