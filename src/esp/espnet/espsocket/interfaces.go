@@ -3,6 +3,7 @@ package espsocket
 import (
 	"esp/espnet/esnp"
 	"net"
+	"time"
 )
 
 type Socket interface {
@@ -22,4 +23,9 @@ type Socket interface {
 	// 读写消息
 	WriteMessage(ev *esnp.Message) error
 	ReadMessage(decodeErr bool) (*esnp.Message, error)
+}
+
+type SocketProvider interface {
+	GetSocket(timeout time.Duration) (Socket, error)
+	Close()
 }

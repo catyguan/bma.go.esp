@@ -17,8 +17,7 @@ func main() {
 	cfile := "config/esp4n-config.json"
 
 	scs := servicecall.NewService("serviceCall", nil)
-	scs.AddServiceCallerFactory("esnp", servicecall.ESNPServiceCallerFactory(0))
-	scs.AddServiceCallerFactory("http", servicecall.HttpServiceCallerFactory(0))
+	servicecall.InitBaseFactory(scs)
 	boot.AddService(scs)
 
 	bw := boot.NewBootWrap("main")

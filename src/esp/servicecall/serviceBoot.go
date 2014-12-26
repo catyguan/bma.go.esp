@@ -7,7 +7,8 @@ import (
 )
 
 type configInfo struct {
-	Services map[string]map[string]interface{}
+	LookupCheckSec int
+	Services       map[string]map[string]interface{}
 }
 
 func (this *configInfo) Valid(s *Service) error {
@@ -20,6 +21,9 @@ func (this *configInfo) Valid(s *Service) error {
 		if err2 != nil {
 			return fmt.Errorf("'%s' %s", n, err2)
 		}
+	}
+	if this.LookupCheckSec <= 0 {
+		this.LookupCheckSec = 5
 	}
 	return nil
 }
@@ -89,7 +93,7 @@ func (this *Service) Start(ctx *boot.BootContext) bool {
 		if _, ok := this.services[k]; ok {
 			continue
 		}
-		_, err := this._create(k, mlcfg)
+		_, _, err := this._create(k, mlcfg)
 		if err != nil {
 			logger.Error(tag, "ServiceCaller('%s') create fail - %s", k, err)
 			return false
@@ -127,11 +131,14 @@ func (this *Service) GraceStop(ctx *boot.BootContext) bool {
 }
 
 func (this *Service) Stop() bool {
+	if !this.gtask.IsClose() {
+		this.gtask.Close()
+	}
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	for k, s := range this.services {
 		delete(this.services, k)
-		s.Stop()
+		s.sc.Stop()
 	}
 	return true
 }

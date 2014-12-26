@@ -130,9 +130,9 @@ MT_MESSAGE_KIND : 0x13
 		MK_UNKNOW   = 0 无
 		MK_REQUEST  = 1 请求
 		MK_RESPONSE = 2 响应
-		MK_INFO     = 3 消息
-		MK_INFO_RESPONSE = xxx
-		MK_EVENT    = 4 事件
+		MK_INFO     = 3 消息 有响应
+		MK_INFO_RESPONSE = MK_INFO + MK_RESPONSE
+		MK_EVENT    = 4 事件 无响应
 	数据体：[UInt8]
 	
 MT_HEADER : 0x14

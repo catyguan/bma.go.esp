@@ -1,27 +1,49 @@
 package servicecall
 
 import (
+	"bmautil/gotask"
 	"bmautil/valutil"
 	"fmt"
+	"logger"
 	"sync"
 	"time"
 )
+
+type scItem struct {
+	sc        ServiceCaller
+	runtime   bool
+	lookup    bool
+	cfg       map[string]interface{}
+	checkTime time.Time
+}
 
 type Service struct {
 	name     string
 	config   *configInfo
 	parent   ServiceCallHub
 	lock     sync.RWMutex
-	services map[string]ServiceCaller
+	services map[string]*scItem
 	factorys map[string]ServiceCallerFactory
+	gtask    gotask.GoTask
 }
 
 func NewService(n string, p ServiceCallHub) *Service {
 	r := new(Service)
 	r.name = n
 	r.parent = p
-	r.services = make(map[string]ServiceCaller)
+	r.services = make(map[string]*scItem)
 	r.factorys = make(map[string]ServiceCallerFactory)
+	r.gtask.Init()
+	tm := time.NewTicker(1 * time.Second)
+	go func() {
+		select {
+		case tm := <-tm.C:
+			r.checkLookup(tm)
+		case <-r.gtask.C:
+			logger.Debug(tag, "checker exit")
+			return
+		}
+	}()
 	return r
 }
 
@@ -91,31 +113,36 @@ func (this *Service) DoCreate(n string, cfg map[string]interface{}) (ServiceCall
 	return fac.Create(n, cfg)
 }
 
-func (this *Service) _create(k string, cfg map[string]interface{}) (ServiceCaller, error) {
+func (this *Service) _create(k string, cfg map[string]interface{}) (ServiceCaller, *scItem, error) {
 	sc, err := this.DoCreate(k, cfg)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	err = sc.Start()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	this.services[k] = sc
-	return sc, nil
+	si := new(scItem)
+	si.sc = sc
+	this.services[k] = si
+	return sc, si, nil
 }
 
 func (this *Service) SetServiceCall(k string, sc ServiceCaller, overwrite bool) bool {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	ss, ok := this.services[k]
+	old, ok := this.services[k]
 	if ok {
 		if !overwrite {
 			return false
 		}
 	}
-	this.services[k] = sc
-	if ss != nil {
-		ss.Stop()
+	si := new(scItem)
+	si.runtime = true
+	si.sc = sc
+	this.services[k] = si
+	if old != nil {
+		old.sc.Stop()
 	}
 	return true
 }
@@ -123,15 +150,15 @@ func (this *Service) SetServiceCall(k string, sc ServiceCaller, overwrite bool) 
 func (this *Service) RemoveServiceCall(k string, removeRuntime bool) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	ss, ok := this.services[k]
+	si, ok := this.services[k]
 	if !ok {
 		return
 	}
-	if ss.IsRuntime() && !removeRuntime {
+	if si.runtime && !removeRuntime {
 		return
 	}
 	delete(this.services, k)
-	ss.Stop()
+	si.sc.Stop()
 }
 
 func (this *Service) Assert(serviceName string, timeout time.Duration) (ServiceCaller, error) {
@@ -147,19 +174,23 @@ func (this *Service) Assert(serviceName string, timeout time.Duration) (ServiceC
 
 func (this *Service) Get(serviceName string, timeout time.Duration) (ServiceCaller, error) {
 	this.lock.RLock()
-	sc, ok := this.services[serviceName]
+	si, ok := this.services[serviceName]
 	this.lock.RUnlock()
 	if ok {
+		sc := si.sc
 		if sc.Ping() {
 			return sc, nil
 		}
-		this.lock.Lock()
-		sc2, ok2 := this.services[serviceName]
-		if ok2 && sc2 == sc {
-			delete(this.services, serviceName)
-			sc.Stop()
+		if si.lookup {
+			// remove break sc
+			this.lock.Lock()
+			si2, ok2 := this.services[serviceName]
+			if ok2 && si2 == si {
+				delete(this.services, serviceName)
+				sc.Stop()
+			}
+			this.lock.Unlock()
 		}
-		this.lock.Unlock()
 	}
 	p := this.parent
 	for p != nil {
@@ -181,7 +212,7 @@ func (this *Service) Get(serviceName string, timeout time.Duration) (ServiceCall
 	}
 	ps := make(map[string]interface{})
 	ps["name"] = serviceName
-	rv, err1 := sc.Call("do", ps, timeout)
+	rv, err1 := sc.Call("findServiceCall", ps, timeout)
 	if err1 != nil {
 		return nil, err1
 	}
@@ -192,12 +223,15 @@ func (this *Service) Get(serviceName string, timeout time.Duration) (ServiceCall
 		this.lock.Lock()
 		defer this.lock.Unlock()
 		if sc2, ok := this.services[serviceName]; ok {
-			return sc2, nil
+			return sc2.sc, nil
 		}
-		sc, err1 = this._create(serviceName, cfg)
+		sc, si, err1 = this._create(serviceName, cfg)
 		if err1 != nil {
 			return nil, err1
 		}
+		si.runtime = true
+		si.lookup = true
+		si.cfg = cfg
 		return sc, nil
 	}
 	return nil, nil
@@ -206,9 +240,9 @@ func (this *Service) Get(serviceName string, timeout time.Duration) (ServiceCall
 func (this *Service) LocalQuery(serviceName string) ServiceCaller {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	sc, ok := this.services[serviceName]
+	si, ok := this.services[serviceName]
 	if ok {
-		return sc
+		return si.sc
 	}
 	return nil
 }
@@ -217,4 +251,21 @@ func (this *Service) TryClose() bool {
 	c := len(this.services)
 	this.Stop()
 	return c > 0
+}
+
+func (this *Service) checkLookup(tm time.Time) {
+	this.lock.RLock()
+	this.lock.RUnlock()
+	if this.config != nil {
+		du := time.Duration(this.config.LookupCheckSec) * time.Second
+		for n, si := range this.services {
+			if tm.Sub(si.checkTime) >= du {
+				go this.doCheckLookup(n, si)
+			}
+		}
+	}
+}
+
+func (this *Service) doCheckLookup(n string, si *scItem) {
+
 }

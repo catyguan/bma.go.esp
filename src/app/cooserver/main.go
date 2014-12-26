@@ -7,7 +7,6 @@ import (
 	"esp/cluster/espnode"
 	"esp/espnet/aclesnpmux"
 	"esp/espnet/espservice"
-	"smmapi/espmux4smmapi"
 	_ "smmapi/smmapi4config"
 	_ "smmapi/smmapi4server"
 
@@ -26,21 +25,21 @@ func main() {
 	acls := aclserv.NewService("acl")
 	boot.AddService(acls)
 
-	// smm.api
-	if true {
-		smmapis := espmux4smmapi.NewService("smmapiServ")
-		boot.AddService(smmapis)
+	// // smm.api
+	// if true {
+	// 	smmapis := espmux4smmapi.NewService("smmapiServ")
+	// 	boot.AddService(smmapis)
 
-		mux := espservice.NewServiceMux(nil, nil)
-		smmapis.InitMuxInvoke(mux, "smm.api", "invoke")
+	// 	mux := espservice.NewServiceMux(nil, nil)
+	// 	smmapis.InitMuxInvoke(mux, "smm.api", "invoke")
 
-		rmux := aclesnpmux.NewAclServerMux("esnp", mux.DoServe)
+	// 	rmux := aclesnpmux.NewAclServerMux("esnp", mux.DoServe)
 
-		goservice := espservice.NewGoService("serviceSMM", rmux.DoServe)
+	// 	goservice := espservice.NewGoService("serviceSMM", rmux.DoServe)
 
-		lisPoint := socket.NewListenPoint("esnpPointSMM", nil, goservice.AcceptESP)
-		boot.AddService(lisPoint)
-	}
+	// 	lisPoint := socket.NewListenPoint("esnpPointSMM", nil, goservice.AcceptESP)
+	// 	boot.AddService(lisPoint)
+	// }
 
 	// coo serv
 	if true {

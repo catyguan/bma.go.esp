@@ -41,3 +41,8 @@ ServiceCall调用协议说明
 * 响应格式
 	DATA:s=int -- 请求状态码，200为成功
 	DATA:r=interface{} -- 请求结果
+
+[lookup服务]
+在定位服务时候，会采用lookup服务
+[[原型]]
+lookup.findServiceCall(name:string) map{...}

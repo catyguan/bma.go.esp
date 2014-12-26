@@ -11,7 +11,6 @@ type ServiceCaller interface {
 	Start() error
 	Ping() bool
 	Stop()
-	IsRuntime() bool
 	Call(method string, params map[string]interface{}, timeout time.Duration) (interface{}, error)
 }
 

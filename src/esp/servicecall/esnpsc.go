@@ -15,22 +15,6 @@ type ESNPServiceCaller struct {
 	pool       *conndialpool.DialPool
 	maxPackage int
 	timeoutMS  int
-	runtime    bool
-}
-
-func NewESNPServiceCaller(n string, cfg map[string]interface{}, rt bool) (*ESNPServiceCaller, error) {
-	fac := ESNPServiceCallerFactory(0)
-	err := fac.Valid(cfg)
-	if err != nil {
-		return nil, err
-	}
-	sc, err1 := fac.Create(n, cfg)
-	if err1 != nil {
-		return nil, err1
-	}
-	r := sc.(*ESNPServiceCaller)
-	r.runtime = rt
-	return r, nil
 }
 
 func (this *ESNPServiceCaller) Ping() bool {
@@ -49,10 +33,6 @@ func (this *ESNPServiceCaller) Start() error {
 
 func (this *ESNPServiceCaller) Stop() {
 	this.pool.Close()
-}
-
-func (this *ESNPServiceCaller) IsRuntime() bool {
-	return this.runtime
 }
 
 func (this *ESNPServiceCaller) Call(method string, params map[string]interface{}, timeout time.Duration) (interface{}, error) {
