@@ -348,6 +348,9 @@ func (this *DialPool) Run() bool {
 				if dt.IsZero() {
 					return
 				}
+				if this.IsClosing() {
+					return
+				}
 				l := len(this.wait)
 				// fmt.Println("checking", l)
 				for i := 0; i < l; i++ {

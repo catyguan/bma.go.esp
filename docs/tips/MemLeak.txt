@@ -1,0 +1,15 @@
+I suppose it is not really memory leaks you mean, as there is garbage collection. However, there is an excellent tool to find how much memory is "wasted" from different places in your program.
+
+Use  pprof.WriteHeapProfile() and gopprof.
+
+http://golang.org/pkg/net/http/pprof/
+
+Then use the pprof tool to look at the heap profile:
+
+go tool pprof http://localhost:6060/debug/pprof/heap
+Or to look at a 30-second CPU profile:
+
+go tool pprof http://localhost:6060/debug/pprof/profile
+Or to look at the goroutine blocking profile:
+
+go tool pprof http://localhost:6060/debug/pprof/block

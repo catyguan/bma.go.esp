@@ -20,7 +20,7 @@ func doAdd(address string) {
 	ds := msg.Datas()
 	ds.Set("a", 1)
 	ds.Set("b", 2)
-	rmsg, err := espsocket.CallTimeout(sock, msg, 3*time.Second)
+	rmsg, err := espsocket.CallTimeout(sock, msg, time.Now().Add(3*time.Second))
 	if err != nil {
 		logger.Warn(tag, "call 'add' fail - %s", err)
 		return
@@ -51,7 +51,7 @@ func doLAdd(address string, sec int) {
 		ds := msg.Datas()
 		ds.Set("a", 1)
 		ds.Set("b", 2)
-		rmsg, err := espsocket.CallTimeout(sock, msg, 3*time.Second)
+		rmsg, err := espsocket.CallTimeout(sock, msg, time.Now().Add(3*time.Second))
 		if err != nil {
 			logger.Warn(tag, "call 'add' fail - %s", err)
 			return
@@ -84,7 +84,7 @@ func doSAdd(address string) {
 	ds := msg.Datas()
 	ds.Set("a", 1)
 	ds.Set("b", 2)
-	rmsg, err := espsocket.CallTimeout(sock, msg, 3*time.Second)
+	rmsg, err := espsocket.CallTimeout(sock, msg, time.Now().Add(3*time.Second))
 	if err != nil {
 		logger.Warn(tag, "call 'add' fail - %s", err)
 		return

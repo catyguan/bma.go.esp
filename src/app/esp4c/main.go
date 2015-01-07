@@ -21,6 +21,7 @@ func main() {
 		fmt.Println("esp4c.exe remoteAddress mode")
 		fmt.Println("\tadd,sadd,ladd")
 		fmt.Println("\treload,shutdown")
+		fmt.Println("\tpprof.heap pprof.thread pprof.block pprof.cpu pprof.gor")
 		fmt.Println("sample: esp4c.exe 127.0.0.1:1080 add")
 		return
 	}
@@ -43,7 +44,11 @@ func main() {
 	case "shutdown":
 		doShutdow(raddr)
 	default:
-		logger.Error(tag, "unknow mode '%s'", mode)
+		if strings.HasPrefix(mode, "pprof.") {
+			doPProf(raddr, mode[6:])
+		} else {
+			logger.Error(tag, "unknow mode '%s'", mode)
+		}
 	}
 	time.Sleep(1 * time.Second)
 }

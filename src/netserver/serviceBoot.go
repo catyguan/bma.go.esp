@@ -147,7 +147,9 @@ func (this *Service) Run(ctx *boot.BootContext) bool {
 				}
 				go this.accept(c) // new connect
 			} else {
-				logger.Debug(tag, "accept fail and exit - %s", err)
+				if !netutil.IsAcceptClose(err) {
+					logger.Debug(tag, "accept fail and exit - %s", err)
+				}
 				return
 			}
 		}

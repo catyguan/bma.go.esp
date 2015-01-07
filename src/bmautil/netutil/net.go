@@ -123,3 +123,8 @@ func IpAccept(address string, whiteList []string, blackList []string, notMatchRe
 	}
 	return notMatchReturn, ""
 }
+
+func IsAcceptClose(err error) bool {
+	s := err.Error()
+	return strings.Index(s, "closed") != -1
+}
