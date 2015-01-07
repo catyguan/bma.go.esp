@@ -341,9 +341,6 @@ func (this *DialPool) Run() bool {
 		this.timer = time.NewTicker(time.Duration(this.config.CheckMS) * time.Millisecond)
 		go func() {
 			for {
-				defer func() {
-					recover()
-				}()
 				dt := <-this.timer.C
 				if dt.IsZero() {
 					return
@@ -369,7 +366,12 @@ func (this *DialPool) Run() bool {
 								continue
 							}
 							// fmt.Println("checking", "ok")
-							this.wait <- item
+							func() {
+								defer func() {
+									recover()
+								}()
+								this.wait <- item
+							}()
 						}
 					default:
 						break

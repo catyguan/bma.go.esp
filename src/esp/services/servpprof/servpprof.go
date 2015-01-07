@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"logger"
 	"os"
-	"path/filepath"
 	"runtime"
 	"runtime/pprof"
 	"time"
@@ -37,7 +36,10 @@ func ofile(name string) (*os.File, error) {
 	now := time.Now()
 	tf := now.Format("20060102150405")
 	fn := fmt.Sprintf("%s_%s.prof", name, tf)
-	ffn := filepath.Join(boot.TempDir, fn)
+	ffn, err := boot.TempFile(fn)
+	if err != nil {
+		return nil, err
+	}
 	return os.OpenFile(ffn, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 }
 
