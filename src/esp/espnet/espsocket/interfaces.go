@@ -26,6 +26,6 @@ type Socket interface {
 }
 
 type SocketProvider interface {
-	GetSocket(timeout time.Duration) (Socket, error)
+	GetSocket(deadline time.Time) (Socket, error)
 	Close()
 }

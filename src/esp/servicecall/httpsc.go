@@ -9,6 +9,7 @@ import (
 	"logger"
 	"net/http"
 	"net/url"
+	"objfac"
 	"strings"
 	"time"
 )
@@ -18,8 +19,8 @@ type HttpServiceCaller struct {
 	httpConfig
 }
 
-func (this *HttpServiceCaller) Ping() bool {
-	return true
+func (this *HttpServiceCaller) SetName(n string) {
+	this.name = n
 }
 
 func (this *HttpServiceCaller) Start() error {
@@ -29,7 +30,7 @@ func (this *HttpServiceCaller) Start() error {
 func (this *HttpServiceCaller) Stop() {
 }
 
-func (this *HttpServiceCaller) Call(method string, params map[string]interface{}, timeout time.Duration) (interface{}, error) {
+func (this *HttpServiceCaller) Call(serviceName, method string, params map[string]interface{}, deadline time.Time) (interface{}, error) {
 	bs, err0 := json.Marshal(params)
 	if err0 != nil {
 		return nil, err0
@@ -54,8 +55,11 @@ func (this *HttpServiceCaller) Call(method string, params map[string]interface{}
 		tm = 5000
 	}
 	tmd := time.Duration(tm) * time.Millisecond
-	if timeout != time.Duration(0) && timeout < tmd {
-		tmd = timeout
+	if !deadline.IsZero() {
+		timeout := deadline.Sub(time.Now())
+		if timeout < tmd {
+			tmd = timeout
+		}
 	}
 	client := httputil.NewHttpClient(tmd)
 
@@ -63,10 +67,10 @@ func (this *HttpServiceCaller) Call(method string, params map[string]interface{}
 	hresp, err3 := client.Do(hreq)
 	te := time.Now()
 	if err3 != nil {
-		logger.Debug(tag, "[%s:%s] http '%s'(%f) fail '%s'", this.name, method, qurl, te.Sub(ts).Seconds(), err3)
+		logger.Debug(tag, "[%s:%s] http '%s'(%f) fail '%s'", serviceName, method, qurl, te.Sub(ts).Seconds(), err3)
 		return nil, err3
 	}
-	logger.Debug(tag, "[%s：%s] http '%s'(%f) end '%d'", this.name, method, qurl, te.Sub(ts).Seconds(), hresp.StatusCode)
+	logger.Debug(tag, "[%s：%s] http '%s'(%f) end '%d'", serviceName, method, qurl, te.Sub(ts).Seconds(), hresp.StatusCode)
 	defer hresp.Body.Close()
 	if hresp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("'%s' invalid http status(%d)", qurl, hresp.StatusCode)
@@ -92,7 +96,7 @@ type httpConfig struct {
 
 type HttpServiceCallerFactory int
 
-func (o HttpServiceCallerFactory) Valid(cfg map[string]interface{}) error {
+func (o HttpServiceCallerFactory) Valid(cfg map[string]interface{}, ofp objfac.ObjectFactoryProvider) error {
 	var co httpConfig
 	if valutil.ToBean(cfg, &co) {
 		if co.URL == "" {
@@ -103,7 +107,7 @@ func (o HttpServiceCallerFactory) Valid(cfg map[string]interface{}) error {
 	return fmt.Errorf("invalid HttpServiceCaller config")
 }
 
-func (o HttpServiceCallerFactory) Compare(cfg map[string]interface{}, old map[string]interface{}) (same bool) {
+func (o HttpServiceCallerFactory) Compare(cfg map[string]interface{}, old map[string]interface{}, ofp objfac.ObjectFactoryProvider) (same bool) {
 	var co, oo httpConfig
 	if !valutil.ToBean(cfg, &co) {
 		return false
@@ -123,15 +127,14 @@ func (o HttpServiceCallerFactory) Compare(cfg map[string]interface{}, old map[st
 	return true
 }
 
-func (o HttpServiceCallerFactory) Create(n string, cfg map[string]interface{}) (ServiceCaller, error) {
-	err := o.Valid(cfg)
+func (o HttpServiceCallerFactory) Create(cfg map[string]interface{}, ofp objfac.ObjectFactoryProvider) (interface{}, error) {
+	err := o.Valid(cfg, ofp)
 	if err != nil {
 		return nil, err
 	}
 	var co httpConfig
 	valutil.ToBean(cfg, &co)
 	r := new(HttpServiceCaller)
-	r.name = n
 	r.httpConfig = co
-	return r, nil
+	return ServiceCaller(r), nil
 }

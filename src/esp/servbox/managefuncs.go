@@ -126,7 +126,7 @@ func (this *Service) doKill(old *nodeInfo) error {
 	if pool.ActiveConn() == 0 {
 		return nil
 	}
-	conn, err := pool.GetConn(1*time.Second, true)
+	conn, err := pool.GetConn(time.Now().Add(1*time.Second), true)
 	if err != nil {
 		return err
 	}
@@ -181,7 +181,8 @@ func (this *Service) doActive(sock espsocket.Socket, node *nodeInfo, msg *esnp.M
 	if !node.pool.StartAndRun() {
 		return fmt.Errorf("start dialpool fail")
 	}
-	conn, errC := node.pool.GetConn(time.Duration(this.config.TimeoutMS)*time.Second, true)
+	dl := time.Now().Add(time.Duration(this.config.TimeoutMS) * time.Second)
+	conn, errC := node.pool.GetConn(dl, true)
 	if errC != nil {
 		node.pool.Close()
 		return errC

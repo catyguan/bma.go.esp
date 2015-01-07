@@ -3,6 +3,7 @@ package main
 import (
 	"boot"
 	"esp/servicecall"
+	"esp/servicecall/servicecallcfg"
 	"fmt"
 	"logger"
 	"strings"
@@ -16,8 +17,8 @@ const (
 func main() {
 	cfile := "config/esp4n-config.json"
 
-	scs := servicecall.NewService("serviceCall", nil)
-	servicecall.InitBaseFactory(scs)
+	scs := servicecallcfg.NewService("serviceCall")
+	servicecallcfg.DefaultInit()
 	boot.AddService(scs)
 
 	bw := boot.NewBootWrap("main")
@@ -36,7 +37,7 @@ func main() {
 		mode := strings.ToLower(boot.Args[0])
 		switch mode {
 		case "hello":
-			doHello(scs)
+			doHello()
 		default:
 			logger.Error(tag, "unknow mode '%s'", mode)
 		}
@@ -47,15 +48,10 @@ func main() {
 	boot.Go(cfile)
 }
 
-func doHello(scs *servicecall.Service) {
-	sc, err := scs.Assert("serviceCall", 1*time.Second)
-	if err != nil {
-		logger.Warn(tag, "service 'test' invalid - %s", err)
-		return
-	}
+func doHello() {
 	params := make(map[string]interface{})
 	params["word"] = "kitty"
-	rv, err1 := sc.Call("hello", params, 1*time.Second)
+	rv, err1 := servicecall.CallTimeout("serviceCall", "hello", params, 1*time.Second)
 	if err1 != nil {
 		logger.Warn(tag, "call 'hello' fail - %s", err1)
 		return

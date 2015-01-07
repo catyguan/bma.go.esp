@@ -31,8 +31,8 @@ type dialConfig struct {
 	MaxPackage int
 }
 
-func (this *DialSocketProvider) GetSocket(timeout time.Duration) (Socket, error) {
-	conn, err := netutil.DialTimeout(this.cfg.Net, this.cfg.Address, timeout)
+func (this *DialSocketProvider) GetSocket(deadline time.Time) (Socket, error) {
+	conn, err := netutil.DialTimeout(this.cfg.Net, this.cfg.Address, deadline.Sub(time.Now()))
 	if err != nil {
 		return nil, err
 	}
@@ -95,12 +95,19 @@ type PoolSocketProvider struct {
 	pool *conndialpool.DialPool
 }
 
-func (this *PoolSocketProvider) GetSocket(timeout time.Duration) (Socket, error) {
-	conn, err := this.pool.GetConn(timeout, true)
+func (this *PoolSocketProvider) GetSocket(deadline time.Time) (Socket, error) {
+	conn, err := this.pool.GetConn(deadline, true)
 	if err != nil {
 		return nil, err
 	}
 	return NewConnSocket(conn, this.cfg.MaxPackage), nil
+}
+
+func (this *PoolSocketProvider) Ping() bool {
+	if this.pool.GetInitSize() > 0 {
+		return this.pool.ActiveConn() > 0
+	}
+	return true
 }
 
 func (this *PoolSocketProvider) Close() {

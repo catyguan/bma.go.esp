@@ -127,19 +127,23 @@ func (this *DialPool) Name() string {
 	return this.name
 }
 
+func (this *DialPool) SetName(n string) {
+	this.name = n
+}
+
 func (this *DialPool) String() string {
 	return fmt.Sprintf("ConnDialPool[%s, %d:%d/%d/%d]", this.name, len(this.wait), this.active, this.count, this.config.MaxSize)
 }
 
-func (this *DialPool) GetConn(timeout time.Duration, log bool) (*connutil.ConnExt, error) {
-	conn, err := this._getConn(timeout, log)
+func (this *DialPool) GetConn(deadline time.Time, log bool) (*connutil.ConnExt, error) {
+	conn, err := this._getConn(deadline, log)
 	if conn != nil {
 		conn.Manager = &connManager{pool: this}
 	}
 	return conn, err
 }
 
-func (this *DialPool) _getConn(timeout time.Duration, log bool) (*connutil.ConnExt, error) {
+func (this *DialPool) _getConn(deadline time.Time, log bool) (*connutil.ConnExt, error) {
 	if this.IsClosing() {
 		return nil, errors.New("closed")
 	}
@@ -159,7 +163,7 @@ func (this *DialPool) _getConn(timeout time.Duration, log bool) (*connutil.ConnE
 	if c < int32(this.config.MaxSize) {
 		// create it
 		atomic.AddInt32(&this.count, 1)
-		conn, err := this.doDial(timeout, log)
+		conn, err := this.doDial(deadline, log)
 		if err != nil {
 			atomic.AddInt32(&this.count, -1)
 			return nil, err
@@ -172,8 +176,8 @@ func (this *DialPool) _getConn(timeout time.Duration, log bool) (*connutil.ConnE
 	if log {
 		logger.Debug(tag, "%s max, wait returnConn", this)
 	}
-	if timeout > 0 {
-		timer := time.NewTimer(timeout)
+	if !deadline.IsZero() {
+		timer := time.NewTimer(deadline.Sub(time.Now()))
 		select {
 		case item := <-this.wait:
 			timer.Stop()
@@ -244,16 +248,19 @@ func (this *DialPool) Start() bool {
 	return true
 }
 
-func (this *DialPool) doDial(timeout time.Duration, log bool) (net.Conn, error) {
+func (this *DialPool) doDial(deadline time.Time, log bool) (net.Conn, error) {
 	var conn net.Conn
 	var err error
 	cfg := this.config
-	if timeout == 0 {
+	var timeout time.Duration
+	if deadline.IsZero() {
 		tm := cfg.TimeoutMS
 		if tm <= 0 {
 			tm = 5 * 1000
 		}
 		timeout = time.Duration(tm) * time.Millisecond
+	} else {
+		timeout = deadline.Sub(time.Now())
 	}
 	conn, err = net.DialTimeout(cfg.Net, cfg.Address, timeout)
 	if err != nil {
@@ -281,7 +288,7 @@ func (this *DialPool) startRetry() {
 
 func (this *DialPool) reconnectConn(rs *retryst.RetryState, lastTry bool) bool {
 	if this.needRetry() {
-		conn, err := this.GetConn(0, false)
+		conn, err := this.GetConn(time.Time{}, false)
 		if err != nil {
 			if lastTry {
 				logger.Warn(tag, "%s retry end for error - %s", this, err)
@@ -320,7 +327,7 @@ func (this *DialPool) Run() bool {
 	c := atomic.LoadInt32(&this.count)
 	for i := int(c); i < this.config.InitSize; i++ {
 		go func() {
-			conn, err := this.GetConn(0, true)
+			conn, err := this.GetConn(time.Time{}, true)
 			if err != nil {
 				if this.needRetry() {
 					this.startRetry()

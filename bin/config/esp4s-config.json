@@ -11,8 +11,8 @@
 		"Net" : "tcp",
 		"Address" : "172.19.53.75:0",
 		"BoxNet" : "tcp",
-		"BoxAddress" : "127.0.0.1:1082",
-		"BoxAddress2" : "172.19.53.69:1082",
+		"BoxAddress2" : "127.0.0.1:1082",
+		"BoxAddress" : "172.19.53.69:1082",
 		"Disable" : false
 	}
 }

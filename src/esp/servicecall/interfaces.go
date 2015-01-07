@@ -1,33 +1,34 @@
 package servicecall
 
-import "time"
+import (
+	"objfac"
+	"time"
+)
 
 const (
 	tag                 = "servicecall"
+	NAME_GATE_SERVICE   = "*"
 	NAME_LOOKUP_SERVICE = "lookup"
+	NAME_LOOKUP_METHOD  = "findServiceCall"
+
+	KIND_SERVICE_CALL = "serviceCall"
 )
+
+type PingSupported interface {
+	Ping() bool
+}
 
 type ServiceCaller interface {
 	Start() error
-	Ping() bool
 	Stop()
-	Call(method string, params map[string]interface{}, timeout time.Duration) (interface{}, error)
+	SetName(n string)
+	Call(serviceName, method string, params map[string]interface{}, deadline time.Time) (interface{}, error)
 }
 
-type ServiceCallerFactory interface {
-	Valid(cfg map[string]interface{}) error
-	Compare(cfg map[string]interface{}, old map[string]interface{}) (same bool)
-	Create(name string, cfg map[string]interface{}) (ServiceCaller, error)
-}
+type ServiceCallLookup func(serviceName string, deadline time.Time) (map[string]interface{}, error)
 
-type ServiceCallHub interface {
-	Parent() ServiceCallHub
-	Get(serviceName string, timeout time.Duration) (ServiceCaller, error)
-	LocalQuery(serviceName string) ServiceCaller
-	GetServiceCallerFactory(typ string) ServiceCallerFactory
-}
-
-func InitBaseFactory(s *Service) {
-	s.AddServiceCallerFactory("http", HttpServiceCallerFactory(0))
-	s.AddServiceCallerFactory("esnp", ESNPServiceCallerFactory(0))
+func InitBaseFactory() {
+	objfac.SetObjectFactory(KIND_SERVICE_CALL, "http", HttpServiceCallerFactory(0))
+	objfac.SetObjectFactory(KIND_SERVICE_CALL, "esnp", ESNPServiceCallerFactory(0))
+	objfac.SetObjectFactory(KIND_SERVICE_CALL, "socket", SocketServiceCallerFactory(0))
 }

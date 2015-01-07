@@ -102,7 +102,8 @@ func (this *Service) Handler(sin espsocket.Socket, msg *esnp.Message) error {
 	}
 	var conn *connutil.ConnExt
 	for {
-		conn, err1 = node.pool.GetConn(time.Duration(this.config.TimeoutMS)*time.Millisecond, true)
+		dl := time.Now().Add(time.Duration(this.config.TimeoutMS) * time.Millisecond)
+		conn, err1 = node.pool.GetConn(dl, true)
 		if err1 != nil {
 			return err1
 		}

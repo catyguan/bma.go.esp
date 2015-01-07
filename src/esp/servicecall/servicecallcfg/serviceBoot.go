@@ -1,34 +1,27 @@
-package servicecall
+package servicecallcfg
 
 import (
 	"boot"
+	"esp/servicecall"
 	"fmt"
 	"logger"
 )
 
 type configInfo struct {
-	LookupCheckSec int
-	Services       map[string]map[string]interface{}
+	Services map[string]map[string]interface{}
 }
 
-func (this *configInfo) Valid(s *Service) error {
+func (this *configInfo) Valid() error {
 	for n, mlcfg := range this.Services {
-		scf, _, err := s.GetServiceCallerFactoryByType(mlcfg)
+		err := servicecall.DoValid(mlcfg)
 		if err != nil {
 			return fmt.Errorf("'%s' %s", n, err)
 		}
-		err2 := scf.Valid(mlcfg)
-		if err2 != nil {
-			return fmt.Errorf("'%s' %s", n, err2)
-		}
-	}
-	if this.LookupCheckSec <= 0 {
-		this.LookupCheckSec = 5
 	}
 	return nil
 }
 
-func (this *configInfo) Compare(s *Service, old *configInfo) int {
+func (this *configInfo) Compare(old *configInfo) int {
 	if old == nil {
 		return boot.CCR_NEED_START
 	}
@@ -39,7 +32,7 @@ func (this *configInfo) Compare(s *Service, old *configInfo) int {
 	for k, o := range this.Services {
 		oo, ok := old.Services[k]
 		if ok {
-			if !s.DoCompare(o, oo) {
+			if !servicecall.DoCompare(o, oo) {
 				return boot.CCR_NEED_START
 			}
 		} else {
@@ -63,11 +56,11 @@ func (this *Service) CheckConfig(ctx *boot.BootContext) bool {
 		logger.Error(tag, "'%s' miss config", this.name)
 		return false
 	}
-	if err := cfg.Valid(this); err != nil {
+	if err := cfg.Valid(); err != nil {
 		logger.Error(tag, "'%s' config error - %s", this.name, err)
 		return false
 	}
-	ccr := boot.NewConfigCheckResult(cfg.Compare(this, this.config), cfg)
+	ccr := boot.NewConfigCheckResult(cfg.Compare(this.config), cfg)
 	ctx.CheckFlag = ccr
 	return true
 }
@@ -87,18 +80,19 @@ func (this *Service) Start(ctx *boot.BootContext) bool {
 	if ccr.Type == boot.CCR_NONE {
 		return true
 	}
-	this.lock.Lock()
-	defer this.lock.Unlock()
 	for k, mlcfg := range this.config.Services {
-		if _, ok := this.services[k]; ok {
-			continue
-		}
-		_, _, err := this._create(k, mlcfg)
+		scid := this.scids[k]
+		sok, nscid, err := servicecall.SetServiceCall(k, mlcfg, nil, scid)
 		if err != nil {
-			logger.Error(tag, "ServiceCaller('%s') create fail - %s", k, err)
+			logger.Error(tag, "SetServiceCall('%s') fail - %s", k, err)
 			return false
 		}
-
+		if sok {
+			this.scids[k] = nscid
+		} else {
+			logger.Info(tag, "SetServiceCall('%s') not success", k)
+			delete(this.scids, k)
+		}
 	}
 	return true
 }
@@ -120,33 +114,33 @@ func (this *Service) GraceStop(ctx *boot.BootContext) bool {
 	for k, o := range this.config.Services {
 		if cfg.Services != nil {
 			if oo, ok := cfg.Services[k]; ok {
-				if this.DoCompare(o, oo) {
+				if servicecall.DoCompare(o, oo) {
 					continue
 				}
 			}
 		}
-		this.RemoveServiceCall(k, false)
+		scid := this.scids[k]
+		if scid > 0 {
+			if !servicecall.RemoveServiceCall(k, scid) {
+				logger.Info(tag, "GraceStop serviceCall(%s) not success", k)
+			}
+		}
 	}
 	return true
 }
 
 func (this *Service) Stop() bool {
-	if !this.gtask.IsClose() {
-		this.gtask.Close()
-	}
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	for k, s := range this.services {
-		delete(this.services, k)
-		s.sc.Stop()
-	}
 	return true
 }
 
 func (this *Service) Close() bool {
+	for k, scid := range this.scids {
+		servicecall.RemoveServiceCall(k, scid)
+	}
 	return true
 }
 
 func (this *Service) Cleanup() bool {
+	servicecall.RemoveAll()
 	return true
 }
