@@ -21,6 +21,9 @@ type configInfo struct {
 }
 
 func (this *configInfo) Valid() error {
+	if this.Disable {
+		return nil
+	}
 	if this.Net == "" {
 		this.Net = "tcp"
 	}
@@ -44,6 +47,9 @@ func (this *configInfo) Compare(old *configInfo) int {
 	if old == nil {
 		return boot.CCR_NEED_START
 	}
+	if this.Disable != old.Disable {
+		return boot.CCR_NEED_START
+	}
 	if this.Net != old.Net {
 		return boot.CCR_NEED_START
 	}
@@ -51,9 +57,6 @@ func (this *configInfo) Compare(old *configInfo) int {
 		return boot.CCR_NEED_START
 	}
 	if this.TimeoutMS != old.TimeoutMS {
-		return boot.CCR_NEED_START
-	}
-	if this.Disable != old.Disable {
 		return boot.CCR_NEED_START
 	}
 	if this.WhiteIp != old.WhiteIp {
@@ -75,8 +78,12 @@ func (this *Service) CheckConfig(ctx *boot.BootContext) bool {
 	co := ctx.Config
 	cfg := new(configInfo)
 	if !co.GetBeanConfig(this.name, cfg) {
-		logger.Error(tag, "'%s' miss config", this.name)
-		return false
+		if !this.Optional {
+			logger.Error(tag, "'%s' miss config", this.name)
+			return false
+		}
+		logger.Info(tag, "'%s' miss config - optional", this.name)
+		cfg.Disable = true
 	}
 	if err := cfg.Valid(); err != nil {
 		logger.Error(tag, "'%s' config error - %s", this.name, err)

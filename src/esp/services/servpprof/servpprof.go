@@ -34,8 +34,8 @@ func InitMux(mux *espservice.ServiceMux) {
 
 func ofile(name string) (*os.File, error) {
 	now := time.Now()
-	tf := now.Format("20060102150405")
-	fn := fmt.Sprintf("%s_%s.prof", name, tf)
+	tf := now.Format("20060102_150405")
+	fn := fmt.Sprintf("pprof/%s_%s.prof", name, tf)
 	ffn, err := boot.TempFile(fn)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func ofile(name string) (*os.File, error) {
 	return os.OpenFile(ffn, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 }
 
-func save(name string) error {
+func doSave(name string) error {
 	db := 1
 	switch name {
 	case "heap":
@@ -59,9 +59,26 @@ func save(name string) error {
 	return pprof.Lookup(name).WriteTo(f, db)
 }
 
+func doCPU(f *os.File, sec int) error {
+	go func() {
+		defer f.Close()
+
+		logger.Info(tag, "cpu profile begin")
+		err0 := pprof.StartCPUProfile(f)
+		if err0 != nil {
+			logger.Warn(tag, "cpu profile error - %s", err0)
+			return
+		}
+		time.Sleep(time.Duration(sec) * time.Second)
+		pprof.StopCPUProfile()
+		logger.Info(tag, "cpu profile end")
+	}()
+	return nil
+}
+
 func ServOP_Heap(sock espsocket.Socket, msg *esnp.Message) error {
 	logger.Info(tag, "op heap from %s", sock)
-	err := save("heap")
+	err := doSave("heap")
 	if err != nil {
 		return err
 	}
@@ -71,7 +88,7 @@ func ServOP_Heap(sock espsocket.Socket, msg *esnp.Message) error {
 
 func ServOP_GOR(sock espsocket.Socket, msg *esnp.Message) error {
 	logger.Info(tag, "op gor from %s", sock)
-	err := save("goroutine")
+	err := doSave("goroutine")
 	if err != nil {
 		return err
 	}
@@ -81,7 +98,7 @@ func ServOP_GOR(sock espsocket.Socket, msg *esnp.Message) error {
 
 func ServOP_Thread(sock espsocket.Socket, msg *esnp.Message) error {
 	logger.Info(tag, "op thread from %s", sock)
-	err := save("threadcreate")
+	err := doSave("threadcreate")
 	if err != nil {
 		return err
 	}
@@ -91,7 +108,7 @@ func ServOP_Thread(sock espsocket.Socket, msg *esnp.Message) error {
 
 func ServOP_Block(sock espsocket.Socket, msg *esnp.Message) error {
 	logger.Info(tag, "op block from %s", sock)
-	err := save("block")
+	err := doSave("block")
 	if err != nil {
 		return err
 	}
@@ -101,25 +118,19 @@ func ServOP_Block(sock espsocket.Socket, msg *esnp.Message) error {
 
 func ServOP_CPU(sock espsocket.Socket, msg *esnp.Message) error {
 	logger.Info(tag, "op cpu from %s", sock)
-	f, errf := ofile("cpu")
-	if errf != nil {
-		return errf
-	}
-	defer f.Close()
-
 	sec, _ := msg.Datas().GetInt("sec", 0)
 	if sec == 0 {
 		sec = 30
 	}
-	logger.Debug(tag, "cpu profile begin")
-	err0 := pprof.StartCPUProfile(f)
+
+	f, errf := ofile("cpu")
+	if errf != nil {
+		return errf
+	}
+	err0 := doCPU(f, int(sec))
 	if err0 != nil {
 		return err0
 	}
-	time.Sleep(time.Duration(sec) * time.Second)
-	pprof.StopCPUProfile()
-	logger.Debug(tag, "cpu profile end")
-
 	sock.WriteMessage(msg.ReplyMessage())
 	return nil
 }

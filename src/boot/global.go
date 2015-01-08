@@ -18,19 +18,21 @@ var (
 )
 
 func TempFile(fn string) (string, error) {
-	err := os.MkdirAll(TempDir, os.ModePerm)
+	f := filepath.Join(TempDir, fn)
+	dir := filepath.Dir(f)
+	err := os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
 		return "", err
 	}
-	f := filepath.Join(TempDir, fn)
 	return f, nil
 }
 
 func WorkFile(fn string) (string, error) {
-	err := os.MkdirAll(WorkDir, os.ModePerm)
+	f := filepath.Join(WorkDir, fn)
+	dir := filepath.Dir(f)
+	err := os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
 		return "", err
 	}
-	f := filepath.Join(WorkDir, fn)
 	return f, nil
 }

@@ -160,7 +160,8 @@ MT_ADDRESS : 0x17
 	数据体：[地址类型:Int][值:LenString]	
 	地址类型
 		ADDRESS_GROUP   = 50 服务组
-		ADDRESS_HOST    = 40 主机(节点)
+		ADDRESS_HOST    = 40 主机
+		ADDRESS_NODE	= 35 节点
 		ADDRESS_SERVICE = 30 服务
 		ADDRESS_OP      = 20 操作
 		ADDRESS_OBJECT  = 10 操作关联对象

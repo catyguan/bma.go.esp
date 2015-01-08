@@ -10,6 +10,7 @@ import (
 const (
 	ADDRESS_GROUP   = int(50)
 	ADDRESS_HOST    = int(40)
+	ADDRESS_NODE    = int(35)
 	ADDRESS_SERVICE = int(30)
 	ADDRESS_OP      = int(20)
 	ADDRESS_OBJECT  = int(10)
@@ -105,6 +106,14 @@ func (this *Address) CheckHost(localName string, set bool) string {
 
 func (this *Address) GetHost() string {
 	return this.Get(ADDRESS_HOST)
+}
+
+func (this *Address) SetNode(val string) {
+	this.Set(ADDRESS_NODE, val)
+}
+
+func (this *Address) GetNode() string {
+	return this.Get(ADDRESS_NODE)
 }
 
 func (this *Address) SetService(val string) {

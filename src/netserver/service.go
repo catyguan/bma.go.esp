@@ -17,6 +17,7 @@ type Service struct {
 	config   *configInfo
 	handler  ConnHandler
 	listener net.Listener
+	Optional bool
 }
 
 func NewService(name string, h ConnHandler) *Service {
