@@ -1,0 +1,31 @@
+@ann1=1
+@optional=true
+a.b.c="test"
+
+projectName="helloWorld"
+project.depends = [
+	{"version":1, "package":"bma.util"},
+	123
+]
+
+@my=1
+struct HelloParams {
+	f1 : int32,
+	f2 : bool,
+	f3 : list<string>,
+	f4 : list<string, int>,
+}
+
+@you=2
+service HelloServ {
+	sayHello() : void,
+	commitMethodParam(yylex:yyLexer, lval:yySymType, v1:yySymType, v2:yySymType) : list<uid>,
+
+	@oneway=true
+	kickOut(
+		@index=1
+		p1:int,
+		@index=2
+		p2:int
+	):void,
+}
