@@ -2,7 +2,7 @@
 @optional=true
 a.b.c="test"
 
-projectName="helloWorld"
+project.name="helloWorld"
 project.depends = [
 	{"version":1, "package":"bma.util"},
 	123
@@ -13,7 +13,7 @@ struct HelloParams {
 	f1 : int32,
 	f2 : bool,
 	f3 : list<string>,
-	f4 : list<string, int>,
+	f4 : map<string, int>,
 }
 
 @you=2

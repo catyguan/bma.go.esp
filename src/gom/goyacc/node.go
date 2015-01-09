@@ -33,6 +33,8 @@ type Node interface {
 	/** Return the number of children the node has. */
 	GetNumChildren() int
 
+	GetAnnotations() Annotations
+
 	GetOp() OP
 
 	GetLine() int
@@ -65,6 +67,10 @@ func (this *baseNode) Bev2(op OP, v1 *yySymType, v2 *yySymType) {
 	} else if v2 != nil {
 		this.Line = v2.token.line
 	}
+}
+
+func (this *baseNode) GetAnnotations() Annotations {
+	return this.AnnoList
 }
 
 func (this *baseNode) GetLine() int {
