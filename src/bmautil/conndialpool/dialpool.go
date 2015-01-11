@@ -143,6 +143,17 @@ func (this *DialPool) GetConn(deadline time.Time, log bool) (*connutil.ConnExt, 
 	return conn, err
 }
 
+func (this *DialPool) apool(item *dialPoolItem) (ok bool) {
+	defer func() {
+		if recover() != nil {
+			ok = false
+		}
+	}()
+	ok = true
+	this.wait <- item
+	return
+}
+
 func (this *DialPool) _getConn(deadline time.Time, log bool) (*connutil.ConnExt, error) {
 	if this.IsClosing() {
 		return nil, errors.New("closed")
@@ -228,16 +239,13 @@ func (this *DialPool) ReturnConn(conn *connutil.ConnExt) {
 		this.doCloseConn(conn)
 		return
 	}
-	defer func() {
-		if recover() != nil {
-			conn.Close()
-		}
-	}()
 	conn.Manager = nil
 	item := new(dialPoolItem)
 	item.idleOutTime = time.Now().Add(time.Duration(this.config.IdleMS) * time.Millisecond)
 	item.conn = conn
-	this.wait <- item
+	if !this.apool(item) {
+		this.doCloseConn(conn)
+	}
 }
 
 func (this *DialPool) Start() bool {
@@ -366,12 +374,9 @@ func (this *DialPool) Run() bool {
 								continue
 							}
 							// fmt.Println("checking", "ok")
-							func() {
-								defer func() {
-									recover()
-								}()
-								this.wait <- item
-							}()
+							if !this.apool(item) {
+								this.doCloseConn(item.conn)
+							}
 						}
 					default:
 						break
