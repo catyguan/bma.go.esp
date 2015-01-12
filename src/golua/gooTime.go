@@ -10,6 +10,28 @@ func CreateGoTime(tm *time.Time) VMTable {
 	return NewGOO(tm, gooTime(0))
 }
 
+func ToTime(v interface{}) (*time.Time, error) {
+	switch v.(type) {
+	case string:
+		rv := v.(string)
+		tm, err := time.Parse("2006-01-02 15:04:05", rv)
+		if err != nil {
+			return nil, err
+		}
+		return &tm, nil
+	case int, uint, int8, uint8, int16, uint16, int32, int64:
+		rv := valutil.ToInt64(v, 0)
+		tm := time.Unix(rv, 0)
+		return &tm, nil
+	case *objectVMTable:
+		o := v.(*objectVMTable).o
+		if ptm, ok := o.(*time.Time); ok {
+			return ptm, nil
+		}
+	}
+	return nil, fmt.Errorf("time invalid(%v)", v)
+}
+
 type gooTime int
 
 func (this gooTime) Get(vm *VM, o interface{}, key string) (interface{}, error) {
@@ -241,7 +263,7 @@ func (this gooTime) Get(vm *VM, o interface{}, key string) (interface{}, error) 
 				if vo != nil {
 					if vstm, ok := vo.(*time.Time); ok {
 						du := obj.Sub(*vstm)
-						vm.API_push(CreateGOODuration(du))
+						vm.API_push(CreateGoDuration(du))
 						return 1, nil
 					}
 				}

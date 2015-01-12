@@ -7,11 +7,17 @@ type bytesObject struct {
 type gooBytes int
 
 func ToBytes(v interface{}) []byte {
+	if v == nil {
+		return nil
+	}
 	if bo, ok := v.(*bytesObject); ok {
 		return bo.data
 	}
 	if bs, ok := v.([]byte); ok {
 		return bs
+	}
+	if s, ok := v.(string); ok {
+		return []byte(s)
 	}
 	return nil
 }

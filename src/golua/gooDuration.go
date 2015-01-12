@@ -23,6 +23,10 @@ func ToDuration(v interface{}) (time.Duration, error) {
 	return 0, fmt.Errorf("duration invalid(%v)", v)
 }
 
+func CreateGoDuration(du time.Duration) VMTable {
+	return NewGOO(du, gooDuration(0))
+}
+
 type gooDuration int
 
 func (gooDuration) Get(vm *VM, o interface{}, key string) (interface{}, error) {

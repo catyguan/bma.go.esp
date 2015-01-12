@@ -249,4 +249,5 @@ func InitCoreLibs(gl *GoLua) {
 	TimeModule().Bind(gl)
 	ConfigModule().Bind(gl)
 	FilePathModule().Bind(gl)
+	OSModule().Bind(gl)
 }

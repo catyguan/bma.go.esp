@@ -36,7 +36,7 @@ func TestExecute(t *testing.T) {
 		// f := "test_vmmGo.lua"
 		// f := "test_vmmConfig.lua"
 		// f := "test_vmmStrings.lua"
-		f := "test_vmmTable.lua"
+		f := "test_vmmOS.lua"
 		data["a"] = 1
 		data["b"] = 2
 

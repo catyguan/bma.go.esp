@@ -44,7 +44,7 @@ func T2estParserBuildRun(t *testing.T) {
 
 		chunkName := f
 		p := goyacc.NewParser(chunkName, content)
-		node, err := p.Parse()
+		node, _, err := p.Parse()
 		if err != nil {
 			fmt.Println(content)
 			t.Error(err)
@@ -63,7 +63,7 @@ func T2estParserBuildRun(t *testing.T) {
 		TimeModule().Bind(vmg)
 		defer vmg.Close()
 
-		chunk := NewChunk(chunkName, node)
+		chunk := NewChunk(chunkName, node, nil)
 
 		vm, err3 := vmg.CreateVM()
 		if err3 != nil {
