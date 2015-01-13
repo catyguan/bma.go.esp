@@ -24,10 +24,16 @@ func loadFile(f string) (string, error) {
 	return string(bs), nil
 }
 
-func TestB1(t *testing.T) {
+func T2estB1(t *testing.T) {
 	safeCall()
 	fname := "goyacc/test1.gom"
-	gm, err1 := Compile(fname)
+	gm := NewGOM()
+	content, err0 := loadFile(fname)
+	if err0 != nil {
+		t.Error(err0)
+		return
+	}
+	err1 := gm.Compile(content, fname)
 	if err1 != nil {
 		t.Error(err1)
 		return

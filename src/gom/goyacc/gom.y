@@ -3,6 +3,7 @@ package goyacc
 
 %}
 
+%token OBJECT
 %token SERVICE
 %token STRUCT
 %token TRUE
@@ -28,6 +29,7 @@ Def:
 	DefValue
 	| DefStruct
 	| DefService
+	| DefObject
 
 FullName:
 	NAME
@@ -125,6 +127,26 @@ ParDef:
 
 SParDef:
 	NAME ':' ValType { op2(yylex, &$$, OP_SM_PARAM, &$1, &$3) }
+
+DefObject:
+	DefSObject { commitObject(yylex, &$$, &$1, nil) }
+	| AnnoList DefSObject { commitObject(yylex, &$$, &$2, &$1) }
+
+DefSObject:
+	OBJECT FullName ObjectBody { op2(yylex, &$$, OP_OBJECT, &$2, &$3) }
+
+ObjectBody:
+	'{' '}' { opN(yylex, &$$, OP_OBJECT_BODY, nil) }
+	| '{' ObjectAttrList '}' { opN(yylex, &$$, OP_SERVICE_BODY, &$2) }
+	| '{' ObjectAttrList ',' '}' { opN(yylex, &$$, OP_OBJECT_BODY, &$2) }
+
+ObjectAttrList:
+	ObjectAttr { nodeAppend(yylex, &$$, &$1, nil) }
+	| ObjectAttrList ',' ObjectAttr { nodeAppend(yylex, &$$, &$1, &$3) }
+
+ObjectAttr:
+	ServiceMethod
+	| StructField
 
 Array:
 	'[' ']' { defineArray(yylex, &$$, nil) }

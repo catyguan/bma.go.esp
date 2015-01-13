@@ -1,0 +1,25 @@
+{
+	"global" : {
+		"Debug" : true,
+		"DevMode" : true,
+		"GOMAXPROCS" : 5
+	},
+	"fileloader" : {
+		"FL" : {
+			"test" : {
+				"Type" : "file",
+				"Dirs" : ["${CWD}"]
+			},
+			"src" : {
+				"Type" : "file",
+				"Dirs" : ["${CWD}/../../gom.src"]
+			}
+		}
+	},
+	"gomServ" : {
+		"FL" : {
+			"Type" : "c",
+			"FL" : ["test","src"]
+		}
+	}
+}

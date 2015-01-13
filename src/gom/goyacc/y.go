@@ -4,16 +4,18 @@ package goyacc
 import __yyfmt__ "fmt"
 
 //line gom.y:3
-const SERVICE = 57346
-const STRUCT = 57347
-const TRUE = 57348
-const FALSE = 57349
-const NIL = 57350
-const NUMBER = 57351
-const STRING = 57352
-const NAME = 57353
+const OBJECT = 57346
+const SERVICE = 57347
+const STRUCT = 57348
+const TRUE = 57349
+const FALSE = 57350
+const NIL = 57351
+const NUMBER = 57352
+const STRING = 57353
+const NAME = 57354
 
 var yyToknames = []string{
+	"OBJECT",
 	"SERVICE",
 	"STRUCT",
 	"TRUE",
@@ -29,7 +31,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
-//line gom.y:150
+//line gom.y:172
 
 //line yacctab:1
 var yyExca = []int{
@@ -38,100 +40,111 @@ var yyExca = []int{
 	-2, 0,
 }
 
-const yyNprod = 67
+const yyNprod = 78
 const yyPrivate = 57344
 
 var yyTokenNames []string
 var yyStates []string
 
-const yyLast = 147
+const yyLast = 175
 
 var yyAct = []int{
 
-	85, 9, 12, 91, 13, 92, 59, 53, 29, 60,
-	98, 54, 68, 77, 19, 97, 46, 25, 26, 67,
-	27, 31, 32, 30, 33, 34, 105, 107, 100, 104,
-	37, 31, 32, 30, 33, 34, 95, 89, 38, 81,
-	37, 66, 55, 56, 61, 23, 86, 50, 38, 48,
-	28, 72, 63, 31, 32, 30, 33, 34, 56, 62,
-	19, 17, 37, 16, 87, 17, 19, 71, 83, 16,
-	38, 75, 55, 56, 47, 80, 61, 82, 84, 93,
-	78, 88, 79, 73, 74, 69, 70, 64, 65, 62,
-	96, 17, 23, 45, 57, 42, 101, 11, 19, 99,
-	93, 103, 102, 16, 47, 17, 106, 22, 51, 23,
-	44, 49, 40, 15, 14, 23, 23, 43, 24, 94,
-	16, 17, 17, 62, 16, 17, 17, 10, 8, 4,
-	90, 76, 58, 18, 41, 52, 39, 21, 20, 36,
-	35, 7, 6, 5, 3, 2, 1,
+	101, 10, 15, 107, 72, 108, 74, 73, 53, 61,
+	91, 67, 125, 22, 113, 82, 34, 36, 37, 35,
+	38, 39, 81, 118, 105, 80, 42, 36, 37, 35,
+	38, 39, 92, 93, 43, 97, 42, 36, 37, 35,
+	38, 39, 52, 116, 43, 55, 42, 62, 115, 68,
+	123, 75, 60, 122, 43, 66, 56, 27, 63, 14,
+	57, 27, 14, 86, 49, 22, 102, 77, 76, 14,
+	20, 22, 85, 111, 33, 29, 30, 31, 22, 32,
+	89, 87, 88, 83, 84, 85, 62, 89, 95, 27,
+	68, 100, 47, 109, 19, 75, 104, 96, 112, 98,
+	69, 54, 20, 78, 79, 103, 114, 94, 19, 71,
+	20, 54, 22, 99, 119, 117, 48, 51, 109, 121,
+	120, 76, 13, 20, 124, 69, 70, 20, 12, 19,
+	64, 20, 106, 26, 58, 18, 17, 16, 27, 25,
+	27, 45, 50, 19, 11, 20, 27, 110, 28, 20,
+	76, 69, 20, 20, 19, 24, 20, 9, 4, 90,
+	65, 46, 21, 59, 44, 41, 40, 8, 23, 7,
+	6, 5, 3, 2, 1,
 }
 var yyPact = []int{
 
-	109, -1000, -1000, 109, -1000, -1000, -1000, -1000, -1000, 109,
-	-1000, -1000, 104, -1000, 58, 58, -1000, 58, -1000, -1000,
-	-1000, -1000, -1000, 39, 47, 97, 80, 103, -1000, -1000,
-	-1000, -1000, -1000, -1000, -1000, -1000, -1000, 94, 25, -1000,
-	92, -1000, 78, 47, -1000, 71, -1000, 23, -1000, -5,
-	-1000, -1000, 69, -1000, -1000, 113, 33, -1000, 67, -1000,
-	-1000, 112, -8, -1000, -1000, 64, 47, -1000, 15, -1000,
-	52, -1000, 35, -1000, 48, -1000, 19, 108, -1000, -1000,
-	-1000, -1000, -1000, -1000, -1000, -1000, 17, -1000, -1000, 35,
-	-7, -1000, -1000, 108, 10, 35, -1000, -1000, 108, -1000,
-	35, 9, -1000, -1000, -1000, 35, 7, -1000,
+	131, -1000, -1000, 131, -1000, -1000, -1000, -1000, -1000, -1000,
+	131, -1000, -1000, -1000, 133, -1000, 82, 82, 82, -1000,
+	82, -1000, -1000, -1000, -1000, -1000, -1000, 62, 30, 125,
+	76, 48, 127, -1000, -1000, -1000, -1000, -1000, -1000, -1000,
+	-1000, -1000, 100, 20, -1000, 117, -1000, 113, -1000, 109,
+	30, -1000, 86, -1000, 6, -1000, -3, -1000, -1000, 66,
+	-1000, -1000, 142, 44, -1000, 64, -1000, -1000, 139, -12,
+	-1000, 15, -1000, -1000, -1000, 138, -12, -1000, -1000, 90,
+	30, -1000, 10, -1000, 96, -1000, 54, -1000, 88, -1000,
+	5, 135, -1000, 56, -1000, -1000, -1000, -1000, -1000, -1000,
+	-1000, -1000, -6, -1000, -1000, 54, 25, -1000, -1000, 135,
+	4, -1000, -1000, 54, -1000, -1000, 135, -1000, 54, 32,
+	-1000, -1000, -1000, 54, -9, -1000,
 }
 var yyPgo = []int{
 
-	0, 146, 145, 144, 129, 143, 142, 141, 2, 1,
-	4, 8, 128, 140, 139, 127, 136, 135, 7, 11,
-	0, 97, 134, 132, 6, 9, 131, 130, 3, 5,
-	111, 93, 16,
+	0, 174, 173, 172, 158, 171, 170, 169, 167, 58,
+	1, 2, 16, 157, 166, 165, 144, 164, 163, 6,
+	9, 0, 128, 161, 160, 7, 11, 159, 132, 3,
+	5, 122, 116, 109, 4, 56, 42, 8,
 }
 var yyR1 = []int{
 
-	0, 1, 2, 3, 3, 4, 4, 4, 8, 8,
-	9, 9, 10, 5, 5, 12, 12, 11, 11, 11,
-	11, 11, 11, 11, 6, 6, 15, 16, 16, 16,
-	17, 17, 18, 18, 19, 20, 20, 20, 7, 7,
-	21, 22, 22, 22, 23, 23, 24, 24, 25, 26,
-	27, 27, 27, 28, 28, 29, 14, 14, 14, 30,
-	30, 13, 13, 13, 31, 31, 32,
+	0, 1, 2, 3, 3, 4, 4, 4, 4, 9,
+	9, 10, 10, 11, 5, 5, 13, 13, 12, 12,
+	12, 12, 12, 12, 12, 6, 6, 16, 17, 17,
+	17, 18, 18, 19, 19, 20, 21, 21, 21, 7,
+	7, 22, 23, 23, 23, 24, 24, 25, 25, 26,
+	27, 28, 28, 28, 29, 29, 30, 8, 8, 31,
+	32, 32, 32, 33, 33, 34, 34, 15, 15, 15,
+	35, 35, 14, 14, 14, 36, 36, 37,
 }
 var yyR2 = []int{
 
-	0, 1, 1, 1, 2, 1, 1, 1, 1, 3,
-	1, 2, 4, 1, 2, 0, 3, 1, 1, 1,
-	1, 1, 1, 1, 1, 2, 3, 2, 3, 4,
-	1, 3, 1, 2, 3, 1, 4, 6, 1, 2,
-	3, 2, 3, 4, 1, 3, 1, 2, 4, 3,
-	1, 3, 0, 1, 2, 3, 2, 3, 4, 1,
-	3, 2, 3, 4, 1, 3, 3,
+	0, 1, 1, 1, 2, 1, 1, 1, 1, 1,
+	3, 1, 2, 4, 1, 2, 0, 3, 1, 1,
+	1, 1, 1, 1, 1, 1, 2, 3, 2, 3,
+	4, 1, 3, 1, 2, 3, 1, 4, 6, 1,
+	2, 3, 2, 3, 4, 1, 3, 1, 2, 4,
+	3, 1, 3, 0, 1, 2, 3, 1, 2, 3,
+	2, 3, 4, 1, 3, 1, 1, 2, 3, 4,
+	1, 3, 2, 3, 4, 1, 3, 3,
 }
 var yyChk = []int{
 
-	-1000, -1, -2, -3, -4, -5, -6, -7, -12, -9,
-	-15, -21, -8, -10, 5, 4, 11, 13, -4, -10,
-	-12, -15, -21, 12, 14, -8, -8, -8, 11, -11,
-	8, 6, 7, 9, 10, -13, -14, 15, 23, -16,
-	15, -22, 15, 14, 16, -31, -32, 10, 24, -30,
-	-11, 16, -17, -18, -19, -9, -8, 16, -23, -24,
-	-25, -9, 11, -11, 16, 17, 18, 24, 17, 16,
-	17, -19, 18, 16, 17, -25, -26, 21, 16, -32,
-	-11, 24, -11, 16, -18, -20, 11, 16, -24, 18,
-	-27, -28, -29, -9, 11, 19, -20, 22, 17, -29,
-	18, -20, -28, -20, 20, 17, -20, 20,
+	-1000, -1, -2, -3, -4, -5, -6, -7, -8, -13,
+	-10, -16, -22, -31, -9, -11, 6, 5, 4, 12,
+	14, -4, -11, -13, -16, -22, -31, 13, 15, -9,
+	-9, -9, -9, 12, -12, 9, 7, 8, 10, 11,
+	-14, -15, 16, 24, -17, 16, -23, 16, -32, 16,
+	15, 17, -36, -37, 11, 25, -35, -12, 17, -18,
+	-19, -20, -10, -9, 17, -24, -25, -26, -10, 12,
+	17, -33, -34, -25, -19, -10, 12, -12, 17, 18,
+	19, 25, 18, 17, 18, -20, 19, 17, 18, -26,
+	-27, 22, 17, 18, 17, -37, -12, 25, -12, 17,
+	-19, -21, 12, 17, -25, 19, -28, -29, -30, -10,
+	12, 17, -34, 20, -21, 23, 18, -30, 19, -21,
+	-29, -21, 21, 18, -21, 21,
 }
 var yyDef = []int{
 
-	15, -2, 1, 2, 3, 5, 6, 7, 13, 15,
-	24, 38, 0, 10, 0, 0, 8, 0, 4, 11,
-	14, 25, 39, 0, 0, 0, 0, 0, 9, 16,
-	17, 18, 19, 20, 21, 22, 23, 0, 0, 26,
-	0, 40, 0, 0, 61, 0, 64, 0, 56, 0,
-	59, 27, 0, 30, 32, 0, 0, 41, 0, 44,
-	46, 0, 0, 12, 62, 0, 0, 57, 0, 28,
-	0, 33, 0, 42, 0, 47, 0, 52, 63, 65,
-	66, 58, 60, 29, 31, 34, 35, 43, 45, 0,
-	0, 50, 53, 0, 0, 0, 48, 49, 0, 54,
-	0, 0, 51, 55, 36, 0, 0, 37,
+	16, -2, 1, 2, 3, 5, 6, 7, 8, 14,
+	16, 25, 39, 57, 0, 11, 0, 0, 0, 9,
+	0, 4, 12, 15, 26, 40, 58, 0, 0, 0,
+	0, 0, 0, 10, 17, 18, 19, 20, 21, 22,
+	23, 24, 0, 0, 27, 0, 41, 0, 59, 0,
+	0, 72, 0, 75, 0, 67, 0, 70, 28, 0,
+	31, 33, 0, 0, 42, 0, 45, 47, 0, 0,
+	60, 0, 63, 65, 66, 0, 9, 13, 73, 0,
+	0, 68, 0, 29, 0, 34, 0, 43, 0, 48,
+	0, 53, 61, 0, 74, 76, 77, 69, 71, 30,
+	32, 35, 36, 44, 46, 0, 0, 51, 54, 0,
+	0, 62, 64, 0, 49, 50, 0, 55, 0, 0,
+	52, 56, 37, 0, 0, 38,
 }
 var yyTok1 = []int{
 
@@ -139,19 +152,20 @@ var yyTok1 = []int{
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	21, 22, 3, 3, 17, 3, 12, 3, 3, 3,
-	3, 3, 3, 3, 3, 3, 3, 3, 18, 3,
-	19, 14, 20, 3, 13, 3, 3, 3, 3, 3,
+	22, 23, 3, 3, 18, 3, 13, 3, 3, 3,
+	3, 3, 3, 3, 3, 3, 3, 3, 19, 3,
+	20, 15, 21, 3, 14, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 23, 3, 24, 3, 3, 3, 3, 3, 3,
+	3, 24, 3, 25, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 3, 3, 15, 3, 16,
+	3, 3, 3, 16, 3, 17,
 }
 var yyTok2 = []int{
 
 	2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+	12,
 }
 var yyTok3 = []int{
 	0,
@@ -383,283 +397,323 @@ yydefault:
 	switch yynt {
 
 	case 1:
-		//line gom.y:18
+		//line gom.y:19
 		{
 			endGOM(yylex, &yyVAL)
 		}
-	case 9:
-		//line gom.y:34
+	case 10:
+		//line gom.y:36
 		{
 			nameAppend(yylex, &yyVAL, &yyS[yypt-2], &yyS[yypt-0])
 		}
-	case 10:
-		//line gom.y:37
+	case 11:
+		//line gom.y:39
 		{
 			annoAppend(yylex, &yyVAL, &yyS[yypt-0], nil)
 		}
-	case 11:
-		//line gom.y:38
+	case 12:
+		//line gom.y:40
 		{
 			annoAppend(yylex, &yyVAL, &yyS[yypt-1], &yyS[yypt-0])
 		}
-	case 12:
-		//line gom.y:41
+	case 13:
+		//line gom.y:43
 		{
 			defineAnnotation(yylex, &yyVAL, &yyS[yypt-2], &yyS[yypt-0])
 		}
-	case 13:
-		//line gom.y:44
+	case 14:
+		//line gom.y:46
 		{
 			commitValue(yylex, &yyVAL, &yyS[yypt-0], nil)
 		}
-	case 14:
-		//line gom.y:45
+	case 15:
+		//line gom.y:47
 		{
 			commitValue(yylex, &yyVAL, &yyS[yypt-0], &yyS[yypt-1])
 		}
-	case 16:
-		//line gom.y:48
+	case 17:
+		//line gom.y:50
 		{
 			op2(yylex, &yyVAL, OP_VALUE, &yyS[yypt-2], &yyS[yypt-0])
 		}
-	case 17:
-		//line gom.y:51
-		{
-			opValue(yylex, &yyVAL)
-		}
 	case 18:
-		//line gom.y:52
-		{
-			opValue(yylex, &yyVAL)
-		}
-	case 19:
 		//line gom.y:53
 		{
 			opValue(yylex, &yyVAL)
 		}
-	case 20:
+	case 19:
 		//line gom.y:54
 		{
 			opValue(yylex, &yyVAL)
 		}
-	case 21:
+	case 20:
 		//line gom.y:55
 		{
 			opValue(yylex, &yyVAL)
 		}
-	case 24:
-		//line gom.y:60
+	case 21:
+		//line gom.y:56
+		{
+			opValue(yylex, &yyVAL)
+		}
+	case 22:
+		//line gom.y:57
+		{
+			opValue(yylex, &yyVAL)
+		}
+	case 25:
+		//line gom.y:62
 		{
 			commitStruct(yylex, &yyVAL, &yyS[yypt-0], nil)
 		}
-	case 25:
-		//line gom.y:61
+	case 26:
+		//line gom.y:63
 		{
 			commitStruct(yylex, &yyVAL, &yyS[yypt-0], &yyS[yypt-1])
 		}
-	case 26:
-		//line gom.y:64
+	case 27:
+		//line gom.y:66
 		{
 			op2(yylex, &yyVAL, OP_STRUCT, &yyS[yypt-1], &yyS[yypt-0])
 		}
-	case 27:
-		//line gom.y:67
+	case 28:
+		//line gom.y:69
 		{
 			opN(yylex, &yyVAL, OP_STRUCT_BODY, nil)
 		}
-	case 28:
-		//line gom.y:68
+	case 29:
+		//line gom.y:70
 		{
 			opN(yylex, &yyVAL, OP_STRUCT_BODY, &yyS[yypt-1])
 		}
-	case 29:
-		//line gom.y:69
+	case 30:
+		//line gom.y:71
 		{
 			opN(yylex, &yyVAL, OP_STRUCT_BODY, &yyS[yypt-2])
 		}
-	case 30:
-		//line gom.y:72
+	case 31:
+		//line gom.y:74
 		{
 			nodeAppend(yylex, &yyVAL, &yyS[yypt-0], nil)
 		}
-	case 31:
-		//line gom.y:73
+	case 32:
+		//line gom.y:75
 		{
 			nodeAppend(yylex, &yyVAL, &yyS[yypt-2], &yyS[yypt-0])
 		}
-	case 32:
-		//line gom.y:76
+	case 33:
+		//line gom.y:78
 		{
 			commitStructField(yylex, &yyVAL, &yyS[yypt-0], nil)
 		}
-	case 33:
-		//line gom.y:77
+	case 34:
+		//line gom.y:79
 		{
 			commitStructField(yylex, &yyVAL, &yyS[yypt-0], &yyS[yypt-1])
 		}
-	case 34:
-		//line gom.y:80
+	case 35:
+		//line gom.y:82
 		{
 			op2(yylex, &yyVAL, OP_SFIELD, &yyS[yypt-2], &yyS[yypt-0])
 		}
-	case 35:
-		//line gom.y:83
+	case 36:
+		//line gom.y:85
 		{
 			op2(yylex, &yyVAL, OP_TYPE, &yyS[yypt-0], nil)
 		}
-	case 36:
-		//line gom.y:84
+	case 37:
+		//line gom.y:86
 		{
 			op2(yylex, &yyVAL, OP_TYPE, &yyS[yypt-3], &yyS[yypt-1])
 		}
-	case 37:
-		//line gom.y:85
+	case 38:
+		//line gom.y:87
 		{
 			op2(yylex, &yyS[yypt-3], OP_TYPE, &yyS[yypt-3], &yyS[yypt-1])
 			op2(yylex, &yyVAL, OP_TYPE, &yyS[yypt-5], &yyS[yypt-3])
 		}
-	case 38:
-		//line gom.y:91
+	case 39:
+		//line gom.y:93
 		{
 			commitService(yylex, &yyVAL, &yyS[yypt-0], nil)
 		}
-	case 39:
-		//line gom.y:92
+	case 40:
+		//line gom.y:94
 		{
 			commitService(yylex, &yyVAL, &yyS[yypt-0], &yyS[yypt-1])
 		}
-	case 40:
-		//line gom.y:95
+	case 41:
+		//line gom.y:97
 		{
 			op2(yylex, &yyVAL, OP_SERVICE, &yyS[yypt-1], &yyS[yypt-0])
 		}
-	case 41:
-		//line gom.y:98
+	case 42:
+		//line gom.y:100
 		{
 			opN(yylex, &yyVAL, OP_SERVICE_BODY, nil)
 		}
-	case 42:
-		//line gom.y:99
+	case 43:
+		//line gom.y:101
 		{
 			opN(yylex, &yyVAL, OP_SERVICE_BODY, &yyS[yypt-1])
 		}
-	case 43:
-		//line gom.y:100
+	case 44:
+		//line gom.y:102
 		{
 			opN(yylex, &yyVAL, OP_SERVICE_BODY, &yyS[yypt-2])
 		}
-	case 44:
-		//line gom.y:103
+	case 45:
+		//line gom.y:105
 		{
 			nodeAppend(yylex, &yyVAL, &yyS[yypt-0], nil)
 		}
-	case 45:
-		//line gom.y:104
+	case 46:
+		//line gom.y:106
 		{
 			nodeAppend(yylex, &yyVAL, &yyS[yypt-2], &yyS[yypt-0])
 		}
-	case 46:
-		//line gom.y:107
+	case 47:
+		//line gom.y:109
 		{
 			commitServiceMethod(yylex, &yyVAL, &yyS[yypt-0], nil)
 		}
-	case 47:
-		//line gom.y:108
+	case 48:
+		//line gom.y:110
 		{
 			commitServiceMethod(yylex, &yyVAL, &yyS[yypt-0], &yyS[yypt-1])
 		}
-	case 48:
-		//line gom.y:111
+	case 49:
+		//line gom.y:113
 		{
 			op3(yylex, &yyVAL, OP_SMETHOD, &yyS[yypt-3], &yyS[yypt-2], &yyS[yypt-0])
 		}
-	case 49:
-		//line gom.y:114
+	case 50:
+		//line gom.y:116
 		{
 			opN(yylex, &yyVAL, OP_SM_PARAMS, &yyS[yypt-1])
 		}
-	case 50:
-		//line gom.y:117
+	case 51:
+		//line gom.y:119
 		{
 			nodeAppend(yylex, &yyVAL, &yyS[yypt-0], nil)
 		}
-	case 51:
-		//line gom.y:118
+	case 52:
+		//line gom.y:120
 		{
 			nodeAppend(yylex, &yyVAL, &yyS[yypt-2], &yyS[yypt-0])
 		}
-	case 52:
-		//line gom.y:119
+	case 53:
+		//line gom.y:121
 		{
 			nodeAppend(yylex, &yyVAL, nil, nil)
 		}
-	case 53:
-		//line gom.y:123
+	case 54:
+		//line gom.y:125
 		{
 			commitMethodParam(yylex, &yyVAL, &yyS[yypt-0], nil)
 		}
-	case 54:
-		//line gom.y:124
+	case 55:
+		//line gom.y:126
 		{
 			commitMethodParam(yylex, &yyVAL, &yyS[yypt-0], &yyS[yypt-1])
 		}
-	case 55:
-		//line gom.y:127
+	case 56:
+		//line gom.y:129
 		{
 			op2(yylex, &yyVAL, OP_SM_PARAM, &yyS[yypt-2], &yyS[yypt-0])
 		}
-	case 56:
-		//line gom.y:130
-		{
-			defineArray(yylex, &yyVAL, nil)
-		}
 	case 57:
-		//line gom.y:131
-		{
-			defineArray(yylex, &yyVAL, &yyS[yypt-1])
-		}
-	case 58:
 		//line gom.y:132
 		{
-			defineArray(yylex, &yyVAL, &yyS[yypt-2])
+			commitObject(yylex, &yyVAL, &yyS[yypt-0], nil)
+		}
+	case 58:
+		//line gom.y:133
+		{
+			commitObject(yylex, &yyVAL, &yyS[yypt-0], &yyS[yypt-1])
 		}
 	case 59:
-		//line gom.y:135
-		{
-			beNode(yylex, &yyVAL, &yyS[yypt-0])
-		}
-	case 60:
 		//line gom.y:136
 		{
-			nodeAppend(yylex, &yyVAL, &yyS[yypt-2], &yyS[yypt-0])
+			op2(yylex, &yyVAL, OP_OBJECT, &yyS[yypt-1], &yyS[yypt-0])
 		}
-	case 61:
+	case 60:
 		//line gom.y:139
 		{
-			defineTable(yylex, &yyVAL, nil)
+			opN(yylex, &yyVAL, OP_OBJECT_BODY, nil)
 		}
-	case 62:
+	case 61:
 		//line gom.y:140
 		{
-			defineTable(yylex, &yyVAL, &yyS[yypt-1])
+			opN(yylex, &yyVAL, OP_SERVICE_BODY, &yyS[yypt-1])
 		}
-	case 63:
+	case 62:
 		//line gom.y:141
 		{
-			defineTable(yylex, &yyVAL, &yyS[yypt-2])
+			opN(yylex, &yyVAL, OP_OBJECT_BODY, &yyS[yypt-2])
 		}
-	case 64:
+	case 63:
 		//line gom.y:144
 		{
 			nodeAppend(yylex, &yyVAL, &yyS[yypt-0], nil)
 		}
-	case 65:
+	case 64:
 		//line gom.y:145
 		{
 			nodeAppend(yylex, &yyVAL, &yyS[yypt-2], &yyS[yypt-0])
 		}
-	case 66:
-		//line gom.y:148
+	case 67:
+		//line gom.y:152
+		{
+			defineArray(yylex, &yyVAL, nil)
+		}
+	case 68:
+		//line gom.y:153
+		{
+			defineArray(yylex, &yyVAL, &yyS[yypt-1])
+		}
+	case 69:
+		//line gom.y:154
+		{
+			defineArray(yylex, &yyVAL, &yyS[yypt-2])
+		}
+	case 70:
+		//line gom.y:157
+		{
+			beNode(yylex, &yyVAL, &yyS[yypt-0])
+		}
+	case 71:
+		//line gom.y:158
+		{
+			nodeAppend(yylex, &yyVAL, &yyS[yypt-2], &yyS[yypt-0])
+		}
+	case 72:
+		//line gom.y:161
+		{
+			defineTable(yylex, &yyVAL, nil)
+		}
+	case 73:
+		//line gom.y:162
+		{
+			defineTable(yylex, &yyVAL, &yyS[yypt-1])
+		}
+	case 74:
+		//line gom.y:163
+		{
+			defineTable(yylex, &yyVAL, &yyS[yypt-2])
+		}
+	case 75:
+		//line gom.y:166
+		{
+			nodeAppend(yylex, &yyVAL, &yyS[yypt-0], nil)
+		}
+	case 76:
+		//line gom.y:167
+		{
+			nodeAppend(yylex, &yyVAL, &yyS[yypt-2], &yyS[yypt-0])
+		}
+	case 77:
+		//line gom.y:170
 		{
 			defineField(yylex, &yyVAL, &yyS[yypt-2], &yyS[yypt-0])
 		}

@@ -24,6 +24,8 @@ const (
 	OP_SMETHOD      = OP(12)
 	OP_SM_PARAMS    = OP(13)
 	OP_SM_PARAM     = OP(14)
+	OP_OBJECT       = OP(15)
+	OP_OBJECT_BODY  = OP(16)
 )
 
 var OPNames = []string{
@@ -33,6 +35,7 @@ var OPNames = []string{
 	"FIELD", "TYPE",
 	"STRUCT", "STRUCT_BODY", "SFIELD",
 	"SERVICE", "SERVICE_BODY", "SMETHOD", "SM_PARAMS", "SM_PARAM",
+	"OBJECT", "OBJECT_BODY",
 }
 
 func beNode(yylex yyLexer, lval *yySymType, val1 *yySymType) {
@@ -329,6 +332,18 @@ func commitMethodParam(yylex yyLexer, lval *yySymType, v1 *yySymType, v2 *yySymT
 	lval.Be(r)
 	if yyDebug >= 2 {
 		fmt.Println("commitMethodParam end")
+	}
+}
+
+func commitObject(yylex yyLexer, lval *yySymType, v1 *yySymType, v2 *yySymType) {
+	p := yylex.(*Parser)
+	r := v1.value.(*Node2)
+	if v2 != nil {
+		r.AnnoList = Annotations(v2.value.([]*Annotation))
+	}
+	p.nodes = append(p.nodes, r)
+	if yyDebug >= 2 {
+		fmt.Println("commitObject end", r)
 	}
 }
 

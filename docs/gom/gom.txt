@@ -1,0 +1,102 @@
+[文档元素说明]
+1. 名称
+	分为两种
+	- 名字 abc
+	- 全名 abc.bcd
+
+2. 值
+	JSON格式
+	如：123, true, "it's string"
+
+3. 类型
+	名字
+	名字<泛型>
+	名字<泛型1，泛型2>
+	如： int32, bool, string, list<string>, map<string,int>
+
+4.  注解
+	@全名 = 值
+	如：@optional = true
+
+5. 项
+	全名 = 值
+	如 project.name = "bma.go.esp"
+	可标记注解
+
+6. 结构
+	struct 全名 {
+		属性,
+		属性,
+		...
+	}
+	其中属性为 名字:类型
+
+	如：
+	struct userInfo {
+		id:int32
+		name:string,
+		address:list<Address>
+	}
+
+7. 服务
+	service 全名 {
+		方法,
+		方法,
+		...
+	}
+	其中方法为 名字(参数名字:参数类型, ....) : 返回类型
+
+	如
+	service Test {
+		say(word:string) : void
+	}
+
+8. 对象
+	object 名字 {
+		属性,
+		...
+		方法,
+		...
+	}
+
+	如
+	object Car {
+		number : string,
+		run() : bool,
+	}
+
+[整合文档案例]
+-------------------------------------------------
+@ann1=1
+@optional=true
+project.name="helloWorld"
+project.depends = [
+	{"version":1, "package":"bma.core"},
+	{"version":2, "package":"bma.common"},
+]
+@my=1
+struct HelloParams {
+	f3 : list<string>,
+	f4 : map<string, int>,
+	status : int,
+	@length=20
+	name : string
+}
+@you=2
+service HelloServ {
+	sayHello(p HelloParams) : void,
+	commitMethodParam(yylex:yyLexer, lval:yySymType, v1:yySymType, v2:yySymType) : list<uid>,
+
+	@oneway=true
+	kickOut(
+		@index=1
+		p1:int,
+		@index=2
+		p2:int
+	):void,
+}
+object Car {
+	number : string,
+	run() : bool,
+}
+-------------------------------------------------

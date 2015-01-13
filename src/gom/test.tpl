@@ -1,0 +1,1 @@
+hello <?=gom.GetValue("project.name")?>

@@ -1,11 +1,15 @@
 package gom
 
-import "bytes"
+import (
+	"bytes"
+	"golua"
+)
 
 type MValType struct {
 	name       string
 	innerType1 *MValType
 	innerType2 *MValType
+	moo
 }
 
 func (this *MValType) String() string {
@@ -26,4 +30,31 @@ func (this *MValType) String() string {
 type MValue struct {
 	annos *MAnnotations
 	value interface{}
+}
+
+//// vmm
+func (this *MValType) ToVMTable() golua.VMTable {
+	return this
+}
+func (this *MValType) Get(vm *golua.VM, key string) (interface{}, error) {
+	switch key {
+	case "Name":
+		return this.name, nil
+	case "String":
+		return this.String(), nil
+	case "InnerType", "InnerType1":
+		return this.innerType1, nil
+	case "InnerType2":
+		return this.innerType2, nil
+	case "InnerTypes":
+		r := make([]interface{}, 2)
+		r[0] = this.innerType1
+		r[1] = this.innerType2
+		return r, nil
+	}
+	return nil, nil
+}
+
+func (this *MValType) Set(vm *golua.VM, key string, val interface{}) error {
+	return nil
 }

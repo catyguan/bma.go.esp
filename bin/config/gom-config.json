@@ -1,0 +1,29 @@
+{
+	"global" : {
+		"Debug" : true,
+		"DevMode" : true,
+		"GOMAXPROCS" : 5
+	},
+	"fileloader" : {
+		"FL" : {
+			"local" : {
+				"Type" : "file",
+				"Dirs" : ["${CWD}/../golua.local"]
+			},
+			"test" : {
+				"Type" : "file",
+				"Dirs" : ["${CWD}/gom/test"]
+			},
+			"src" : {
+				"Type" : "file",
+				"Dirs" : ["${CWD}/../gom.src"]
+			}
+		}
+	},
+	"gomServ" : {
+		"FL" : {
+			"Type" : "c",
+			"FL" : ["test","src","local"]
+		}
+	}
+}

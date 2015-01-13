@@ -74,7 +74,7 @@ func (this *goluaConfigInfo) Valid() error {
 		}
 	}
 	if this.FL == nil {
-		return fmt.Errorf("empty ScriptSource")
+		return fmt.Errorf("empty FileLoader")
 	}
 	err1 := fileloader.DoValid(this.FL)
 	if err1 != nil {
@@ -207,7 +207,7 @@ func (this *Service) startupApp(k string, gli *glInfo, startup []string) {
 func (this *Service) _create(k string, glcfg *goluaConfigInfo) bool {
 	ss, err0 := fileloader.DoCreate(glcfg.FL)
 	if err0 != nil {
-		logger.Error(tag, "create ScriptSource[%s, %s] fail %s", k, glcfg.FL, err0)
+		logger.Error(tag, "create FileLoader[%s, %s] fail %s", k, glcfg.FL, err0)
 		return false
 	}
 	gli := new(glInfo)

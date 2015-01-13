@@ -4,8 +4,8 @@ a.b.c="test"
 
 project.name="helloWorld"
 project.depends = [
-	{"version":1, "package":"bma.core"},
-	{"version":2, "package":"bma.common"},
+	{"version":1, "package":"bma.util"},
+	123
 ]
 
 @my=1
@@ -14,9 +14,6 @@ struct HelloParams {
 	f2 : bool,
 	f3 : list<string>,
 	f4 : map<string, int>,
-	status : int,
-	@length=20
-	name : string
 }
 
 @you=2
@@ -31,9 +28,4 @@ service HelloServ {
 		@index=2
 		p2:int
 	):void,
-}
-
-object Car {
-	number : string,
-	run() : bool,
 }

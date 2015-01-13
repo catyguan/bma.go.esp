@@ -65,10 +65,10 @@ func (this *Parser) Parse() (Node, error) {
 // 	"with", "return",
 // }
 
-const keywordStart = SERVICE
+const keywordStart = OBJECT
 
 var keywords []string = []string{
-	"service", "struct",
+	"object", "service", "struct",
 	"true", "false", "null",
 }
 
