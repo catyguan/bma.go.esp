@@ -23,7 +23,7 @@ func Module() *golua.VMModule {
 type GOF_gomf_render int
 
 func (this GOF_gomf_render) Exec(vm *golua.VM, self interface{}) (int, error) {
-	err1 := vm.API_checkStack(1)
+	err1 := vm.API_checkStack(3)
 	if err1 != nil {
 		return 0, err1
 	}

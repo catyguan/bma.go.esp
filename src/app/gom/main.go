@@ -5,8 +5,6 @@ import (
 	"fileloader"
 	"fmt"
 	"golua"
-	"golua/vmmclass"
-	"golua/vmmjson"
 	"gom"
 	"logger"
 	"time"
@@ -40,9 +38,7 @@ func main() {
 func myInitor(
 	gl *golua.GoLua,
 ) {
-	golua.InitCoreLibs(gl)
-	vmmjson.InitGoLua(gl)
-	vmmclass.InitGoLua(gl)
+	//	vmmjson.InitGoLua(gl)
 }
 
 func doRun(s *gom.Service) {

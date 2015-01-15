@@ -322,6 +322,8 @@ func (this *gomItem) Get(vm *golua.VM, key string) (interface{}, error) {
 		}
 	}
 	switch key {
+	case "Kind":
+		return "Item", nil
 	case "Value", "_Value":
 		if this.value == nil {
 			return nil, nil
@@ -384,6 +386,8 @@ func (this *MGOM) funcGet(getval bool) interface{} {
 }
 func (this *MGOM) Get(vm *golua.VM, key string) (interface{}, error) {
 	switch key {
+	case "Kind":
+		return "GOM", nil
 	case "Items":
 		r := make(map[string]interface{})
 		for k, o := range this.items {

@@ -17,7 +17,7 @@ func TestService(t *testing.T) {
 		fn := "none"
 		// fn := "goyacc/test1.gom"
 		sc := "dump"
-		// sc := "test.lua"
+		sc = "mysql:mysqltest.lua"
 		ps := []string{}
 		err := service.RunCommands(fn, sc, ps)
 		if err != nil {

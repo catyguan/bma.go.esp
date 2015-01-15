@@ -79,6 +79,8 @@ func (this *MStructField) Get(vm *golua.VM, key string) (interface{}, error) {
 	switch key {
 	case "Name":
 		return this.name, nil
+	case "Kind":
+		return "Field", nil
 	case "Type":
 		if this.valtype != nil {
 			return this.valtype.String(), nil
@@ -104,6 +106,8 @@ func (this *MStruct) Get(vm *golua.VM, key string) (interface{}, error) {
 	switch key {
 	case "Name":
 		return this.name, nil
+	case "Kind":
+		return "Struct", nil
 	case "Fields":
 		r := make([]interface{}, len(this.fields))
 		for i, o := range this.fields {

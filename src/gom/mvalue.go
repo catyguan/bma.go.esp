@@ -40,6 +40,8 @@ func (this *MValType) Get(vm *golua.VM, key string) (interface{}, error) {
 	switch key {
 	case "Name":
 		return this.name, nil
+	case "Kind":
+		return "Type", nil
 	case "String":
 		return this.String(), nil
 	case "InnerType", "InnerType1":

@@ -12,6 +12,7 @@ type MServiceMethodParam struct {
 	annos     *MAnnotations
 	name      string
 	paramType *MValType
+	moo
 }
 
 func (this *MServiceMethodParam) String() string {
@@ -25,6 +26,24 @@ type MServiceMethod struct {
 	params     []*MServiceMethodParam
 	returnType *MValType
 	moo
+}
+
+func (this *MServiceMethod) GetParamByName(n string) *MServiceMethodParam {
+	for _, o := range this.params {
+		if o.name == n {
+			return o
+		}
+	}
+	return nil
+}
+
+func (this *MServiceMethod) GetParamByIndex(i int) *MServiceMethodParam {
+	for idx, o := range this.params {
+		if idx == i {
+			return o
+		}
+	}
+	return nil
 }
 
 func (this *MServiceMethod) String() string {
@@ -117,6 +136,76 @@ func (this *MService) Dump(buf *bytes.Buffer, prex string) {
 }
 
 //// vmm
+func (this *MServiceMethodParam) ToVMTable() golua.VMTable {
+	return this
+}
+func (this *MServiceMethodParam) Get(vm *golua.VM, key string) (interface{}, error) {
+	if ok, v := gooCheckAnno(this.annos, key); ok {
+		return v, nil
+	}
+	switch key {
+	case "Name":
+		return this.name, nil
+	case "Kind":
+		return "Param", nil
+	case "Type":
+		return this.paramType, nil
+	}
+	return nil, nil
+}
+
+func (this *MServiceMethodParam) Set(vm *golua.VM, key string, val interface{}) error {
+	return nil
+}
+
+func (this *MServiceMethod) ToVMTable() golua.VMTable {
+	return this
+}
+func (this *MServiceMethod) Get(vm *golua.VM, key string) (interface{}, error) {
+	if ok, v := gooCheckAnno(this.annos, key); ok {
+		return v, nil
+	}
+	switch key {
+	case "Name":
+		return this.name, nil
+	case "Kind":
+		return "Method", nil
+	case "Return":
+		return this.returnType, nil
+	case "Params":
+		r := make([]interface{}, len(this.params))
+		for i, o := range this.params {
+			r[i] = o
+		}
+		return r, nil
+	case "GetParam":
+		return golua.NewGOF("Method.Param", func(vm *golua.VM, self interface{}) (int, error) {
+			err0 := vm.API_checkStack(1)
+			if err0 != nil {
+				return 0, err0
+			}
+			n, err1 := vm.API_pop1X(-1, true)
+			if err1 != nil {
+				return 0, err1
+			}
+			if vn, ok := n.(string); ok {
+				p := this.GetParamByName(vn)
+				vm.API_push(p)
+			} else {
+				vi := valutil.ToInt(n, 0)
+				p := this.GetParamByIndex(vi)
+				vm.API_push(p)
+			}
+			return 1, nil
+		}), nil
+	}
+	return nil, nil
+}
+
+func (this *MServiceMethod) Set(vm *golua.VM, key string, val interface{}) error {
+	return nil
+}
+
 func (this *MService) ToVMTable() golua.VMTable {
 	return this
 }
@@ -127,6 +216,14 @@ func (this *MService) Get(vm *golua.VM, key string) (interface{}, error) {
 	switch key {
 	case "Name":
 		return this.name, nil
+	case "Kind":
+		return "Service", nil
+	case "Methods":
+		r := make([]interface{}, len(this.methods))
+		for i, o := range this.methods {
+			r[i] = o
+		}
+		return r, nil
 	case "GetMethod":
 		return golua.NewGOF("Service.Method", func(vm *golua.VM, self interface{}) (int, error) {
 			err0 := vm.API_checkStack(1)

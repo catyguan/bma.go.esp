@@ -77,6 +77,20 @@ func (this *MObject) Get(vm *golua.VM, key string) (interface{}, error) {
 	switch key {
 	case "Name":
 		return this.name, nil
+	case "Kind":
+		return "Object", nil
+	case "Fields":
+		r := make([]interface{}, len(this.fields))
+		for i, o := range this.fields {
+			r[i] = o
+		}
+		return r, nil
+	case "Methods":
+		r := make([]interface{}, len(this.methods))
+		for i, o := range this.methods {
+			r[i] = o
+		}
+		return r, nil
 	case "GetField":
 		return golua.NewGOF("Object.Field", func(vm *golua.VM, self interface{}) (int, error) {
 			err0 := vm.API_checkStack(1)

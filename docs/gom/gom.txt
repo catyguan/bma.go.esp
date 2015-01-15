@@ -1,4 +1,6 @@
 [文档元素说明]
+0. UTF8编码
+
 1. 名称
 	分为两种
 	- 名字 abc
@@ -20,8 +22,8 @@
 
 5. 项
 	全名 = 值
+	（可标记注解）
 	如 project.name = "bma.go.esp"
-	可标记注解
 
 6. 结构
 	struct 全名 {
@@ -29,7 +31,9 @@
 		属性,
 		...
 	}
-	其中属性为 名字:类型
+	（可标记注解）
+
+	其中属性为 名字:类型 （可标记注解）
 
 	如：
 	struct userInfo {
@@ -44,11 +48,13 @@
 		方法,
 		...
 	}
-	其中方法为 名字(参数名字:参数类型, ....) : 返回类型
+	（可标记注解）
+	其中方法为 名字(参数名字:参数类型, ....) : 返回类型 （可标记注解）
+	其中参数可标记注解
 
 	如
 	service Test {
-		say(word:string) : void
+		say(word:string, echo:bool) : string
 	}
 
 8. 对象
@@ -58,6 +64,7 @@
 		方法,
 		...
 	}
+	（可标记注解）
 
 	如
 	object Car {
@@ -65,8 +72,12 @@
 		run() : bool,
 	}
 
+9. 注释
+	C风格, // 和 /* */
+
 [整合文档案例]
 -------------------------------------------------
+// 这是个范例
 @ann1=1
 @optional=true
 project.name="helloWorld"
@@ -100,3 +111,30 @@ object Car {
 	run() : bool,
 }
 -------------------------------------------------
+
+[内容规范]
+[[3-1 标准类型]]
+void -- 无返回，只适用于方法返回类型
+bool -- 布尔值,true/false
+int,uint -- 整型数据(u开头表示无符号)，长度由具体场景决定(32或64)
+byte -- 字节，等同uint8
+int8,uint8,int16,uint16,int32,uint32,int64,uint64 -- 明确长度的整型数据
+float -- 32位浮点
+double -- 64位浮点
+string -- 字符串
+date -- 日期，年月日
+time -- 时间，时分秒
+datetime -- 时刻，年月日时分秒
+timestamp -- unix时间戳
+list<?> -- 列表（数组）
+map<?,?> -- 字典
+set<?> -- 元组
+
+[[4-1 基本注解]]
+@title:string -- 元素的标题，如name的title为"名称""
+@desc:string -- 元素说明
+@code:string -- 编码名称，用于生产代码时候的名称
+	@code.java
+	@code.mysql
+@optional:bool -- 是否缺省元素，如注解的是参数的话，表示该参数可以不传递
+@default:* -- 元素缺省的值，如注解的是参数的话，表示不传递该参数的时候使用的值
