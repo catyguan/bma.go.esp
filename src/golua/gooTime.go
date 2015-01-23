@@ -113,7 +113,7 @@ func (this gooTime) Get(vm *VM, o interface{}, key string) (interface{}, error) 
 				return 3, nil
 			}), nil
 		case "Date":
-			return NewGOF("Time.Clock", func(vm *VM, self interface{}) (int, error) {
+			return NewGOF("Time.Date", func(vm *VM, self interface{}) (int, error) {
 				vm.API_popAll()
 				y, m, d := obj.Date()
 				vm.API_push(y)

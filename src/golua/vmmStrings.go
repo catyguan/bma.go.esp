@@ -259,7 +259,7 @@ func (this GOF_strings_toLower) String() string {
 	return "GoFunc<strings.toLower>"
 }
 
-// strings.toLower(s string) string
+// strings.toUpper(s string) string
 type GOF_strings_toUpper int
 
 func (this GOF_strings_toUpper) Exec(vm *VM, self interface{}) (int, error) {

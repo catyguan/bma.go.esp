@@ -179,7 +179,7 @@ func (this GOF_filepath_join) String() string {
 	return "GoFunc<filepath.join>"
 }
 
-// filepath.match(pattern, name string...) bool
+// filepath.match(pattern, name string) bool
 type GOF_filepath_match int
 
 func (this GOF_filepath_match) Exec(vm *VM, self interface{}) (int, error) {

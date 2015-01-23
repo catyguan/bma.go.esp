@@ -279,7 +279,7 @@ func (this GOF_table_newArray) String() string {
 	return "GoFunc<table.newArray>"
 }
 
-// table.sort(...) table
+// table.sort(table, func) table
 type GOF_table_sort int
 
 type theTableSorter struct {

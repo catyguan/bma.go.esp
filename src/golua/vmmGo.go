@@ -459,7 +459,7 @@ func (this GOF_go_sleep) String() string {
 	return "GoFunc<go.sleep>"
 }
 
-// go.timer(timeMS:int, func())
+// go.timer(timeMS:int, func()) : Timer
 type GOF_go_timer int
 
 func (this GOF_go_timer) Exec(vm *VM, self interface{}) (int, error) {
@@ -507,7 +507,7 @@ func (this GOF_go_timer) String() string {
 	return "GoFunc<go.timer>"
 }
 
-// go.ticker(timeMS:int, func())
+// go.ticker(timeMS:int, func()) : Ticker
 type GOF_go_ticker int
 
 func (this GOF_go_ticker) Exec(vm *VM, self interface{}) (int, error) {
@@ -945,7 +945,7 @@ func (this GOF_go_annoList) String() string {
 	return "GoFunc<go.annoList>"
 }
 
-// go.annoAll(o) bool
+// go.annoAll(o) map
 type GOF_go_annoAll int
 
 func (this GOF_go_annoAll) Exec(vm *VM, self interface{}) (int, error) {
