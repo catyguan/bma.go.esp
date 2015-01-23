@@ -30,7 +30,13 @@ func StringsModule() *VMModule {
 	m.Init("formata", GOF_strings_formata(0))
 	m.Init("parsef", GOF_strings_parsef(0))
 	m.Init("md5", GOF_strings_md5(0))
+	m.Init("runeAt", GOF_strings_runeAt(0))
 	return m
+}
+
+func InitGoLuaStringsModule(gl *GoLua) {
+	StringsModule().Bind(gl)
+	gl.SetObjectFactory("ByteBuffer", ByteBufferFactory)
 }
 
 // strings.contains(s, substr string) bool
@@ -643,4 +649,34 @@ func (this GOF_strings_md5) IsNative() bool {
 
 func (this GOF_strings_md5) String() string {
 	return "GoFunc<strings.md5>"
+}
+
+// strings.runeAt(s string, pos int) int
+type GOF_strings_runeAt int
+
+func (this GOF_strings_runeAt) Exec(vm *VM, self interface{}) (int, error) {
+	err0 := vm.API_checkStack(2)
+	if err0 != nil {
+		return 0, err0
+	}
+	s, pos, err1 := vm.API_pop2X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	vs := valutil.ToString(s, "")
+	vpos := valutil.ToInt(pos, 0)
+	runes := []rune(vs)
+	if vpos > len(runes) {
+		return 0, fmt.Errorf("range(%d) out of length(%d)", vpos, len(runes))
+	}
+	vm.API_push(int(runes[vpos]))
+	return 1, nil
+}
+
+func (this GOF_strings_runeAt) IsNative() bool {
+	return true
+}
+
+func (this GOF_strings_runeAt) String() string {
+	return "GoFunc<strings.runeAt>"
 }

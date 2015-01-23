@@ -15,7 +15,7 @@ func TestService(t *testing.T) {
 
 	f := func() {
 		fn := "none"
-		// fn := "goyacc/test1.gom"
+		fn = "goyacc/test1.gom"
 		sc := "dump"
 		sc = "mysql:mysqltest.lua"
 		ps := []string{}

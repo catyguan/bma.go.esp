@@ -118,7 +118,11 @@ func gooCheckAnno(anns *MAnnotations, key string) (bool, interface{}) {
 	switch key {
 	case "Annotation":
 		if anns == nil {
-			return true, nil
+			return true, golua.NewGOF("MAnnotations.Get", func(vm *golua.VM, self interface{}) (int, error) {
+				vm.API_popAll()
+				vm.API_push(nil)
+				return 1, nil
+			})
 		}
 		return true, anns.funcGet()
 	case "Annotations":

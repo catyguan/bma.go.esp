@@ -1,3 +1,7 @@
+require("_:mysqlcore.lua")
+
+local M2 = mysql_m2table(gom, "HelloParams")
+
 local M = {
 	tableName = "rank_mini_rich_weekly",
 	engine="InnoDB",
@@ -46,6 +50,6 @@ local M = {
 	]
 }
 local vo = {
-	M = M
+	M = M2
 }
 gomf.render("mysql:mysql.tpl",vo,"test.out")
