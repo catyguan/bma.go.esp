@@ -38,6 +38,42 @@ func bool01(v bool) int {
 	return 0
 }
 
+func nil_conv(tt reflect.Type) (interface{}, bool) {
+	toKind := tt.Kind()
+	switch toKind {
+	case reflect.Bool:
+		return false, true
+	case reflect.Int:
+		return int(0), true
+	case reflect.Int8:
+		return int8(0), true
+	case reflect.Int16:
+		return int16(0), true
+	case reflect.Int32:
+		return int32(0), true
+	case reflect.Int64:
+		return int64(0), true
+	case reflect.Uint:
+		return uint(0), true
+	case reflect.Uint8:
+		return uint8(0), true
+	case reflect.Uint16:
+		return uint16(0), true
+	case reflect.Uint32:
+		return uint32(0), true
+	case reflect.Uint64:
+		return uint64(0), true
+	case reflect.Float32:
+		return float32(0), true
+	case reflect.Float64:
+		return float64(0), true
+	case reflect.String:
+		return "<nil>", true
+	default:
+		return nil, true
+	}
+}
+
 func bool_conv(iv interface{}, tt reflect.Type) (interface{}, bool) {
 	toKind := tt.Kind()
 	v := iv.(bool)
@@ -545,6 +581,9 @@ func Convert(v interface{}, toType reflect.Type) (interface{}, bool) {
 }
 
 func conv(val reflect.Value, toType reflect.Type) (interface{}, bool) {
+	if !val.IsValid() {
+		return nil_conv(toType)
+	}
 	valType := val.Type()
 	if valType.AssignableTo(toType) {
 		// fmt.Println(1)
