@@ -22,7 +22,7 @@ function mysql_m2table(gom, name, helpers)
 		local mf = {}
 		mf.name=fieldNameF(f)
 		mf.type=typeNameF(f)
-		mf.notNull=true
+		mf.notNull=helper_annotation(f, "notNull", true)
 		mf.comment=helper_annotation(f, "comment", "")
 		table.insert(M.fields, mf)
 	end

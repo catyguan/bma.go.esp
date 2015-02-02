@@ -13,6 +13,7 @@ struct HelloParams {
 	f1 : int32,
 	f2 : bool,
 	f3 : list<string>,
+	@notNull=false
 	f4 : map<string, int>,
 	status : int,
 	@length=20
