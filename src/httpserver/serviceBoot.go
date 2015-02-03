@@ -22,7 +22,7 @@ func (this *HttpServerConfigInfo) Valid() error {
 			this.Port = 80
 		}
 		if this.Port > 0 {
-			this.Address = logger.Sprintf(":%d", this.Port)
+			this.Address = fmt.Sprintf(":%d", this.Port)
 		} else {
 			return fmt.Errorf("port invalid")
 		}
