@@ -37,7 +37,7 @@ func (this *Service) InitMuxInvoke(mux *http.ServeMux, path string) {
 		mycode := ""
 		cfgcode := this.config.Code
 		if cfgcode != "" {
-			tmp := fmt.Sprintf("%d/%s/%s/%s", id, aid, strparam, cfgcode)
+			tmp := fmt.Sprintf("%s/%s/%s/%s", id, aid, strparam, cfgcode)
 			h := md5.New()
 			h.Write([]byte(tmp))
 			mycode = fmt.Sprintf("%x", h.Sum(nil))

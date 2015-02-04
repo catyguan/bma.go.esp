@@ -30,15 +30,21 @@ type Goo struct {
 	EDebug      bool
 	sm          StateMachine
 	queue       chan interface{}
+	queue2      chan interface{}
 	exitHandler ExitHandler
 }
 
 func (this *Goo) InitGoo(tag string, queueSize int, exithandler ExitHandler) {
+	this.Tag = tag
 	this.queue = make(chan interface{}, queueSize)
 	this.exitHandler = exithandler
 	this.sm.InitStateMachine(STATE_INIT, gooStates)
 	this.sm.SetCanEnterF(canEnter4goo)
 	this.sm.SetAfterEnterF(afterEnter4goo)
+}
+
+func (this *Goo) BindQueue2(q chan interface{}) {
+	this.queue2 = q
 }
 
 func (this *Goo) execute(req interface{}) (err error) {
@@ -90,7 +96,15 @@ func (this *Goo) run() {
 		case STATE_CLOSE:
 			return
 		}
-		dreq := <-this.queue
+		var dreq interface{}
+		if this.queue2 == nil {
+			dreq = <-this.queue
+		} else {
+			select {
+			case dreq = <-this.queue:
+			case dreq = <-this.queue2:
+			}
+		}
 		if dreq == nil {
 			return
 		}

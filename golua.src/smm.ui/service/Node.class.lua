@@ -36,7 +36,7 @@ function Class.httpInvoke(nodeInfo, param)
 	data["aid"] = self.aid
 	data["param"] = strparam
 	if nodeInfo.code~='' then
-		local tmp = strings.format("%d/%s/%s/%s", self.id, self.aid, strparam, nodeInfo.code)
+		local tmp = strings.format("%s/%s/%s/%s", self.id, self.aid, strparam, nodeInfo.code)
 		data["code"] = strings.md5(tmp)
 	end
 	req.Data = data

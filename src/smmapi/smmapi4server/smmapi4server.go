@@ -58,6 +58,13 @@ func (this smmObject) GetInfo() (*smmapi.SMInfo, error) {
 		a.Type = smmapi.SMA_API
 		r.Actions = append(r.Actions, a)
 	}
+	if true {
+		a := new(smmapi.SMAction)
+		a.Id = "boot.shutdown"
+		a.Title = "Shutdown"
+		a.Type = smmapi.SMA_API
+		r.Actions = append(r.Actions, a)
+	}
 
 	return r, nil
 }
@@ -68,6 +75,12 @@ func (this smmObject) ExecuteAction(aid string, param map[string]interface{}) (i
 		msg := "OK"
 		time.AfterFunc(100*time.Millisecond, func() {
 			boot.Restart()
+		})
+		return msg, nil
+	case "boot.shutdown":
+		msg := "OK"
+		time.AfterFunc(100*time.Millisecond, func() {
+			boot.Shutdown()
 		})
 		return msg, nil
 	case "boot.profiles":
