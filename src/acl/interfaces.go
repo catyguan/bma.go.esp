@@ -61,6 +61,16 @@ func (this *User) Match(rule *User) bool {
 	if rule.Domain != "*" && rule.Domain != this.Domain {
 		return false
 	}
+	if len(rule.Groups) > 0 {
+		for _, g := range rule.Groups {
+			for _, mg := range this.Groups {
+				if g == mg {
+					return true
+				}
+			}
+		}
+		return false
+	}
 	return true
 }
 

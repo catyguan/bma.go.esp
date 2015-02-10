@@ -12,6 +12,7 @@ func OSModule() *VMModule {
 	m.Init("rename", GOF_os_rename(0))
 	m.Init("createFile", GOF_os_createFile(0))
 	m.Init("openFile", GOF_os_openFile(0))
+	m.Init("fileExists", GOF_os_fileExists(0))
 	return m
 }
 
@@ -172,4 +173,41 @@ func (this GOF_os_openFile) IsNative() bool {
 
 func (this GOF_os_openFile) String() string {
 	return "GoFunc<os.openFile>"
+}
+
+// os.fileExists(name string) bool
+type GOF_os_fileExists int
+
+func (this GOF_os_fileExists) Exec(vm *VM, self interface{}) (int, error) {
+	err0 := vm.API_checkStack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	n1, err1 := vm.API_pop1X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	r := true
+	vn1 := valutil.ToString(n1, "")
+	f, err := os.Open(vn1)
+	if err != nil {
+		if os.IsNotExist(err) {
+			r = false
+		} else {
+			return 0, err
+		}
+	}
+	if f != nil {
+		f.Close()
+	}
+	vm.API_push(r)
+	return 1, nil
+}
+
+func (this GOF_os_fileExists) IsNative() bool {
+	return true
+}
+
+func (this GOF_os_fileExists) String() string {
+	return "GoFunc<os.fileExists>"
 }

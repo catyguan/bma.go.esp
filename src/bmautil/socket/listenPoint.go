@@ -22,7 +22,7 @@ type ListenConfig struct {
 func (this *ListenConfig) Valid() error {
 	if this.Address == "" {
 		if this.Port > 0 {
-			this.Address = logger.Sprintf(":%d", this.Port)
+			this.Address = fmt.Sprintf(":%d", this.Port)
 		} else {
 			return fmt.Errorf("port invalid")
 		}

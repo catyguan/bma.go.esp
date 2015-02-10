@@ -2,6 +2,8 @@ package golua
 
 import (
 	"bmautil/valutil"
+	"boot"
+	"io/ioutil"
 	"path"
 	"path/filepath"
 )
@@ -18,6 +20,8 @@ func FilePathModule() *VMModule {
 	m.Init("abs", GOF_filepath_abs(0))
 	m.Init("rel", GOF_filepath_rel(0))
 	m.Init("changeExt", GOF_filepath_changeExt(0))
+	m.Init("appWork", GOF_filepath_appWork(0))
+	m.Init("appTemp", GOF_filepath_appTemp(0))
 	return m
 }
 
@@ -300,4 +304,85 @@ func (this GOF_filepath_changeExt) IsNative() bool {
 
 func (this GOF_filepath_changeExt) String() string {
 	return "GoFunc<filepath.changeExt>"
+}
+
+// filepath.appWork(fn string, create bool) string
+type GOF_filepath_appWork int
+
+func (this GOF_filepath_appWork) Exec(vm *VM, self interface{}) (int, error) {
+	err0 := vm.API_checkStack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	fn, create, err1 := vm.API_pop2X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	vfn := valutil.ToString(fn, "")
+	vcreate := valutil.ToBool(create, false)
+
+	rfn := ""
+	if vcreate {
+		rfn, err1 = boot.WorkFile(vfn)
+		if err1 != nil {
+			return 0, err1
+		}
+	} else {
+		rfn = filepath.Join(boot.WorkDir, vfn)
+	}
+	vm.API_push(rfn)
+	return 1, nil
+}
+
+func (this GOF_filepath_appWork) IsNative() bool {
+	return true
+}
+
+func (this GOF_filepath_appWork) String() string {
+	return "GoFunc<filepath.appWork>"
+}
+
+// filepath.appTemp(fn string, create bool) string
+type GOF_filepath_appTemp int
+
+func (this GOF_filepath_appTemp) Exec(vm *VM, self interface{}) (int, error) {
+	err0 := vm.API_checkStack(1)
+	if err0 != nil {
+		return 0, err0
+	}
+	fn, create, err1 := vm.API_pop2X(-1, true)
+	if err1 != nil {
+		return 0, err1
+	}
+	vfn := valutil.ToString(fn, "")
+	vcreate := valutil.ToBool(create, false)
+
+	if vfn == "" {
+		f, err2 := ioutil.TempFile(boot.TempDir, "goluatmp_")
+		if err2 != nil {
+			return 0, err2
+		}
+		vfn = f.Name()
+		f.Close()
+	}
+
+	rfn := ""
+	if vcreate {
+		rfn, err1 = boot.TempFile(vfn)
+		if err1 != nil {
+			return 0, err1
+		}
+	} else {
+		rfn = filepath.Join(boot.TempDir, vfn)
+	}
+	vm.API_push(rfn)
+	return 1, nil
+}
+
+func (this GOF_filepath_appTemp) IsNative() bool {
+	return true
+}
+
+func (this GOF_filepath_appTemp) String() string {
+	return "GoFunc<filepath.appTemp>"
 }

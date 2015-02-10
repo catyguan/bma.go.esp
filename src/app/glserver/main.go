@@ -4,16 +4,14 @@ import (
 	"boot"
 	"esp/acclog"
 	"esp/aclserv"
-	"esp/espnet/espnetss"
-	"esp/espnet/mempipeline"
-	"esp/espnet/vmmesnp"
+	// "esp/espnet/vmmesnp"
 	"esp/goluaserv"
 	"esp/http4goluaserv"
 	"esp/memserv"
 	"esp/memserv/memserv4httpsession"
 	"esp/memserv/vmmmemserv"
-	"esp/servicecall"
-	"esp/servicecall/vmmservicecall"
+
+	// "esp/servicecall/vmmservicecall"
 	"fileloader"
 	"golua"
 	"golua/vmmacclog"
@@ -27,6 +25,7 @@ import (
 	"os"
 	"smmapi/httpmux4smmapi"
 	_ "smmapi/smmapi4config"
+	_ "smmapi/smmapi4pprof"
 	_ "smmapi/smmapi4server"
 
 	_ "fileloader/http4fileloader"
@@ -58,28 +57,8 @@ func main() {
 	sess := memserv4httpsession.NewService("sessionServ", mems)
 	boot.AddService(sess)
 
-	memp := mempipeline.NewService()
-	boot.AddService(memp.CreateBootService("mempipeline"))
-
-	ssp := espnetss.NewService()
-	boot.AddService(ssp.CreateBootService("espnetss"))
-
-	scs := servicecall.NewService("serviceCall", nil)
-	scs.AddServiceCallerFactory("http", servicecall.HttpServiceCallerFactory(0))
-	if true {
-		fac := new(servicecall.ESNPMemPipelineServiceCallerFactory)
-		fac.S = memp
-		scs.AddServiceCallerFactory("memp", fac)
-	}
-	if true {
-		fac := new(servicecall.ESNPNetServiceCallerFactory)
-		fac.S = ssp
-		scs.AddServiceCallerFactory("esnp", fac)
-	}
-	boot.AddService(scs)
-
 	service := goluaserv.NewService("goluaServ", func(gl *golua.GoLua) {
-		myInitor(gl, acclog, mems, sess, scs)
+		myInitor(gl, acclog, mems, sess)
 	})
 	boot.AddService(service)
 
@@ -113,7 +92,6 @@ func myInitor(
 	acclog *acclog.Service,
 	mems *memserv.MemoryServ,
 	sess *memserv4httpsession.Service,
-	scs *servicecall.Service,
 ) {
 	golua.InitCoreLibs(gl)
 	vmmhttp.InitGoLuaWithHttpServ(gl)
@@ -122,8 +100,8 @@ func myInitor(
 	vmmjson.InitGoLua(gl)
 	vmmsql.InitGoLua(gl)
 	vmmclass.InitGoLua(gl)
-	vmmesnp.InitGoLua(gl)
+	// vmmesnp.InitGoLua(gl)
 	vmmmemserv.InitGoLua(gl, mems)
-	vmmservicecall.InitGoLua(gl, scs)
+	// vmmservicecall.InitGoLua(gl, scs)
 	http4goluaserv.InitGoLua(gl, sess)
 }

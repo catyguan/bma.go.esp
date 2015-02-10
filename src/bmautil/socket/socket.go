@@ -115,7 +115,7 @@ func (this *Socket) AddCloseListener(lis SocketCloseListener, id string) {
 		return
 	}
 	if id == "" {
-		id = logger.Sprintf("%p", lis)
+		id = fmt.Sprintf("%p", lis)
 	}
 	this.clisLock.Lock()
 	defer this.clisLock.Unlock()
@@ -138,7 +138,7 @@ func (this *Socket) Write(req *WriteReq) (err error) {
 			if err2, ok := ex.(error); ok {
 				err = err2
 			} else {
-				err = errors.New(logger.Sprintf("%v", ex))
+				err = errors.New(fmt.Sprintf("%v", ex))
 			}
 		}
 	}()

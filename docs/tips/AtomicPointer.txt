@@ -1,0 +1,90 @@
+Here is an example(http://play.golang.org/p/tvjjkc9QYX) showing how to use atomic.SetPointer. It is rather ugly due to the use of unsafe.Pointer. However unsafe.Pointer casts compile to nothing so the runtime cost is small.
+
+import (
+    "fmt"
+    "sync/atomic"
+    "unsafe"
+)
+
+type Struct struct {
+    p unsafe.Pointer // some pointer
+}
+
+func main() {
+    data := 1
+
+    info := Struct{p: unsafe.Pointer(&data)}
+
+    fmt.Printf("info is %d\n", *(*int)(info.p))
+
+    otherData := 2
+
+    atomic.StorePointer(&info.p, unsafe.Pointer(&otherData))
+
+    fmt.Printf("info is %d\n", *(*int)(info.p))
+
+}
+
+
+------------------
+// quick example with comments
+package hello
+
+import (
+    "sync/atomic"
+    "unsafe"
+)
+
+type Config struct {
+}
+
+type Server struct {
+    Configuration *Config
+}
+
+func (server *Server) loadConfig(configFile string) {
+    newConfig := new(Config)
+    // load config as necessary
+
+    // if I perform atomic assignment of (server.Configuration = newConfig), new config is picked up immediately on next read?
+    // is this right?
+    currentConfigPtr := unsafe.Pointer(server.Configuration)
+    newConfigPtr := unsafe.Pointer(newConfig)
+    atomic.StorePointer(&currentConfigPtr, newConfigPtr) 
+}
+
+func (server *Server) handleRequest() {
+        
+    // do I need to read config atomically with LoadPointer?
+    // if so, how do I do that.  I've tried several things and 
+    // can't figure out how to cast back to my original type
+
+    // or should I use RWMutex to faciliate access to config object?
+}
+
+-----------------
+import (
+	"log"
+	"sync/atomic"
+	"unsafe"
+)
+
+type T struct {
+	V string
+}
+
+func main() {
+	t1 := &T{"one"}
+	t2 := &T{"two"}
+
+	p := unsafe.Pointer(t1)
+
+	// Store the pointer to t2 in the address of t1's pointer
+	atomic.StorePointer(&p, unsafe.Pointer(t2))
+
+	// load the pointer at address &p into t
+	t := atomic.LoadPointer(&p)
+
+	// convert the unsafe.Pointer t into a *T
+	log.Println((*T)(t))
+}

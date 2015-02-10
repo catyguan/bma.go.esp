@@ -3,7 +3,8 @@ package smmapitc
 import "testing"
 
 const (
-	NODE_HTTP_URL  = "http://127.0.0.1:1081/smm.api/invoke"
+	// NODE_HTTP_URL  = "http://127.0.0.1:1081/smm.api/invoke"
+	NODE_HTTP_URL  = "http://172.19.108.218:19091/smm.api/invoke"
 	NODE_HTTP_CODE = "1"
 )
 
